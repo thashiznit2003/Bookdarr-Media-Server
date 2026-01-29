@@ -1,23 +1,24 @@
-# Handoff — Bookdarr Media Server
+# Handoff — Bookdarr Media Server (BMS)
 
-## Status
-- Repo created and initialized.
-- NestJS scaffold generated.
-- Docs refreshed to project intent.
+## Current Status
+- Repo initialized with NestJS scaffold.
+- Docs updated for new agent handoff.
+- No app features implemented yet.
 
 ## Decisions
-- Tech stack: Node.js + NestJS
-- Auth: BMS‑only accounts, invite codes, Gmail SMTP reset
-- Bookdarr integration: API key set in BMS admin settings
+- Stack: Node.js + NestJS
+- Accounts: BMS‑only accounts, invite codes
+- SMTP: Gmail via app password
+- Bookdarr integration: API key stored in BMS settings UI (server‑side only)
 - Diagnostics: opt‑in by default; later hidden behind secret unlock
 
-## Next Steps
-1. Implement config module (Bookdarr API + SMTP).
-2. Build auth module (JWT + refresh + invite codes).
-3. Add rate limiting + password policy.
-4. Add Bookdarr client (read‑only Book Pool).
-5. Add diagnostics opt‑in + GitHub push.
+## Immediate Next Steps
+1. Create config/settings module (Bookdarr API URL/key, Gmail SMTP, diagnostics opt‑in).
+2. Auth module: invite code signup, JWT + refresh, password reset email.
+3. Admin UI placeholder (simple web UI or API endpoints for settings).
+4. Bookdarr client module (read‑only Book Pool endpoints).
+5. Diagnostics push: GitHub repo `/bms/` folder.
 
 ## Notes
-- BMS should read Book Pool only (not Bookdarr user library).
+- BMS must never expose Bookdarr API key.
 - BMS should not modify Bookdarr data (read‑only).

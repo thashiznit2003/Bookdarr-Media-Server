@@ -1,30 +1,24 @@
-# Checklist — Bookdarr Media Server
+# Checklist — Bookdarr Media Server (BMS)
 
 ## Repo
-- [ ] README.md updated
-- [ ] CHANGELOG.md updated
-- [ ] HANDOFF.md updated
-- [ ] CHECKLIST.md updated
+- [x] Docs scaffolded
+- [ ] Update README/HANDOFF on changes
 
 ## Core Features
-- [ ] Bookdarr API key settings
-- [ ] Gmail SMTP config + test email
+- [ ] Settings UI: Bookdarr API URL/key
+- [ ] Gmail SMTP settings + test email
 - [ ] Invite code system
-- [ ] JWT auth + refresh
+- [ ] Auth (JWT + refresh)
 - [ ] Rate limiting
-- [ ] Library listing (Book Pool)
-- [ ] Audiobook streaming (range requests)
-- [ ] Ebook download
+- [ ] Library list from Book Pool
+- [ ] Audiobook streaming
+- [ ] Ebook downloads
 
 ## Security
-- [ ] Strong password hashing (Argon2id)
-- [ ] Lockout/backoff on failed login
-- [ ] CORS locked to UI origins
+- [ ] Argon2id hashing
+- [ ] Login lockout/backoff
+- [ ] CORS locked to Reader app
 
 ## Diagnostics
 - [ ] Opt‑in diagnostics
-- [ ] Push to Bookdarr‑Media‑Diagnostics under /bms
-
-## Deployment
-- [ ] Ubuntu dev runbook
-- [ ] Docker plan (later)
+- [ ] Push to Bookdarr‑Media‑Diagnostics /bms

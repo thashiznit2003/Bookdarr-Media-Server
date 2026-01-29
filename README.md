@@ -1,39 +1,28 @@
 # Bookdarr Media Server (BMS)
 
-Bookdarr Media Server (BMS) is a secure, public‑facing media server that reads from Bookdarr's Book Pool and serves audiobooks/ebooks to the Bookdarr Media Reader mobile app. BMS is designed to be internet‑exposed; Bookdarr itself should remain private.
+BMS is a secure, public‑facing media server that reads from Bookdarr’s Book Pool and serves audiobooks/ebooks to the Bookdarr Media Reader app. Bookdarr itself should remain private.
 
 ## Goals
-- Secure, public API + streaming (similar to Plex/Jellyfin)
-- Separate BMS user accounts (invite‑code signup)
-- Offline downloads via the Reader app
-- Progress stored **on device** (Reader), not server
-- Integrate with Bookdarr via API key
-- Gmail SMTP support for password reset
+- Public API + streaming (Plex‑like)
+- Separate BMS user accounts (invite codes)
+- Gmail SMTP password reset
+- Offline downloads in Reader app
+- Diagnostics opt‑in
 
 ## Tech Stack
 - Node.js + NestJS
 - SQLite (dev), PostgreSQL (prod)
-- Redis (optional for rate limiting/session cache)
+- Optional Redis for rate limiting
 
-## Development Environment
-- Target dev OS: Ubuntu
-- Production target: Docker (later)
-
-## Configuration (planned)
-- Bookdarr API URL + API Key (admin settings UI)
-- SMTP (Gmail) settings: host, port, username, app password
-- Invite code management
-- Diagnostics opt‑in (disabled by default)
-
-## Security Notes
-- Never expose Bookdarr directly to the public internet.
-- BMS enforces authentication, rate limiting, and strong password policies.
+## Development
+- Target OS: Ubuntu
+- Docker later
 
 ## Docs
-- `AGENTS.md` — collaboration rules and agent handoff
-- `HANDOFF.md` — current state + next steps
-- `CHECKLIST.md` — build/run/deploy checklist
-- `CHANGELOG.md` — chronological changes
+- AGENTS.md
+- HANDOFF.md
+- CHECKLIST.md
+- CHANGELOG.md
 
 ## License
-MIT (see `LICENSE`).
+MIT (see LICENSE)
