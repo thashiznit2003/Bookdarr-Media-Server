@@ -13,13 +13,12 @@
 - [ ] JWT auth + refresh
 - [ ] Rate limiting
 - [ ] Library listing (Book Pool)
-- [ ] Audiobook streaming
+- [ ] Audiobook streaming (range requests)
 - [ ] Ebook download
 
 ## Security
 - [ ] Strong password hashing (Argon2id)
 - [ ] Lockout/backoff on failed login
-- [ ] CSRF protections (if using cookies)
 - [ ] CORS locked to UI origins
 
 ## Diagnostics

@@ -2,7 +2,8 @@
 
 ## Status
 - Repo created and initialized.
-- Documentation scaffold added.
+- NestJS scaffold generated.
+- Docs refreshed to project intent.
 
 ## Decisions
 - Tech stack: Node.js + NestJS
@@ -11,11 +12,11 @@
 - Diagnostics: opt‑in by default; later hidden behind secret unlock
 
 ## Next Steps
-1. Scaffold NestJS app (API + admin UI placeholder).
-2. Define config schema for Bookdarr API + SMTP.
-3. Create user auth module (JWT + refresh).
-4. Add diagnostics opt‑in flag + push pipeline.
-5. Draft API contract for Reader app.
+1. Implement config module (Bookdarr API + SMTP).
+2. Build auth module (JWT + refresh + invite codes).
+3. Add rate limiting + password policy.
+4. Add Bookdarr client (read‑only Book Pool).
+5. Add diagnostics opt‑in + GitHub push.
 
 ## Notes
 - BMS should read Book Pool only (not Bookdarr user library).

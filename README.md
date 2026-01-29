@@ -12,7 +12,7 @@ Bookdarr Media Server (BMS) is a secure, public‑facing media server that reads
 
 ## Tech Stack
 - Node.js + NestJS
-- PostgreSQL (or SQLite for dev)
+- SQLite (dev), PostgreSQL (prod)
 - Redis (optional for rate limiting/session cache)
 
 ## Development Environment
@@ -36,4 +36,4 @@ Bookdarr Media Server (BMS) is a secure, public‑facing media server that reads
 - `CHANGELOG.md` — chronological changes
 
 ## License
-Open‑source, no ads, no payments. License details will be finalized in `LICENSE`.
+MIT (see `LICENSE`).
