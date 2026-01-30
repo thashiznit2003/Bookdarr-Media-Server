@@ -20,6 +20,19 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - Port: 9797
 - Docker later
 
+## Configuration (env)
+- `BOOKDARR_API_URL` (http/https, no trailing slash)
+- `BOOKDARR_API_KEY`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM`
+- `DIAGNOSTICS_REQUIRED` (default true)
+- `PORT` (default 9797)
+
+GET `/settings` returns a redacted settings summary for debugging.
+
 ## Docs
 - AGENTS.md
 - HANDOFF.md

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.4
+- Added settings module with env parsing and public settings endpoint.
+
 ## 0.0.3
 - Clarified dev diagnostics requirement and UI/port details.
 

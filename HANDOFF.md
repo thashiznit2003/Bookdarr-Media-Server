@@ -3,7 +3,7 @@
 ## Current Status
 - Repo initialized with NestJS scaffold.
 - Docs updated for new agent handoff.
-- No app features implemented yet.
+- Settings module added (env parsing + redacted `/settings` endpoint).
 
 ## Decisions
 - Stack: Node.js + NestJS
@@ -15,11 +15,10 @@
 - Diagnostics: required during development; opt‑in later behind secret unlock
 
 ## Immediate Next Steps
-1. Create config/settings module (Bookdarr API URL/key, Gmail SMTP, diagnostics opt‑in).
-2. Auth module: invite code signup, JWT + refresh, password reset email.
-3. Admin UI placeholder (simple web UI or API endpoints for settings).
-4. Bookdarr client module (read‑only Book Pool endpoints).
-5. Diagnostics push: GitHub repo `/bms/` folder.
+1. Auth module: invite code signup, JWT + refresh, password reset email.
+2. Admin UI placeholder (simple web UI or API endpoints for settings).
+3. Bookdarr client module (read‑only Book Pool endpoints).
+4. Diagnostics push: GitHub repo `/bms/` folder.
 
 ## Notes
 - BMS must never expose Bookdarr API key.
