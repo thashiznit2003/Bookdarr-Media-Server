@@ -35,6 +35,7 @@
 - EPUB reader now forces archived loading and falls back to buffered fetch if streaming mode fails.
 - EPUB reader now loads JSZip and renders from a blob object URL to mirror Bookdarr behavior.
 - EPUB reader now paginates single-page views with arrows + swipe navigation.
+- EPUB reader arrows now render above reader content (overlay z-index fix).
 
 ## Decisions
 - Stack: Node.js + NestJS

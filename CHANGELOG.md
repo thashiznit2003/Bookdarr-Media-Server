@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.25 — 2026-01-30 12:39 -06:00
+- Raise EPUB navigation arrows above reader content so they remain visible.
+
 ## 1.0.24 — 2026-01-30 11:58 -06:00
 - Add EPUB navigation arrows, swipe gestures, and enforce single-page pagination.
 

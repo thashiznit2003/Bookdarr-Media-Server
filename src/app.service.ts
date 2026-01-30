@@ -684,6 +684,7 @@ export class AppService {
         padding: 0 12px;
         opacity: 0;
         transition: opacity 0.2s ease;
+        z-index: 5;
       }
 
       .reader-modal[data-reader-mode="epub"] .reader-nav-overlay,
@@ -716,6 +717,7 @@ export class AppService {
         overflow: auto;
         padding: 16px;
         position: relative;
+        z-index: 1;
       }
 
       .reader-modal[data-reader-mode="epub"] .reader-view {
