@@ -1,3 +1,9 @@
+export interface BookdarrBookImage {
+  coverType?: string;
+  url?: string;
+  remoteUrl?: string;
+}
+
 export interface BookdarrBookPoolItem {
   bookId: number;
   status: string;
@@ -13,11 +19,20 @@ export interface BookdarrBookPoolItem {
     };
     releaseDate?: string;
     overview?: string;
-    images?: Array<{ coverType?: string; url?: string; remoteUrl?: string }>; 
+    images?: BookdarrBookImage[];
   };
 }
 
 export interface BookdarrBookPoolResponse extends Array<BookdarrBookPoolItem> {}
+
+export interface BookdarrBookResource {
+  id?: number;
+  title?: string;
+  overview?: string;
+  images?: BookdarrBookImage[];
+}
+
+export interface BookdarrBookResponse extends Array<BookdarrBookResource> {}
 
 export interface BookdarrBookFileResource {
   id: number;

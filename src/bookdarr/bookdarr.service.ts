@@ -4,6 +4,8 @@ import {
   BookdarrBookFilesResponse,
   BookdarrBookPoolItem,
   BookdarrBookPoolResponse,
+  BookdarrBookResource,
+  BookdarrBookResponse,
 } from './bookdarr.types';
 import { BookdarrConfigService } from './bookdarr-config.service';
 
@@ -58,6 +60,42 @@ export class BookdarrService {
     }
 
     return (await response.json()) as BookdarrBookPoolResponse;
+  }
+
+  async getBookResource(bookId: number): Promise<BookdarrBookResource | undefined> {
+    const { apiUrl, apiKey } = await this.getApiConfig();
+    const url = this.joinUrl(apiUrl, `/api/v1/book?bookIds=${bookId}`);
+    const response = await fetch(url, {
+      headers: {
+        'X-Api-Key': apiKey,
+        'User-Agent': 'bookdarr-media-server',
+      },
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const data = (await response.json()) as BookdarrBookResponse;
+    return Array.isArray(data) ? data[0] : undefined;
+  }
+
+  async getBookOverview(bookId: number): Promise<string | undefined> {
+    const { apiUrl, apiKey } = await this.getApiConfig();
+    const url = this.joinUrl(apiUrl, `/api/v1/book/${bookId}/overview`);
+    const response = await fetch(url, {
+      headers: {
+        'X-Api-Key': apiKey,
+        'User-Agent': 'bookdarr-media-server',
+      },
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const data = (await response.json()) as { overview?: string };
+    return data?.overview ?? undefined;
   }
 
   async getBookFiles(bookId: number): Promise<BookdarrBookFilesResponse> {
@@ -115,6 +153,24 @@ export class BookdarrService {
     }
 
     return response;
+  }
+
+  async fetchFromBookdarrPath(
+    path: string,
+    method: 'GET' | 'HEAD' = 'GET',
+    range?: string,
+  ) {
+    const { apiUrl, apiKey } = await this.getApiConfig();
+    const url = this.joinUrl(apiUrl, path);
+    const headers: Record<string, string> = {
+      'X-Api-Key': apiKey,
+      'User-Agent': 'bookdarr-media-server',
+    };
+    if (range) {
+      headers.Range = range;
+    }
+
+    return fetch(url, { headers, method });
   }
 
   private joinUrl(base: string, path: string): string {

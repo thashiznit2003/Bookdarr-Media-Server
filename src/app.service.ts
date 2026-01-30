@@ -569,6 +569,95 @@ export class AppService {
         background: #0f1115;
       }
 
+      .reader-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 10, 16, 0.92);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 60;
+      }
+
+      .reader-modal.active {
+        display: flex;
+      }
+
+      .reader-card {
+        width: min(1200px, 96vw);
+        height: min(90vh, 820px);
+        background: var(--panel);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .reader-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        gap: 12px;
+      }
+
+      .reader-title {
+        font-weight: 600;
+      }
+
+      .reader-progress {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .reader-controls {
+        display: flex;
+        gap: 8px;
+        padding: 12px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .reader-button {
+        border: none;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .reader-view {
+        flex: 1;
+        overflow: auto;
+        padding: 16px;
+        position: relative;
+      }
+
+      .reader-canvas {
+        display: block;
+        margin: 0 auto;
+        border-radius: 12px;
+        background: #0f1115;
+      }
+
+      .reader-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--text);
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+
       .panel {
         background: var(--panel);
         border-radius: 18px;
@@ -1058,14 +1147,33 @@ export class AppService {
           </div>
         </div>
       </div>
+
+      <div id="reader-modal" class="reader-modal" aria-hidden="true">
+        <div class="reader-card">
+          <button class="reader-close" id="reader-close">✕</button>
+          <div class="reader-header">
+            <div class="reader-title" id="reader-title">Reader</div>
+            <div class="reader-progress" id="reader-progress"></div>
+          </div>
+          <div class="reader-controls">
+            <button class="reader-button" id="reader-prev">Prev</button>
+            <button class="reader-button" id="reader-next">Next</button>
+            <a class="reader-button" id="reader-download" href="#" target="_blank" rel="noreferrer">Download</a>
+          </div>
+          <div class="reader-view" id="reader-view"></div>
+        </div>
+      </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.93/epub.min.js"></script>
     <script>
       const state = {
         filter: 'all',
         query: '',
         library: [],
-        token: null
+        token: null,
+        userId: null
       };
 
       const libraryGrid = document.getElementById('library-grid');
@@ -1143,6 +1251,14 @@ export class AppService {
       const detailEbook = document.getElementById('detail-ebook');
       const detailRefresh = document.getElementById('detail-refresh');
       const detailRefreshStatus = document.getElementById('detail-refresh-status');
+      const readerModal = document.getElementById('reader-modal');
+      const readerClose = document.getElementById('reader-close');
+      const readerTitle = document.getElementById('reader-title');
+      const readerProgress = document.getElementById('reader-progress');
+      const readerPrev = document.getElementById('reader-prev');
+      const readerNext = document.getElementById('reader-next');
+      const readerDownload = document.getElementById('reader-download');
+      const readerView = document.getElementById('reader-view');
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1179,9 +1295,32 @@ export class AppService {
           closeBookDetail();
         }
       });
+      readerClose?.addEventListener('click', closeReader);
+      readerModal?.addEventListener('click', (event) => {
+        if (event.target === readerModal) {
+          closeReader();
+        }
+      });
+      readerPrev?.addEventListener('click', () => {
+        if (epubRendition) {
+          epubRendition.prev();
+        } else if (pdfDoc) {
+          pdfPage = Math.max(1, pdfPage - 1);
+          renderPdfPage();
+        }
+      });
+      readerNext?.addEventListener('click', () => {
+        if (epubRendition) {
+          epubRendition.next();
+        } else if (pdfDoc) {
+          pdfPage = Math.min(pdfDoc.numPages, pdfPage + 1);
+          renderPdfPage();
+        }
+      });
       window.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
           closeBookDetail();
+          closeReader();
         }
       });
 
@@ -1218,15 +1357,18 @@ export class AppService {
             .then((response) => response.json())
             .then((data) => {
               updateUserMenu(data);
+              state.userId = data?.id ?? null;
             })
             .catch(() => {
               updateUserMenu(null);
+              state.userId = null;
             });
         } else {
           localStorage.removeItem('bmsAccessToken');
           localStorage.removeItem('bmsRefreshToken');
           setBookdarrEnabled(false);
           updateUserMenu(null);
+          state.userId = null;
         }
       }
 
@@ -1324,8 +1466,9 @@ export class AppService {
         }
 
         libraryGrid.innerHTML = filtered.map((item) => {
-          const cover = item.coverUrl
-            ? '<img src="' + item.coverUrl + '" alt="' + item.title + ' cover" loading="lazy" />'
+          const coverSrc = item.coverUrl ? withToken(item.coverUrl) : null;
+          const cover = coverSrc
+            ? '<img src="' + coverSrc + '" alt="' + item.title + ' cover" loading="lazy" />'
             : '<div class="cover-fallback">' + item.title + '</div>';
 
           const ebookBadge = item.hasEbook ? '<span class="badge ok">Ebook</span>' : '<span class="badge dim">No Ebook</span>';
@@ -1387,9 +1530,181 @@ export class AppService {
       }
 
       function withToken(url) {
-        if (!state.token) return url;
+        if (!state.token || !url || !url.startsWith('/')) return url;
         const joiner = url.includes('?') ? '&' : '?';
         return url + joiner + 'token=' + encodeURIComponent(state.token);
+      }
+
+      function progressKey(kind, fileId) {
+        const userKey = state.userId ?? 'anon';
+        return 'bms:' + kind + ':' + userKey + ':' + fileId;
+      }
+
+      function loadProgress(kind, fileId) {
+        try {
+          const raw = localStorage.getItem(progressKey(kind, fileId));
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function saveProgress(kind, fileId, data) {
+        try {
+          localStorage.setItem(progressKey(kind, fileId), JSON.stringify({
+            ...data,
+            updatedAt: Date.now()
+          }));
+        } catch {
+          // ignore storage errors
+        }
+      }
+
+      let pdfDoc = null;
+      let pdfPage = 1;
+      let epubBook = null;
+      let epubRendition = null;
+      let readerFile = null;
+
+      function resetReaderState() {
+        if (epubRendition) {
+          try {
+            epubRendition.destroy();
+          } catch {
+            // ignore
+          }
+        }
+        if (epubBook) {
+          try {
+            epubBook.destroy();
+          } catch {
+            // ignore
+          }
+        }
+        epubBook = null;
+        epubRendition = null;
+        pdfDoc = null;
+        pdfPage = 1;
+        readerFile = null;
+        if (readerView) {
+          readerView.innerHTML = '';
+        }
+      }
+
+      function updateReaderProgress(text) {
+        if (readerProgress) {
+          readerProgress.textContent = text ?? '';
+        }
+      }
+
+      function openReader(file, title) {
+        if (!readerModal || !readerView) {
+          return;
+        }
+        readerModal.classList.add('active');
+        readerModal.setAttribute('aria-hidden', 'false');
+        if (readerTitle) {
+          readerTitle.textContent = title ?? 'Reader';
+        }
+        if (readerDownload) {
+          readerDownload.href = withToken(file.streamUrl);
+        }
+        updateReaderProgress('');
+        resetReaderState();
+        readerFile = file;
+
+        const format = file.format;
+        if (format === '.pdf') {
+          openPdfReader(file);
+          return;
+        }
+        if (format === '.epub') {
+          openEpubReader(file);
+          return;
+        }
+
+        readerView.innerHTML = '<div class="empty">Reader not available for this format.</div>';
+      }
+
+      function closeReader() {
+        if (!readerModal) {
+          return;
+        }
+        resetReaderState();
+        readerModal.classList.remove('active');
+        readerModal.setAttribute('aria-hidden', 'true');
+      }
+
+      function openPdfReader(file) {
+        if (!readerView) return;
+        if (!window['pdfjsLib']) {
+          readerView.innerHTML = '<div class="empty">PDF reader unavailable.</div>';
+          return;
+        }
+        const pdfjsLib = window['pdfjsLib'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+
+        const saved = loadProgress('ebook-pdf', file.id);
+        const url = withToken(file.streamUrl);
+        pdfjsLib.getDocument(url).promise.then((doc) => {
+          pdfDoc = doc;
+          pdfPage = saved?.page ?? 1;
+          if (pdfPage < 1) pdfPage = 1;
+          if (pdfPage > pdfDoc.numPages) pdfPage = pdfDoc.numPages;
+          renderPdfPage();
+        }).catch(() => {
+          readerView.innerHTML = '<div class="empty">Unable to load PDF.</div>';
+        });
+      }
+
+      function renderPdfPage() {
+        if (!pdfDoc || !readerView) return;
+        pdfDoc.getPage(pdfPage).then((page) => {
+          const viewport = page.getViewport({ scale: 1 });
+          const containerWidth = readerView.clientWidth - 32;
+          const scale = containerWidth > 0 ? containerWidth / viewport.width : 1;
+          const scaledViewport = page.getViewport({ scale });
+
+          const canvas = document.createElement('canvas');
+          canvas.className = 'reader-canvas';
+          const context = canvas.getContext('2d');
+          canvas.height = scaledViewport.height;
+          canvas.width = scaledViewport.width;
+          readerView.innerHTML = '';
+          readerView.appendChild(canvas);
+
+          page.render({ canvasContext: context, viewport: scaledViewport });
+          updateReaderProgress('Page ' + pdfPage + ' / ' + pdfDoc.numPages);
+          saveProgress('ebook-pdf', readerFile.id, { page: pdfPage });
+        });
+      }
+
+      function openEpubReader(file) {
+        if (!readerView) return;
+        if (!window['ePub']) {
+          readerView.innerHTML = '<div class="empty">EPUB reader unavailable.</div>';
+          return;
+        }
+
+        const saved = loadProgress('ebook-epub', file.id);
+        const url = withToken(file.streamUrl);
+        epubBook = window['ePub'](url);
+        epubRendition = epubBook.renderTo(readerView, {
+          width: '100%',
+          height: '100%',
+          spread: 'none'
+        });
+
+        const displayTarget = saved?.cfi ?? undefined;
+        epubRendition.display(displayTarget);
+        epubRendition.on('relocated', (location) => {
+          if (location?.start?.cfi) {
+            saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
+          }
+          if (location?.start?.percentage != null) {
+            updateReaderProgress(Math.round(location.start.percentage * 100) + '%');
+          }
+        });
       }
 
       function renderAudioSection(files) {
@@ -1403,7 +1718,37 @@ export class AppService {
         const player = document.createElement('audio');
         player.className = 'detail-player';
         player.controls = true;
-        player.src = withToken(files[0].streamUrl);
+        let activeFile = files[0];
+        player.src = withToken(activeFile.streamUrl);
+        player.dataset.fileId = String(activeFile.id);
+
+        let saveTimer = null;
+        const applySavedPosition = () => {
+          if (!activeFile || !player.duration || Number.isNaN(player.duration)) {
+            return;
+          }
+          const saved = loadProgress('audio', activeFile.id);
+          if (saved?.time) {
+            player.currentTime = Math.min(saved.time, Math.max(0, player.duration - 1));
+          }
+        };
+
+        player.addEventListener('loadedmetadata', applySavedPosition);
+        player.addEventListener('timeupdate', () => {
+          if (!activeFile || Number.isNaN(player.currentTime)) {
+            return;
+          }
+          if (saveTimer) {
+            return;
+          }
+          saveTimer = setTimeout(() => {
+            saveProgress('audio', activeFile.id, {
+              time: player.currentTime,
+              duration: player.duration,
+            });
+            saveTimer = null;
+          }, 2000);
+        });
 
         const list = document.createElement('div');
         list.className = 'file-list';
@@ -1415,6 +1760,7 @@ export class AppService {
           const button = document.createElement('button');
           button.textContent = 'Play';
           button.addEventListener('click', () => {
+            activeFile = file;
             player.src = withToken(file.streamUrl);
             player.play();
           });
@@ -1435,14 +1781,6 @@ export class AppService {
           return;
         }
 
-        const primary = files[0];
-        if (primary.format === '.pdf') {
-          const frame = document.createElement('iframe');
-          frame.className = 'ebook-frame';
-          frame.src = withToken(primary.streamUrl);
-          detailEbook.appendChild(frame);
-        }
-
         const list = document.createElement('div');
         list.className = 'file-list';
         files.forEach((file) => {
@@ -1450,13 +1788,28 @@ export class AppService {
           row.className = 'file-item';
           const name = document.createElement('span');
           name.textContent = file.fileName + ' · ' + formatBytes(file.size);
+          const actions = document.createElement('div');
+          actions.style.display = 'flex';
+          actions.style.gap = '8px';
+
+          const isReadable = file.format === '.pdf' || file.format === '.epub';
+          if (isReadable) {
+            const readButton = document.createElement('button');
+            readButton.textContent = 'Read';
+            readButton.addEventListener('click', () => {
+              openReader(file, detailTitle?.textContent);
+            });
+            actions.appendChild(readButton);
+          }
+
           const link = document.createElement('a');
           link.href = withToken(file.streamUrl);
           link.target = '_blank';
           link.rel = 'noreferrer';
-          link.textContent = primary.format === '.pdf' ? 'Open' : 'Download';
+          link.textContent = 'Download';
+          actions.appendChild(link);
           row.appendChild(name);
-          row.appendChild(link);
+          row.appendChild(actions);
           list.appendChild(row);
         });
 
@@ -1470,9 +1823,10 @@ export class AppService {
           detailAuthor.textContent = data?.author ?? 'Unknown author';
         }
         if (detailCover) {
-          if (data?.coverUrl) {
+          const coverSrc = data?.coverUrl ? withToken(data.coverUrl) : null;
+          if (coverSrc) {
             detailCover.innerHTML =
-              '<img src="' + data.coverUrl + '" alt="' + (data.title ?? 'Book') + ' cover" />';
+              '<img src="' + coverSrc + '" alt="' + (data.title ?? 'Book') + ' cover" />';
           } else {
             detailCover.innerHTML = '<div class="cover-fallback">' + (data?.title ?? '') + '</div>';
           }

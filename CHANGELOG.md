@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.13 — 2026-01-30 23:24 -06:00
+- Proxy Bookdarr cover art through BMS and use it as the primary artwork source.
+- Pull book overviews from Bookdarr and only fallback to Open Library when missing.
+- Added integrated ebook reader (PDF/EPUB) and saved audio/ebook progress in local storage.
+
 ## 1.0.12 — 2026-01-30 23:11 -06:00
 - Allow Enter key to submit logins on both the setup login panel and the dedicated login page.
 

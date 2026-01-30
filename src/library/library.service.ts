@@ -28,10 +28,15 @@ export class LibraryService {
           item.book?.images?.find((image) => image.remoteUrl || image.url)
             ?.remoteUrl ??
           item.book?.images?.find((image) => image.url)?.url;
-        const bookdarrCover = this.bookdarrService.resolveImageUrl(
-          apiUrl,
-          bookdarrCoverRaw,
-        );
+        let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
+        if (!bookdarrCover) {
+          const bookResource = await this.bookdarrService.getBookResource(item.bookId);
+          const resourceCoverRaw =
+            bookResource?.images?.find((image) => image.remoteUrl || image.url)
+              ?.remoteUrl ??
+            bookResource?.images?.find((image) => image.url)?.url;
+          bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
+        }
         let match;
         if (!bookdarrCover) {
           try {
@@ -80,12 +85,24 @@ export class LibraryService {
       item.book?.images?.find((image) => image.remoteUrl || image.url)
         ?.remoteUrl ??
       item.book?.images?.find((image) => image.url)?.url;
-    const bookdarrCover = this.bookdarrService.resolveImageUrl(
-      apiUrl,
-      bookdarrCoverRaw,
-    );
+    let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
+    if (!bookdarrCover) {
+      const bookResource = await this.bookdarrService.getBookResource(item.bookId);
+      const resourceCoverRaw =
+        bookResource?.images?.find((image) => image.remoteUrl || image.url)
+          ?.remoteUrl ??
+        bookResource?.images?.find((image) => image.url)?.url;
+      bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
+    }
+    let bookdarrOverview: string | undefined;
+    try {
+      bookdarrOverview = await this.bookdarrService.getBookOverview(bookId);
+    } catch {
+      bookdarrOverview = undefined;
+    }
+    const overview = item.book?.overview || bookdarrOverview;
     const needsMetadata =
-      !item.book?.overview || item.book.overview.trim().length === 0;
+      !overview || overview.trim().length === 0;
     const needsCover = !bookdarrCover;
 
     let match;
@@ -129,7 +146,7 @@ export class LibraryService {
       hasAudiobook: item.hasAudiobook,
       inMyLibrary: item.inMyLibrary,
       releaseDate: item.book?.releaseDate,
-      description: item.book?.overview || details?.description,
+      description: overview || details?.description,
       subjects: details?.subjects,
       pageCount: details?.pageCount,
       files,
@@ -171,10 +188,15 @@ export class LibraryService {
       item.book?.images?.find((image) => image.remoteUrl || image.url)
         ?.remoteUrl ??
       item.book?.images?.find((image) => image.url)?.url;
-    const bookdarrCover = this.bookdarrService.resolveImageUrl(
-      apiUrl,
-      bookdarrCoverRaw,
-    );
+    let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
+    if (!bookdarrCover) {
+      const bookResource = await this.bookdarrService.getBookResource(item.bookId);
+      const resourceCoverRaw =
+        bookResource?.images?.find((image) => image.remoteUrl || image.url)
+          ?.remoteUrl ??
+        bookResource?.images?.find((image) => image.url)?.url;
+      bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
+    }
     const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
 
     let files: LibraryFile[] = [];
@@ -253,6 +275,23 @@ export class LibraryService {
     }
 
     return 'unknown';
+  }
+
+  private resolveCoverUrl(apiUrl: string, coverRaw?: string): string | undefined {
+    if (!coverRaw || coverRaw.trim().length === 0) {
+      return undefined;
+    }
+    try {
+      const base = new URL(apiUrl);
+      const resolved = new URL(coverRaw, apiUrl);
+      if (resolved.origin === base.origin) {
+        const path = resolved.pathname + resolved.search;
+        return `/library/cover?path=${encodeURIComponent(path)}`;
+      }
+      return resolved.toString();
+    } catch {
+      return undefined;
+    }
   }
 
   private extractYear(dateValue?: string): number | undefined {

@@ -1,4 +1,4 @@
-import { Controller, Get, Head, Param, ParseIntPipe, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Head, Param, ParseIntPipe, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Readable } from 'stream';
 import { AuthGuard } from '../auth/auth.guard';
@@ -67,5 +67,35 @@ export class LibraryController {
       res.setHeader(key, value);
     });
     res.end();
+  }
+
+  @Get('cover')
+  @UseGuards(AuthGuard)
+  async cover(
+    @Query('path') path: string | undefined,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    if (!path || !path.startsWith('/')) {
+      res.status(400).json({ message: 'Cover path is required.' });
+      return;
+    }
+
+    const upstream = await this.bookdarrService.fetchFromBookdarrPath(
+      path,
+      'GET',
+      req.headers.range,
+    );
+    res.status(upstream.status);
+    upstream.headers.forEach((value, key) => {
+      res.setHeader(key, value);
+    });
+
+    if (!upstream.body) {
+      res.end();
+      return;
+    }
+
+    Readable.fromWeb(upstream.body as any).pipe(res);
   }
 }

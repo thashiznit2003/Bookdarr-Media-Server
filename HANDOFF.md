@@ -21,6 +21,7 @@
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.
 - Login now submits on Enter key in both login flows.
+- Cover art now proxies through BMS, Bookdarr overviews are preferred, and reader progress is persisted locally.
 - Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
 
 ## Decisions
