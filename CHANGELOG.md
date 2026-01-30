@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.22 — 2026-01-30 11:08 -06:00
+- Force EPUB loading as archived files and add a buffered fallback so readers open reliably.
+
 ## 1.0.21 — 2026-01-30 10:55 -06:00
 - Cache the Book Pool on disk for faster logins and filter out entries with no files.
 - Strengthen Bookdarr cover handling via MediaCover API and fix cover fit to avoid cropping.

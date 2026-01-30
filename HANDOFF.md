@@ -32,6 +32,7 @@
 - Book cover selection now prefers Bookdarr URLs that resolve to actual image files and falls back otherwise.
 - Added on-disk Book Pool cache, Bookdarr MediaCover fallback, and filtering of books without files.
 - Added My Library with per-user checkout/return plus refresh-token session persistence and dropdown filters.
+- EPUB reader now forces archived loading and falls back to buffered fetch if streaming mode fails.
 
 ## Decisions
 - Stack: Node.js + NestJS

@@ -1977,19 +1977,18 @@ export class AppService {
         const saved = loadProgress('ebook-epub', file.id);
         const url = withToken(file.streamUrl);
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
-        epubBook = window['ePub'](url);
         const timeout = setTimeout(() => {
           if (!epubRendition && readerView) {
             readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           }
         }, 8000);
-        epubBook.ready.then(() => {
-          clearTimeout(timeout);
+
+        const mountRendition = (book) => {
           if (!readerView) {
             return;
           }
           readerView.innerHTML = '';
-          epubRendition = epubBook.renderTo(readerView, {
+          epubRendition = book.renderTo(readerView, {
             width: '100%',
             height: '100%',
             spread: 'none'
@@ -2005,7 +2004,36 @@ export class AppService {
               updateReaderProgress(Math.round(location.start.percentage * 100) + '%');
             }
           });
-        }).catch(() => {
+        };
+
+        const openFromUrl = async () => {
+          epubBook = window['ePub']({
+            openAs: 'epub',
+            requestHeaders: authHeaders()
+          });
+          await epubBook.open(url, 'epub');
+          await epubBook.ready;
+        };
+
+        const openFromBuffer = async () => {
+          const response = await fetchWithAuth(file.streamUrl);
+          if (!response.ok) {
+            throw new Error('Failed to load EPUB');
+          }
+          const buffer = await response.arrayBuffer();
+          epubBook = window['ePub'](buffer);
+          await epubBook.ready;
+        };
+
+        (async () => {
+          try {
+            await openFromUrl();
+          } catch {
+            await openFromBuffer();
+          }
+          clearTimeout(timeout);
+          mountRendition(epubBook);
+        })().catch(() => {
           clearTimeout(timeout);
           if (readerView) {
             readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
