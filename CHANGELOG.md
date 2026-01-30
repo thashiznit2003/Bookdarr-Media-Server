@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.16
+- Resolved security alerts (nodemailer update, tar override) and hardened email validation.
+
 ## 0.0.15
 - Added Bookdarr connection wizard and persistent Bookdarr settings storage.
 

@@ -319,8 +319,19 @@ export class AuthService implements OnModuleInit {
     }
 
     const normalized = email.trim().toLowerCase();
-    const isValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalized);
-    if (!isValid) {
+    if (normalized.length > 254) {
+      throw new BadRequestException('Email is invalid.');
+    }
+
+    const atIndex = normalized.indexOf('@');
+    const dotIndex = normalized.lastIndexOf('.');
+    const hasValidStructure =
+      atIndex > 0 &&
+      dotIndex > atIndex + 1 &&
+      dotIndex < normalized.length - 1 &&
+      normalized.indexOf(' ') === -1;
+
+    if (!hasValidStructure) {
       throw new BadRequestException('Email is invalid.');
     }
   }
