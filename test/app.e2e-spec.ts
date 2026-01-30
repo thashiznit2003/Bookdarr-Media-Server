@@ -24,16 +24,20 @@ describe('AppController (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    const signupResponse = await request(app.getHttpServer())
-      .post('/auth/signup')
+    const setupStatus = await request(app.getHttpServer())
+      .get('/auth/setup')
+      .expect(200);
+    expect(setupStatus.body.required).toBe(true);
+
+    const setupResponse = await request(app.getHttpServer())
+      .post('/auth/setup')
       .send({
-        email: 'test@example.com',
+        username: 'test@example.com',
         password: 'password123',
-        inviteCode: 'TESTINVITE',
       })
       .expect(201);
 
-    accessToken = signupResponse.body.tokens.accessToken;
+    accessToken = setupResponse.body.tokens.accessToken;
   });
 
   afterAll(async () => {
@@ -47,6 +51,15 @@ describe('AppController (e2e)', () => {
       .expect('Content-Type', /html/)
       .expect((response) => {
         expect(response.text).toContain('Bookdarr Media Server');
+      });
+  });
+
+  it('/auth/setup returns false after setup', () => {
+    return request(app.getHttpServer())
+      .get('/auth/setup')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.required).toBe(false);
       });
   });
 

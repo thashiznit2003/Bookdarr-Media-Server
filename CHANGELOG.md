@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.12
+- Added first-run setup endpoint and UI wizard for initial user creation.
+
 ## 0.0.11
 - Added diagnostics auth coverage in e2e tests and documented example flow.
 

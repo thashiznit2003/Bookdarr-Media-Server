@@ -10,6 +10,7 @@
 - Auth module added with invite-only signup, JWT access/refresh, and password reset via SMTP (SQLite/Postgres storage via TypeORM).
 - Diagnostics endpoint now requires auth when JWT secrets are configured.
 - e2e tests cover auth-required diagnostics and README now includes login + diagnostics curl flow.
+- First-run setup wizard added for initial user creation (GET/POST `/auth/setup`).
 
 ## Decisions
 - Stack: Node.js + NestJS

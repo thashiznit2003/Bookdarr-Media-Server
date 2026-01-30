@@ -97,7 +97,26 @@ export class AppService {
         surfaced here without secrets. This will become the full web admin UI.
       </p>
 
-      <section class="card">
+      <section id="setup-card" class="card" style="display: none">
+        <div class="label">First-Run Setup</div>
+        <p>Create the first admin user to finish setup.</p>
+        <div class="grid">
+          <div>
+            <div class="label">Username (email)</div>
+            <input id="setup-username" type="email" placeholder="admin@example.com" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5f5" />
+          </div>
+          <div>
+            <div class="label">Password</div>
+            <input id="setup-password" type="password" placeholder="password" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5f5" />
+          </div>
+        </div>
+        <button id="setup-submit" style="margin-top: 16px; padding: 10px 16px; border-radius: 999px; border: none; background: #1f2937; color: #fff; cursor: pointer;">
+          Create Admin User
+        </button>
+        <div id="setup-status" style="margin-top: 12px; color: #334155;"></div>
+      </section>
+
+      <section id="settings-card" class="card">
         <div class="label">Current Settings</div>
         <div id="settings" class="grid">Loading settings…</div>
       </section>
@@ -114,6 +133,48 @@ export class AppService {
 
     <script>
       const settingsEl = document.getElementById('settings');
+      const settingsCard = document.getElementById('settings-card');
+      const setupCard = document.getElementById('setup-card');
+      const setupStatus = document.getElementById('setup-status');
+      const setupButton = document.getElementById('setup-submit');
+
+      fetch('/auth/setup')
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.required) {
+            setupCard.style.display = 'block';
+            settingsCard.style.display = 'none';
+          }
+        })
+        .catch(() => {
+          // keep setup hidden on error
+        });
+
+      setupButton?.addEventListener('click', () => {
+        const username = document.getElementById('setup-username').value;
+        const password = document.getElementById('setup-password').value;
+        setupStatus.textContent = 'Creating user...';
+        fetch('/auth/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Setup failed.';
+              setupStatus.textContent = message;
+              return;
+            }
+            setupStatus.textContent = 'Setup complete. You can now log in.';
+            settingsCard.style.display = 'block';
+            setupCard.style.display = 'none';
+          })
+          .catch(() => {
+            setupStatus.textContent = 'Setup failed.';
+          });
+      });
+
       fetch('/settings')
         .then((response) => response.json())
         .then((data) => {

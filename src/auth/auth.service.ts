@@ -17,6 +17,7 @@ import {
   PasswordResetConfirmRequest,
   PasswordResetRequest,
   RefreshRequest,
+  SetupRequest,
   SignupRequest,
 } from './auth.types';
 import { MailerService } from './mailer.service';
@@ -72,6 +73,36 @@ export class AuthService implements OnModuleInit {
     await this.users.save(user);
 
     await this.consumeInviteCode(request.inviteCode.trim(), user.id);
+
+    const tokens = await this.issueTokens(user.id, user.email);
+    return { user: this.toAuthUser(user), tokens };
+  }
+
+  async setupFirstUser(request: SetupRequest) {
+    if (!(await this.isSetupRequired())) {
+      throw new BadRequestException('Setup is already complete.');
+    }
+
+    const email = this.resolveSetupEmail(request);
+    this.assertEmail(email);
+    this.assertPassword(request.password);
+
+    const existing = await this.users.findOne({ where: { email } });
+    if (existing) {
+      throw new BadRequestException('User already exists.');
+    }
+
+    const passwordHash = await argon2.hash(request.password, {
+      type: argon2.argon2id,
+    });
+
+    const user = this.users.create({
+      email,
+      passwordHash,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+    });
+    await this.users.save(user);
 
     const tokens = await this.issueTokens(user.id, user.email);
     return { user: this.toAuthUser(user), tokens };
@@ -194,6 +225,11 @@ export class AuthService implements OnModuleInit {
     return { status: 'ok' };
   }
 
+  async isSetupRequired(): Promise<boolean> {
+    const total = await this.users.count();
+    return total === 0;
+  }
+
   private toAuthUser(user: { id: string; email: string; isActive: boolean; createdAt: string }): AuthUser {
     return {
       id: user.id,
@@ -302,6 +338,20 @@ export class AuthService implements OnModuleInit {
 
   private generateToken(): string {
     return randomBytes(32).toString('base64url');
+  }
+
+  private resolveSetupEmail(request: SetupRequest): string {
+    const email = request.email?.trim();
+    if (email && email.length > 0) {
+      return email.toLowerCase();
+    }
+
+    const username = request.username?.trim();
+    if (username && username.length > 0) {
+      return username.toLowerCase();
+    }
+
+    throw new BadRequestException('Email or username is required.');
   }
 
   private async seedInviteCodes() {

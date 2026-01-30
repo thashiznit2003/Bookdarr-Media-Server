@@ -38,3 +38,13 @@ export interface PasswordResetConfirmRequest {
   token: string;
   newPassword: string;
 }
+
+export interface SetupStatusResponse {
+  required: boolean;
+}
+
+export interface SetupRequest {
+  email?: string;
+  username?: string;
+  password: string;
+}

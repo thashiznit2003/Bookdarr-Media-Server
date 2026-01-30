@@ -49,6 +49,8 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 GET `/settings` returns a redacted settings summary for debugging.
 POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo (requires auth if JWT secrets are set).
 Auth endpoints (invite-only signup):
+- `GET /auth/setup` (first-run status)
+- `POST /auth/setup` (create first user without invite)
 - `POST /auth/signup`
 - `POST /auth/login`
 - `POST /auth/refresh`
@@ -58,6 +60,8 @@ Auth endpoints (invite-only signup):
 
 Invite codes in `INVITE_CODES` are seeded into the database on startup so they
 persist across restarts.
+
+On first run, the web UI shows a setup wizard that creates the initial user.
 
 Example flow (login + diagnostics):
 

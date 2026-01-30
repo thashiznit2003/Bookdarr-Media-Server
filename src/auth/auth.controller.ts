@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   LoginRequest,
@@ -6,6 +6,7 @@ import {
   PasswordResetConfirmRequest,
   PasswordResetRequest,
   RefreshRequest,
+  SetupRequest,
   SignupRequest,
 } from './auth.types';
 
@@ -16,6 +17,16 @@ export class AuthController {
   @Post('signup')
   signup(@Body() request: SignupRequest) {
     return this.authService.signup(request);
+  }
+
+  @Get('setup')
+  async setupStatus() {
+    return { required: await this.authService.isSetupRequired() };
+  }
+
+  @Post('setup')
+  setup(@Body() request: SetupRequest) {
+    return this.authService.setupFirstUser(request);
   }
 
   @Post('login')
