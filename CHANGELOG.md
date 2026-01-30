@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.16 — 2026-01-30 23:33 -06:00
+- Synced package-lock after adding local reader libraries.
+
 ## 1.0.15 — 2026-01-30 23:32 -06:00
 - Bundle EPUB/PDF reader libraries locally to avoid “EPUB reader unavailable” when offline.
 
