@@ -21,6 +21,19 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - Port: 9797
 - Docker later
 
+## Installation (Ubuntu)
+Run the installer from the repo to set up dependencies, systemd, and a default env file:
+
+```bash
+sudo ./scripts/install-bms.sh
+```
+
+Edit `/opt/bookdarr-media-server/.env` and restart the service:
+
+```bash
+sudo systemctl restart bookdarr-media-server
+```
+
 ## Configuration (env)
 - `BOOKDARR_API_URL` (http/https, no trailing slash)
 - `BOOKDARR_API_KEY`

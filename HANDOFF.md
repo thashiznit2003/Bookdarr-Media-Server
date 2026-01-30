@@ -12,6 +12,7 @@
 - e2e tests cover auth-required diagnostics and README now includes login + diagnostics curl flow.
 - First-run setup wizard added for initial user creation (GET/POST `/auth/setup`).
 - Book Pool library endpoint added (`GET /library`) with Open Library enrichment and Plex-inspired UI.
+- Added Ubuntu install script at `scripts/install-bms.sh` (systemd + env file).
 
 ## Decisions
 - Stack: Node.js + NestJS
