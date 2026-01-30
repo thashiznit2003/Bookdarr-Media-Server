@@ -1781,7 +1781,7 @@ export class AppService {
           });
       });
 
-      loginButton?.addEventListener('click', () => {
+      function handleWizardLogin() {
         const username = loginUsername?.value;
         const password = document.getElementById('login-password').value;
         loginStatus.textContent = 'Signing in...';
@@ -1803,9 +1803,9 @@ export class AppService {
           .catch(() => {
             loginStatus.textContent = 'Login failed.';
           });
-      });
+      }
 
-      loginPageSubmit?.addEventListener('click', () => {
+      function handleLoginPage() {
         const username = loginPageUsername?.value;
         const password = loginPagePassword?.value;
         loginPageStatus.textContent = 'Signing in...';
@@ -1828,6 +1828,38 @@ export class AppService {
           .catch(() => {
             loginPageStatus.textContent = 'Login failed.';
           });
+      }
+
+      loginButton?.addEventListener('click', handleWizardLogin);
+
+      loginPageSubmit?.addEventListener('click', handleLoginPage);
+
+      loginUsername?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          handleWizardLogin();
+        }
+      });
+
+      document.getElementById('login-password')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          handleWizardLogin();
+        }
+      });
+
+      loginPageUsername?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          handleLoginPage();
+        }
+      });
+
+      loginPagePassword?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          handleLoginPage();
+        }
       });
 
       if (isLoginPage) {

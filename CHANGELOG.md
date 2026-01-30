@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.12 — 2026-01-30 23:11 -06:00
+- Allow Enter key to submit logins on both the setup login panel and the dedicated login page.
+
 ## 1.0.11 — 2026-01-30 22:48 -06:00
 - Prefer Bookdarr cover art and metadata; only call Open Library when needed.
 - Added metadata refresh action per book to re-query Open Library and update the detail view.
