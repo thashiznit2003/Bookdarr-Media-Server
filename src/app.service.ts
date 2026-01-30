@@ -1667,7 +1667,7 @@ export class AppService {
           updateUserMenu(null);
           state.userId = null;
           scheduleTokenRefresh();
-          if (!setupRequired && !isLoginPage && activePage === 'library') {
+          if (!setupRequired && !isLoginPage) {
             window.location.href = '/login';
           }
         }
@@ -2917,7 +2917,7 @@ export class AppService {
           if (wizardPanel && activePage === 'library') {
             wizardPanel.style.display = state.token ? 'block' : 'none';
           }
-          if (!state.token && activePage === 'library') {
+          if (!state.token && !isLoginPage) {
             window.location.href = '/login';
           }
         }
@@ -2932,7 +2932,11 @@ export class AppService {
       fetch('/auth/setup')
         .then((response) => response.json())
         .then(handleSetupStatus)
-        .catch(() => {});
+        .catch(() => {
+          if (!state.token && !isLoginPage) {
+            window.location.href = '/login';
+          }
+        });
 
       loadAuthSecretsStatus();
 

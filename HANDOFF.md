@@ -40,6 +40,7 @@
 - Touch devices now use a full-screen EPUB reader with back button, no scroll, and iframe swipe handling.
 - Touch reader now hides toolbars and shows overlay back/progress controls for a cleaner full-screen view.
 - Auth storage now guards localStorage access for iOS/Safari so login doesn’t break.
+- Unauthenticated users now redirect to `/login` on any route, preventing blank library states.
 
 ## Decisions
 - Stack: Node.js + NestJS

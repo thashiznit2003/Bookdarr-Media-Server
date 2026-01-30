@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.30 — 2026-01-30 15:06 -06:00
+- Force redirect to the login page when unauthenticated on any route.
+
 ## 1.0.29 — 2026-01-30 15:01 -06:00
 - Guard auth storage against iOS/Safari localStorage failures to allow logging in again.
 
