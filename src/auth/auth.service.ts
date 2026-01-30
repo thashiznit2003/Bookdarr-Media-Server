@@ -256,13 +256,7 @@ export class AuthService implements OnModuleInit {
     return total === 0;
   }
 
-  private toAuthUser(user: {
-    id: string;
-    username: string | null | undefined;
-    email: string;
-    isActive: boolean;
-    createdAt: string;
-  }): AuthUser {
+  private toAuthUser(user: UserEntity): AuthUser {
     return {
       id: user.id,
       username: user.username ?? '',

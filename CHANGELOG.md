@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.3 — 2026-01-30 21:06 -06:00
+- Fixed auth user typing to build cleanly after username support.
+
 ## 1.0.2 — 2026-01-30 21:02 -06:00
 - Added clickable navigation with dedicated pages for Downloads, Diagnostics, Settings, and Accounts.
 - Moved the Bookdarr connection form into the first-run wizard and clarified steps.
