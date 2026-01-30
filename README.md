@@ -59,6 +59,27 @@ Auth endpoints (invite-only signup):
 Invite codes in `INVITE_CODES` are seeded into the database on startup so they
 persist across restarts.
 
+Example flow (login + diagnostics):
+
+```bash
+curl -X POST http://localhost:9797/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"reader@example.com","password":"password123","inviteCode":"MYINVITE"}'
+```
+
+```bash
+curl -X POST http://localhost:9797/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"reader@example.com","password":"password123"}'
+```
+
+```bash
+curl -X POST http://localhost:9797/diagnostics \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
+  -d '{"event":"reader-startup","level":"info","source":"reader","data":{"version":"0.0.1"}}'
+```
+
 The root route (`/`) serves a temporary admin UI placeholder that reads
 settings from `/settings`.
 

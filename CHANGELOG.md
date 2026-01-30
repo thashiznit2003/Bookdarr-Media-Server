@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.11
+- Added diagnostics auth coverage in e2e tests and documented example flow.
+
 ## 0.0.10
 - Secured diagnostics endpoint behind JWT auth when configured.
 
