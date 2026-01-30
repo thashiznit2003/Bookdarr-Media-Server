@@ -1648,9 +1648,9 @@ export class AppService {
       function setAuth(token, refreshToken) {
         state.token = token;
         if (token) {
-          localStorage.setItem('bmsAccessToken', token);
+          safeStorageSet('bmsAccessToken', token);
           if (refreshToken) {
-            localStorage.setItem('bmsRefreshToken', refreshToken);
+            safeStorageSet('bmsRefreshToken', refreshToken);
           }
           scheduleTokenRefresh();
           bookdarrPanel.style.display = 'block';
@@ -1661,8 +1661,8 @@ export class AppService {
           loadMyLibrary();
           loadCurrentUser();
         } else {
-          localStorage.removeItem('bmsAccessToken');
-          localStorage.removeItem('bmsRefreshToken');
+          safeStorageRemove('bmsAccessToken');
+          safeStorageRemove('bmsRefreshToken');
           setBookdarrEnabled(false);
           updateUserMenu(null);
           state.userId = null;
@@ -1691,7 +1691,7 @@ export class AppService {
       }
 
       async function refreshAuthToken() {
-        const refreshToken = localStorage.getItem('bmsRefreshToken');
+        const refreshToken = safeStorageGet('bmsRefreshToken');
         if (!refreshToken) {
           return false;
         }
@@ -1778,8 +1778,8 @@ export class AppService {
 
       setBookdarrEnabled(false);
       async function restoreSession() {
-        const cachedToken = localStorage.getItem('bmsAccessToken');
-        const cachedRefresh = localStorage.getItem('bmsRefreshToken');
+        const cachedToken = safeStorageGet('bmsAccessToken');
+        const cachedRefresh = safeStorageGet('bmsRefreshToken');
         if (cachedToken) {
           setAuth(cachedToken, cachedRefresh ?? undefined);
           await ensureFreshToken();
@@ -1981,6 +1981,31 @@ export class AppService {
           index += 1;
         }
         return value.toFixed(value >= 10 ? 0 : 1) + ' ' + units[index];
+      }
+
+      function safeStorageGet(key) {
+        try {
+          return localStorage.getItem(key);
+        } catch {
+          return null;
+        }
+      }
+
+      function safeStorageSet(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function safeStorageRemove(key) {
+        try {
+          localStorage.removeItem(key);
+        } catch {
+          // ignore
+        }
       }
 
       function isTouchDevice() {
@@ -2998,7 +3023,7 @@ export class AppService {
       });
 
       logoutButton?.addEventListener('click', () => {
-        const refreshToken = localStorage.getItem('bmsRefreshToken');
+        const refreshToken = safeStorageGet('bmsRefreshToken');
         if (!refreshToken) {
           setAuth(null);
           window.location.href = '/login';

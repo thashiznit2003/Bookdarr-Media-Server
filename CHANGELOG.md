@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.29 — 2026-01-30 15:01 -06:00
+- Guard auth storage against iOS/Safari localStorage failures to allow logging in again.
+
 ## 1.0.28 — 2026-01-30 14:47 -06:00
 - Make touch EPUB reader full-screen with overlay back/progress and iframe swipe detection.
 
