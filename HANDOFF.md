@@ -25,6 +25,7 @@
 - Fixed Bookdarr cover selection to use the correct image URL.
 - Reader libraries now served locally from node_modules to avoid CDN dependency.
 - Package-lock synced after adding reader dependencies.
+- Cover proxy now uses /library/cover-image and prefers actual Bookdarr image URLs.
 - Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
 
 ## Decisions

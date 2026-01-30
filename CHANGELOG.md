@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.17 — 2026-01-30 23:36 -06:00
+- Fix Bookdarr cover URL selection and move cover proxy route to avoid ID routing conflicts.
+
 ## 1.0.16 — 2026-01-30 23:33 -06:00
 - Synced package-lock after adding local reader libraries.
 

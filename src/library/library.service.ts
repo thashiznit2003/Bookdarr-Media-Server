@@ -268,7 +268,7 @@ export class LibraryService {
       const resolved = new URL(coverRaw, apiUrl);
       if (resolved.origin === base.origin) {
         const path = resolved.pathname + resolved.search;
-        return `/library/cover?path=${encodeURIComponent(path)}`;
+      return `/library/cover-image?path=${encodeURIComponent(path)}`;
       }
       return resolved.toString();
     } catch {
@@ -280,8 +280,15 @@ export class LibraryService {
     if (!images || images.length === 0) {
       return undefined;
     }
-    const image = images.find((entry) => entry.remoteUrl || entry.url);
-    return image?.remoteUrl ?? image?.url;
+    const isValidPath = (value?: string) =>
+      typeof value === 'string' && (value.startsWith('/') || value.startsWith('http'));
+
+    const imageWithUrl = images.find((entry) => isValidPath(entry.url));
+    if (imageWithUrl?.url) {
+      return imageWithUrl.url;
+    }
+    const imageWithRemote = images.find((entry) => isValidPath(entry.remoteUrl));
+    return imageWithRemote?.remoteUrl;
   }
 
   private extractYear(dateValue?: string): number | undefined {

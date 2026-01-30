@@ -18,18 +18,6 @@ export class LibraryController {
     return this.libraryService.getLibrary();
   }
 
-  @Get(':id')
-  @UseGuards(AuthGuard)
-  async getLibraryDetail(@Param('id', ParseIntPipe) id: number) {
-    return this.libraryService.getLibraryDetail(id);
-  }
-
-  @Post(':id/refresh')
-  @UseGuards(AuthGuard)
-  async refreshMetadata(@Param('id', ParseIntPipe) id: number) {
-    return this.libraryService.refreshMetadata(id);
-  }
-
   @Get('files/:id/stream')
   @UseGuards(AuthGuard)
   async streamBookFile(
@@ -69,7 +57,7 @@ export class LibraryController {
     res.end();
   }
 
-  @Get('cover')
+  @Get('cover-image')
   @UseGuards(AuthGuard)
   async cover(
     @Query('path') path: string | undefined,
@@ -97,5 +85,17 @@ export class LibraryController {
     }
 
     Readable.fromWeb(upstream.body as any).pipe(res);
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard)
+  async getLibraryDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.libraryService.getLibraryDetail(id);
+  }
+
+  @Post(':id/refresh')
+  @UseGuards(AuthGuard)
+  async refreshMetadata(@Param('id', ParseIntPipe) id: number) {
+    return this.libraryService.refreshMetadata(id);
   }
 }
