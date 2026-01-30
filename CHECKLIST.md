@@ -21,4 +21,4 @@
 
 ## Diagnostics
 - [ ] Required diagnostics (switch to opt‑in at release)
-- [ ] Push to Bookdarr‑Media‑Diagnostics /bms
+- [x] Push to Bookdarr‑Media‑Diagnostics /bms

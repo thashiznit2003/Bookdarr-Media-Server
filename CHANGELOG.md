@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.7
+- Added diagnostics endpoint that pushes payloads to GitHub repo.
+
 ## 0.0.6
 - Added a basic admin UI placeholder at `/` that surfaces redacted settings.
 

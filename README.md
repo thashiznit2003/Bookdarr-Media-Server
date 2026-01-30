@@ -29,9 +29,14 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - `SMTP_PASS`
 - `SMTP_FROM`
 - `DIAGNOSTICS_REQUIRED` (default true)
+- `DIAGNOSTICS_REPO` (default `thashiznit2003/Bookdarr-Media-Diagnostics`)
+- `DIAGNOSTICS_BRANCH` (default `main`)
+- `DIAGNOSTICS_PATH` (default `bms`)
+- `DIAGNOSTICS_TOKEN` (GitHub token for pushes)
 - `PORT` (default 9797)
 
 GET `/settings` returns a redacted settings summary for debugging.
+POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo.
 
 The root route (`/`) serves a temporary admin UI placeholder that reads
 settings from `/settings`.

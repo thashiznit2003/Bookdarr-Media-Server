@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PublicSettings, Settings } from './settings.types';
 
 const DEFAULT_PORT = 9797;
+const DEFAULT_DIAGNOSTICS_REPO = 'thashiznit2003/Bookdarr-Media-Diagnostics';
+const DEFAULT_DIAGNOSTICS_BRANCH = 'main';
+const DEFAULT_DIAGNOSTICS_PATH = 'bms';
 
 @Injectable()
 export class SettingsService {
@@ -25,6 +28,9 @@ export class SettingsService {
     const bookdarrConfigured = Boolean(
       this.settings.bookdarr.apiUrl && this.settings.bookdarr.apiKey,
     );
+    const diagnosticsConfigured = Boolean(
+      this.settings.diagnostics.repo && this.settings.diagnostics.token,
+    );
 
     return {
       port: this.settings.port,
@@ -40,6 +46,10 @@ export class SettingsService {
       },
       diagnostics: {
         required: this.settings.diagnostics.required,
+        configured: diagnosticsConfigured,
+        repo: this.settings.diagnostics.repo,
+        branch: this.settings.diagnostics.branch,
+        path: this.settings.diagnostics.path,
       },
     };
   }
@@ -51,6 +61,12 @@ export class SettingsService {
       process.env.DIAGNOSTICS_REQUIRED,
       true,
     );
+    const diagnosticsRepo = this.readEnv('DIAGNOSTICS_REPO');
+    const diagnosticsBranch =
+      this.readEnv('DIAGNOSTICS_BRANCH') ?? DEFAULT_DIAGNOSTICS_BRANCH;
+    const diagnosticsPath =
+      this.readEnv('DIAGNOSTICS_PATH') ?? DEFAULT_DIAGNOSTICS_PATH;
+    const diagnosticsToken = this.readEnv('DIAGNOSTICS_TOKEN');
 
     const apiUrl = this.parseUrl(process.env.BOOKDARR_API_URL, 'BOOKDARR_API_URL');
 
@@ -69,6 +85,13 @@ export class SettingsService {
       },
       diagnostics: {
         required: diagnosticsRequired,
+        repo: this.parseRepo(
+          diagnosticsRepo ?? DEFAULT_DIAGNOSTICS_REPO,
+          'DIAGNOSTICS_REPO',
+        ),
+        token: diagnosticsToken,
+        branch: diagnosticsBranch,
+        path: diagnosticsPath,
       },
     };
   }
@@ -117,5 +140,19 @@ export class SettingsService {
     } catch {
       throw new Error(`${name} must be a valid URL.`);
     }
+  }
+
+  private parseRepo(value: string | undefined, name: string): string | undefined {
+    if (!value || value.trim().length === 0) {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    const isValid = /^[^/\s]+\/[^/\s]+$/.test(trimmed);
+    if (!isValid) {
+      throw new Error(`${name} must be in the form \"owner/repo\".`);
+    }
+
+    return trimmed;
   }
 }

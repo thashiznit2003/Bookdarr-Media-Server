@@ -6,6 +6,7 @@
 - Settings module added (env parsing + redacted `/settings` endpoint).
 - Test scripts disable experimental webstorage to avoid Node warnings.
 - Basic admin UI placeholder added at `/` (HTML + fetches `/settings`).
+- Diagnostics endpoint added (`POST /diagnostics`) that pushes payloads to the diagnostics repo.
 
 ## Decisions
 - Stack: Node.js + NestJS
@@ -20,7 +21,7 @@
 1. Auth module: invite code signup, JWT + refresh, password reset email.
 2. Admin UI placeholder (simple web UI or API endpoints for settings).
 3. Bookdarr client module (read‑only Book Pool endpoints).
-4. Diagnostics push: GitHub repo `/bms/` folder.
+4. Lock down diagnostics endpoint once auth exists.
 
 ## Notes
 - BMS must never expose Bookdarr API key.

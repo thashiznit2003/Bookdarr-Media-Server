@@ -121,7 +121,8 @@ export class AppService {
             ['Port', data.port],
             ['Bookdarr API', data.bookdarr?.configured ? 'Configured' : 'Missing', data.bookdarr?.configured],
             ['SMTP', data.smtp?.configured ? 'Configured' : 'Missing', data.smtp?.configured],
-            ['Diagnostics', data.diagnostics?.required ? 'Required' : 'Optional', data.diagnostics?.required],
+            ['Diagnostics Required', data.diagnostics?.required ? 'Yes' : 'No', data.diagnostics?.required],
+            ['Diagnostics Repo', data.diagnostics?.repo ?? 'Not set', data.diagnostics?.configured],
           ];
 
           settingsEl.innerHTML = items

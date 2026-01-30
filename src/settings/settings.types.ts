@@ -13,6 +13,10 @@ export interface Settings {
   };
   diagnostics: {
     required: boolean;
+    repo?: string;
+    token?: string;
+    branch: string;
+    path: string;
   };
 }
 
@@ -30,5 +34,9 @@ export interface PublicSettings {
   };
   diagnostics: {
     required: boolean;
+    configured: boolean;
+    repo?: string;
+    branch: string;
+    path: string;
   };
 }
