@@ -32,7 +32,8 @@ describe('AppController (e2e)', () => {
     const setupResponse = await request(app.getHttpServer())
       .post('/auth/setup')
       .send({
-        username: 'test@example.com',
+        username: 'testadmin',
+        email: 'test@example.com',
         password: 'password123',
       })
       .expect(201);

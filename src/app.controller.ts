@@ -10,4 +10,10 @@ export class AppController {
   getIndex(): string {
     return this.appService.getIndexHtml();
   }
+
+  @Get(['downloads', 'diagnostics', 'settings', 'accounts'])
+  @Header('content-type', 'text/html; charset=utf-8')
+  getPage(): string {
+    return this.appService.getIndexHtml();
+  }
 }

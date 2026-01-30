@@ -6,19 +6,21 @@ export interface AuthTokens {
 
 export interface AuthUser {
   id: string;
+  username: string;
   email: string;
   isActive: boolean;
   createdAt: string;
 }
 
 export interface SignupRequest {
+  username: string;
   email: string;
   password: string;
   inviteCode: string;
 }
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -44,7 +46,7 @@ export interface SetupStatusResponse {
 }
 
 export interface SetupRequest {
-  email?: string;
-  username?: string;
+  username: string;
+  email: string;
   password: string;
 }

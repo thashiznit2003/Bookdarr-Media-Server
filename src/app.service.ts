@@ -405,6 +405,25 @@ export class AppService {
         cursor: pointer;
       }
 
+      .wizard {
+        display: grid;
+        gap: 20px;
+        margin: 24px 0 36px;
+      }
+
+      .wizard-header h2 {
+        margin: 0 0 6px;
+      }
+
+      .wizard-header p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .page {
+        display: none;
+      }
+
       .empty {
         padding: 32px;
         border-radius: 16px;
@@ -444,130 +463,179 @@ export class AppService {
         </div>
         <div class="nav-section">
           <div class="nav-title">Library</div>
-          <div class="nav-link active">Book Pool</div>
-          <div class="nav-link">Downloads</div>
-          <div class="nav-link">Diagnostics</div>
+          <a class="nav-link" href="/" data-page-link="library">Book Pool</a>
+          <a class="nav-link" href="/downloads" data-page-link="downloads">Downloads</a>
+          <a class="nav-link" href="/diagnostics" data-page-link="diagnostics">Diagnostics</a>
         </div>
         <div class="nav-section">
           <div class="nav-title">System</div>
-          <div class="nav-link">Settings</div>
-          <div class="nav-link">Accounts</div>
+          <a class="nav-link" href="/settings" data-page-link="settings">Settings</a>
+          <a class="nav-link" href="/accounts" data-page-link="accounts">Accounts</a>
         </div>
       </aside>
       <div class="main">
         <div class="topbar">
-          <div class="search">
+          <div class="search" id="search-wrap">
             <span>🔍</span>
             <input id="search" type="search" placeholder="Search your Book Pool" />
           </div>
           <span class="pill">Bookdarr Media Server</span>
         </div>
 
-        <section class="hero">
-          <div>
-            <h1>Book Pool Library</h1>
-            <p>
-              A Plex-inspired bookshelf that mirrors your Bookdarr Book Pool. Books are enriched
-              with Open Library metadata and organized for quick access across devices.
-            </p>
-            <div class="filters" id="filters">
-              <button class="filter-btn active" data-filter="all">All Books</button>
-              <button class="filter-btn" data-filter="ebook">Ebooks</button>
-              <button class="filter-btn" data-filter="audiobook">Audiobooks</button>
-              <button class="filter-btn" data-filter="needs">Needs Files</button>
+        <div class="page" data-page="library">
+          <section class="hero">
+            <div>
+              <h1>Book Pool Library</h1>
+              <p>
+                A Plex-inspired bookshelf that mirrors your Bookdarr Book Pool. Books are enriched
+                with Open Library metadata and organized for quick access across devices.
+              </p>
+              <div class="filters" id="filters">
+                <button class="filter-btn active" data-filter="all">All Books</button>
+                <button class="filter-btn" data-filter="ebook">Ebooks</button>
+                <button class="filter-btn" data-filter="audiobook">Audiobooks</button>
+                <button class="filter-btn" data-filter="needs">Needs Files</button>
+              </div>
             </div>
-          </div>
-          <div class="hero-meta">
-            <div class="hero-stat">
-              <span>Total Titles</span>
-              <strong id="stat-total">--</strong>
+            <div class="hero-meta">
+              <div class="hero-stat">
+                <span>Total Titles</span>
+                <strong id="stat-total">--</strong>
+              </div>
+              <div class="hero-stat">
+                <span>With Ebooks</span>
+                <strong id="stat-ebooks">--</strong>
+              </div>
+              <div class="hero-stat">
+                <span>With Audiobooks</span>
+                <strong id="stat-audio">--</strong>
+              </div>
             </div>
-            <div class="hero-stat">
-              <span>With Ebooks</span>
-              <strong id="stat-ebooks">--</strong>
-            </div>
-            <div class="hero-stat">
-              <span>With Audiobooks</span>
-              <strong id="stat-audio">--</strong>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section id="setup-panel" class="setup-panel">
-          <h2>First-Run Setup</h2>
-          <p>Step 1: Create the first admin account.</p>
-          <div class="status-grid">
-            <div>
-              <span class="nav-title">Username (email)</span>
-              <input id="setup-username" type="email" placeholder="admin@example.com" />
+          <section id="wizard" class="wizard">
+            <div class="wizard-header">
+              <h2>First-Run Setup</h2>
+              <p>Create your admin account, sign in, and connect Bookdarr.</p>
             </div>
-            <div>
-              <span class="nav-title">Password</span>
-              <input id="setup-password" type="password" placeholder="password" />
-            </div>
-          </div>
-          <button id="setup-submit">Create Admin User</button>
-          <div id="setup-status" style="margin-top: 10px; color: var(--muted);"></div>
-        </section>
 
-        <section id="login-panel" class="setup-panel">
-          <h2>Log in</h2>
-          <p>Sign in to connect your Bookdarr instance.</p>
-          <div class="status-grid">
-            <div>
-              <span class="nav-title">Email</span>
-              <input id="login-email" type="email" placeholder="admin@example.com" />
+            <div id="setup-panel" class="setup-panel">
+              <h3>Step 1: Create the first admin account</h3>
+              <div class="status-grid">
+                <div>
+                  <span class="nav-title">Username</span>
+                  <input id="setup-username" type="text" placeholder="admin" />
+                </div>
+                <div>
+                  <span class="nav-title">Email (for password resets)</span>
+                  <input id="setup-email" type="email" placeholder="admin@example.com" />
+                </div>
+                <div>
+                  <span class="nav-title">Password</span>
+                  <input id="setup-password" type="password" placeholder="password" />
+                </div>
+              </div>
+              <button id="setup-submit">Create Admin User</button>
+              <div id="setup-status" style="margin-top: 10px; color: var(--muted);"></div>
             </div>
-            <div>
-              <span class="nav-title">Password</span>
-              <input id="login-password" type="password" placeholder="password" />
-            </div>
-          </div>
-          <button id="login-submit">Log in</button>
-          <div id="login-status" style="margin-top: 10px; color: var(--muted);"></div>
-        </section>
 
-        <section id="bookdarr-panel" class="setup-panel">
-          <h2>Connect Bookdarr</h2>
-          <p>Step 2: Provide the IP address, port, and API key for your Bookdarr instance.</p>
-          <div class="status-grid">
-            <div>
-              <span class="nav-title">IP address / Host</span>
-              <input id="bookdarr-host" type="text" placeholder="192.168.0.103" />
+            <div id="login-panel" class="setup-panel">
+              <h3>Step 2: Log in</h3>
+              <p>Sign in to connect your Bookdarr instance.</p>
+              <div class="status-grid">
+                <div>
+                  <span class="nav-title">Username</span>
+                  <input id="login-username" type="text" placeholder="admin" />
+                </div>
+                <div>
+                  <span class="nav-title">Password</span>
+                  <input id="login-password" type="password" placeholder="password" />
+                </div>
+              </div>
+              <button id="login-submit">Log in</button>
+              <div id="login-status" style="margin-top: 10px; color: var(--muted);"></div>
             </div>
-            <div>
-              <span class="nav-title">Port</span>
-              <input id="bookdarr-port" type="number" placeholder="8787" />
-            </div>
-            <div>
-              <span class="nav-title">API Key</span>
-              <input id="bookdarr-key" type="password" placeholder="Bookdarr API key" />
-            </div>
-            <div>
-              <span class="nav-title">Protocol</span>
-              <label>
-                <input id="bookdarr-https" type="checkbox" /> Use HTTPS
-              </label>
-            </div>
-          </div>
-          <button id="bookdarr-submit">Save Connection</button>
-          <div id="bookdarr-status" style="margin-top: 10px; color: var(--muted);"></div>
-        </section>
 
-        <section class="section-title">
-          <h2>Library</h2>
-          <span class="pill">Open Library matched</span>
-        </section>
-        <div id="library-grid" class="grid">
-          <div class="empty">Loading Book Pool…</div>
+            <div id="bookdarr-panel" class="setup-panel">
+              <h3>Step 3: Connect Bookdarr</h3>
+              <p>Provide the IP address, port, and API key for your Bookdarr instance.</p>
+              <div class="status-grid">
+                <div>
+                  <span class="nav-title">IP address / Host</span>
+                  <input id="bookdarr-host" type="text" placeholder="192.168.0.103" />
+                </div>
+                <div>
+                  <span class="nav-title">Port</span>
+                  <input id="bookdarr-port" type="number" placeholder="8787" />
+                </div>
+                <div>
+                  <span class="nav-title">API Key</span>
+                  <input id="bookdarr-key" type="password" placeholder="Bookdarr API key" />
+                </div>
+                <div>
+                  <span class="nav-title">Protocol</span>
+                  <label>
+                    <input id="bookdarr-https" type="checkbox" /> Use HTTPS
+                  </label>
+                </div>
+              </div>
+              <button id="bookdarr-submit">Save Connection</button>
+              <div id="bookdarr-status" style="margin-top: 10px; color: var(--muted);"></div>
+            </div>
+          </section>
+
+          <section class="section-title">
+            <h2>Library</h2>
+          </section>
+          <div id="library-grid" class="grid">
+            <div class="empty">Loading Book Pool…</div>
+          </div>
         </div>
 
-        <section class="section-title">
-          <h2>System Status</h2>
-          <span class="pill">Config</span>
-        </section>
-        <div class="panel">
-          <div id="settings" class="status-grid">Loading settings…</div>
+        <div class="page" data-page="downloads">
+          <section class="section-title">
+            <h2>Downloads</h2>
+            <span class="pill">Coming soon</span>
+          </section>
+          <div class="panel">
+            <p style="margin: 0; color: var(--muted);">
+              Download management will appear here once Bookdarr sync is enabled.
+            </p>
+          </div>
+        </div>
+
+        <div class="page" data-page="diagnostics">
+          <section class="section-title">
+            <h2>Diagnostics</h2>
+            <span class="pill">Required (dev)</span>
+          </section>
+          <div class="panel">
+            <p style="margin: 0; color: var(--muted);">
+              Diagnostics uploads are mandatory during development. Status and logs will surface here.
+            </p>
+          </div>
+        </div>
+
+        <div class="page" data-page="settings">
+          <section class="section-title">
+            <h2>System Status</h2>
+            <span class="pill">Config</span>
+          </section>
+          <div class="panel">
+            <div id="settings" class="status-grid">Loading settings…</div>
+          </div>
+        </div>
+
+        <div class="page" data-page="accounts">
+          <section class="section-title">
+            <h2>Accounts</h2>
+            <span class="pill">Admin</span>
+          </section>
+          <div class="panel">
+            <p style="margin: 0; color: var(--muted);">
+              User management will land here once account tooling is ready.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -583,27 +651,58 @@ export class AppService {
       const libraryGrid = document.getElementById('library-grid');
       const filterButtons = document.querySelectorAll('.filter-btn');
       const searchInput = document.getElementById('search');
+      const searchWrap = document.getElementById('search-wrap');
+      const wizardPanel = document.getElementById('wizard');
       const setupPanel = document.getElementById('setup-panel');
+      const setupEmail = document.getElementById('setup-email');
       const setupStatus = document.getElementById('setup-status');
       const setupButton = document.getElementById('setup-submit');
       const loginPanel = document.getElementById('login-panel');
       const loginStatus = document.getElementById('login-status');
       const loginButton = document.getElementById('login-submit');
+      const loginUsername = document.getElementById('login-username');
       const bookdarrPanel = document.getElementById('bookdarr-panel');
       const bookdarrStatus = document.getElementById('bookdarr-status');
       const bookdarrButton = document.getElementById('bookdarr-submit');
+      const pageSections = document.querySelectorAll('[data-page]');
+      const navLinks = document.querySelectorAll('[data-page-link]');
+      const activePage = window.location.pathname.replace('/', '') || 'library';
+      const isLibraryPage = activePage === 'library';
 
       const bookdarrHost = document.getElementById('bookdarr-host');
       const bookdarrPort = document.getElementById('bookdarr-port');
       const bookdarrKey = document.getElementById('bookdarr-key');
       const bookdarrHttps = document.getElementById('bookdarr-https');
 
+      pageSections.forEach((section) => {
+        section.style.display = section.dataset.page === activePage ? 'block' : 'none';
+      });
+
+      navLinks.forEach((link) => {
+        if (link.dataset.pageLink === activePage) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+
+      if (!isLibraryPage && searchWrap) {
+        searchWrap.style.display = 'none';
+      }
+
+      if (wizardPanel) {
+        wizardPanel.style.display = isLibraryPage ? 'block' : 'none';
+      }
+
       function setAuth(token) {
         state.token = token;
         if (token) {
           loginPanel.style.display = 'none';
           bookdarrPanel.style.display = 'block';
+          setBookdarrEnabled(true);
           loadBookdarrConfig();
+        } else {
+          setBookdarrEnabled(false);
         }
       }
 
@@ -611,19 +710,37 @@ export class AppService {
         return state.token ? { Authorization: 'Bearer ' + state.token } : {};
       }
 
-      filterButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-          filterButtons.forEach((btn) => btn.classList.remove('active'));
-          button.classList.add('active');
-          state.filter = button.dataset.filter;
+      function setBookdarrEnabled(enabled) {
+        [bookdarrHost, bookdarrPort, bookdarrKey, bookdarrHttps].forEach((input) => {
+          if (input) {
+            input.disabled = !enabled;
+          }
+        });
+        if (bookdarrButton) {
+          bookdarrButton.disabled = !enabled;
+        }
+        if (!enabled && bookdarrStatus) {
+          bookdarrStatus.textContent = 'Log in to connect Bookdarr.';
+        }
+      }
+
+      setBookdarrEnabled(false);
+
+      if (isLibraryPage) {
+        filterButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            filterButtons.forEach((btn) => btn.classList.remove('active'));
+            button.classList.add('active');
+            state.filter = button.dataset.filter;
+            renderLibrary();
+          });
+        });
+
+        searchInput?.addEventListener('input', (event) => {
+          state.query = event.target.value.toLowerCase();
           renderLibrary();
         });
-      });
-
-      searchInput.addEventListener('input', (event) => {
-        state.query = event.target.value.toLowerCase();
-        renderLibrary();
-      });
+      }
 
       function renderLibrary() {
         const filtered = state.library.filter((item) => {
@@ -675,6 +792,9 @@ export class AppService {
       }
 
       function loadLibrary() {
+        if (!isLibraryPage) {
+          return;
+        }
         fetch('/library')
           .then((response) => response.json())
           .then((data) => {
@@ -689,8 +809,10 @@ export class AppService {
 
       function loadBookdarrConfig() {
         if (!state.token) {
+          setBookdarrEnabled(false);
           return;
         }
+        setBookdarrEnabled(true);
         fetch('/settings/bookdarr', { headers: authHeaders() })
           .then((response) => response.json())
           .then((data) => {
@@ -720,21 +842,25 @@ export class AppService {
           if (data.required) {
             setupPanel.style.display = 'block';
             loginPanel.style.display = 'none';
-            bookdarrPanel.style.display = 'none';
+            bookdarrPanel.style.display = 'block';
+            setBookdarrEnabled(false);
           } else {
+            setupPanel.style.display = 'none';
             loginPanel.style.display = 'block';
+            bookdarrPanel.style.display = 'block';
           }
         })
         .catch(() => {});
 
       setupButton?.addEventListener('click', () => {
         const username = document.getElementById('setup-username').value;
+        const email = setupEmail?.value;
         const password = document.getElementById('setup-password').value;
         setupStatus.textContent = 'Creating user...';
         fetch('/auth/setup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, email, password }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
@@ -743,7 +869,7 @@ export class AppService {
               setupStatus.textContent = message;
               return;
             }
-            setupStatus.textContent = 'Admin created. Continue to connect Bookdarr.';
+            setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
             setupPanel.style.display = 'none';
             loginPanel.style.display = 'none';
             setAuth(body?.tokens?.accessToken);
@@ -754,13 +880,13 @@ export class AppService {
       });
 
       loginButton?.addEventListener('click', () => {
-        const email = document.getElementById('login-email').value;
+        const username = loginUsername?.value;
         const password = document.getElementById('login-password').value;
         loginStatus.textContent = 'Signing in...';
         fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ username, password }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
@@ -812,7 +938,7 @@ export class AppService {
 
       loadLibrary();
 
-      fetch('/settings')
+      fetch('/api/settings')
         .then((response) => response.json())
         .then((data) => {
           const items = [

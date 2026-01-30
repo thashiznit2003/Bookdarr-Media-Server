@@ -26,12 +26,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; email?: string }) {
+  async validate(payload: { sub: string; username?: string; email?: string }) {
     const user = await this.users.findOne({ where: { id: payload.sub } });
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid token.');
     }
 
-    return { userId: user.id, email: user.email };
+    return { userId: user.id, username: user.username, email: user.email };
   }
 }

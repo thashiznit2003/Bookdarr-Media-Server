@@ -2,7 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { BookdarrConfigService } from '../bookdarr/bookdarr-config.service';
 
-@Controller('settings')
+@Controller('api/settings')
 export class SettingsController {
   constructor(
     private readonly settingsService: SettingsService,

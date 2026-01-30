@@ -38,3 +38,4 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 Update `HANDOFF.md` and `CHANGELOG.md` after each meaningful change.
 Track app version in `package.json` and surface it in the UI (top-left next to BMS).
 Each GitHub push increments the patch version (x.x.n+1) and adds a changelog entry with date + time (newest first).
+After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the latest build.

@@ -1,5 +1,12 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.2 — 2026-01-30 21:02 -06:00
+- Added clickable navigation with dedicated pages for Downloads, Diagnostics, Settings, and Accounts.
+- Moved the Bookdarr connection form into the first-run wizard and clarified steps.
+- Switched auth to username-first (email stored for password resets) with UI + API updates.
+- Removed the "Open Library matched" label and tightened search behavior to library view.
+- Added SSH update requirement after each GitHub push in AGENTS.md.
+
 ## 1.0.1 — 2026-01-30 20:47 -06:00
 - Documented versioning rules and changelog timestamp requirements in AGENTS.md.
 - Added timestamps to all changelog entries for chronological tracking.

@@ -23,12 +23,14 @@ import {
 } from './auth.types';
 import { MailerService } from './mailer.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
 import { InviteCodeEntity } from './entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
 
 const MIN_PASSWORD_LENGTH = 8;
+const MIN_USERNAME_LENGTH = 3;
+const MAX_USERNAME_LENGTH = 32;
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -46,16 +48,20 @@ export class AuthService implements OnModuleInit {
 
   async onModuleInit() {
     await this.seedInviteCodes();
+    await this.ensureUsernames();
   }
 
   async signup(request: SignupRequest) {
-    this.assertEmail(request.email);
+    const username = this.normalizeUsername(request.username);
+    const email = this.normalizeEmail(request.email);
+
+    this.assertUsername(username);
+    this.assertEmail(email);
     this.assertPassword(request.password);
     await this.assertInviteCode(request.inviteCode);
 
-    const normalizedEmail = request.email.trim().toLowerCase();
     const existing = await this.users.findOne({
-      where: { email: normalizedEmail },
+      where: [{ username }, { email }],
     });
     if (existing) {
       throw new BadRequestException('User already exists.');
@@ -66,7 +72,8 @@ export class AuthService implements OnModuleInit {
     });
 
     const user = this.users.create({
-      email: normalizedEmail,
+      username,
+      email,
       passwordHash,
       createdAt: new Date().toISOString(),
       isActive: true,
@@ -75,7 +82,7 @@ export class AuthService implements OnModuleInit {
 
     await this.consumeInviteCode(request.inviteCode.trim(), user.id);
 
-    const tokens = await this.issueTokens(user.id, user.email);
+    const tokens = await this.issueTokens(user);
     return { user: this.toAuthUser(user), tokens };
   }
 
@@ -84,11 +91,15 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('Setup is already complete.');
     }
 
-    const email = this.resolveSetupEmail(request);
+    const username = this.normalizeUsername(request.username);
+    const email = this.normalizeEmail(request.email);
+    this.assertUsername(username);
     this.assertEmail(email);
     this.assertPassword(request.password);
 
-    const existing = await this.users.findOne({ where: { email } });
+    const existing = await this.users.findOne({
+      where: [{ username }, { email }],
+    });
     if (existing) {
       throw new BadRequestException('User already exists.');
     }
@@ -98,6 +109,7 @@ export class AuthService implements OnModuleInit {
     });
 
     const user = this.users.create({
+      username,
       email,
       passwordHash,
       createdAt: new Date().toISOString(),
@@ -105,16 +117,29 @@ export class AuthService implements OnModuleInit {
     });
     await this.users.save(user);
 
-    const tokens = await this.issueTokens(user.id, user.email);
+    const tokens = await this.issueTokens(user);
     return { user: this.toAuthUser(user), tokens };
   }
 
   async login(request: LoginRequest) {
-    this.assertEmail(request.email);
+    const identifier = request.username?.trim();
+    if (!identifier) {
+      throw new BadRequestException('Username is required.');
+    }
+
     this.assertPassword(request.password, false);
 
-    const normalizedEmail = request.email.trim().toLowerCase();
-    const user = await this.users.findOne({ where: { email: normalizedEmail } });
+    let user: UserEntity | null = null;
+    if (identifier.includes('@')) {
+      const email = this.normalizeEmail(identifier);
+      this.assertEmail(email);
+      user = await this.users.findOne({ where: { email } });
+    } else {
+      const username = this.normalizeUsername(identifier);
+      this.assertUsername(username);
+      user = await this.users.findOne({ where: { username } });
+    }
+
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials.');
     }
@@ -124,7 +149,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
-    const tokens = await this.issueTokens(user.id, user.email);
+    const tokens = await this.issueTokens(user);
     return { user: this.toAuthUser(user), tokens };
   }
 
@@ -140,7 +165,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Refresh token is invalid.');
     }
 
-    const tokens = await this.issueTokens(user.id, user.email);
+    const tokens = await this.issueTokens(user);
     return { tokens };
   }
 
@@ -160,10 +185,10 @@ export class AuthService implements OnModuleInit {
   }
 
   async requestPasswordReset(request: PasswordResetRequest) {
-    this.assertEmail(request.email);
+    const email = this.normalizeEmail(request.email);
+    this.assertEmail(email);
 
-    const normalizedEmail = request.email.trim().toLowerCase();
-    const user = await this.users.findOne({ where: { email: normalizedEmail } });
+    const user = await this.users.findOne({ where: { email } });
     if (!user || !user.isActive) {
       return { status: 'ok' };
     }
@@ -231,21 +256,28 @@ export class AuthService implements OnModuleInit {
     return total === 0;
   }
 
-  private toAuthUser(user: { id: string; email: string; isActive: boolean; createdAt: string }): AuthUser {
+  private toAuthUser(user: {
+    id: string;
+    username: string | null | undefined;
+    email: string;
+    isActive: boolean;
+    createdAt: string;
+  }): AuthUser {
     return {
       id: user.id,
+      username: user.username ?? '',
       email: user.email,
       isActive: user.isActive,
       createdAt: user.createdAt,
     };
   }
 
-  private async issueTokens(userId: string, email: string): Promise<AuthTokens> {
+  private async issueTokens(user: UserEntity): Promise<AuthTokens> {
     const auth = this.getAuthSettings();
     const refreshId = this.generateToken();
 
     const accessToken = await this.jwtService.signAsync(
-      { sub: userId, email },
+      { sub: user.id, username: user.username, email: user.email },
       {
         secret: auth.accessSecret,
         expiresIn: auth.accessTokenTtl as StringValue,
@@ -253,18 +285,15 @@ export class AuthService implements OnModuleInit {
     );
 
     const refreshToken = await this.jwtService.signAsync(
-      { sub: userId, jti: refreshId },
+      { sub: user.id, jti: refreshId },
       {
         secret: auth.refreshSecret,
         expiresIn: auth.refreshTokenTtl as StringValue,
       },
     );
 
-    const user = await this.users.findOne({ where: { id: userId } });
-    if (user) {
-      user.refreshTokenId = refreshId;
-      await this.users.save(user);
-    }
+    user.refreshTokenId = refreshId;
+    await this.users.save(user);
 
     return {
       accessToken,
@@ -313,6 +342,14 @@ export class AuthService implements OnModuleInit {
     }
   }
 
+  private normalizeEmail(email: string | undefined) {
+    return (email ?? '').trim().toLowerCase();
+  }
+
+  private normalizeUsername(username: string | undefined) {
+    return (username ?? '').trim().toLowerCase();
+  }
+
   private assertEmail(email: string) {
     if (!email || email.trim().length === 0) {
       throw new BadRequestException('Email is required.');
@@ -336,6 +373,29 @@ export class AuthService implements OnModuleInit {
     }
   }
 
+  private assertUsername(username: string) {
+    if (!username || username.trim().length === 0) {
+      throw new BadRequestException('Username is required.');
+    }
+
+    const normalized = username.trim();
+    if (normalized.length < MIN_USERNAME_LENGTH || normalized.length > MAX_USERNAME_LENGTH) {
+      throw new BadRequestException(
+        `Username must be ${MIN_USERNAME_LENGTH}-${MAX_USERNAME_LENGTH} characters.`,
+      );
+    }
+
+    if (normalized.includes('@')) {
+      throw new BadRequestException('Username cannot be an email address.');
+    }
+
+    if (!/^[a-zA-Z0-9._-]+$/.test(normalized)) {
+      throw new BadRequestException(
+        'Username can only include letters, numbers, dots, underscores, and dashes.',
+      );
+    }
+  }
+
   private assertPassword(password: string, checkLength = true) {
     if (!password || password.trim().length === 0) {
       throw new BadRequestException('Password is required.');
@@ -350,20 +410,6 @@ export class AuthService implements OnModuleInit {
 
   private generateToken(): string {
     return randomBytes(32).toString('base64url');
-  }
-
-  private resolveSetupEmail(request: SetupRequest): string {
-    const email = request.email?.trim();
-    if (email && email.length > 0) {
-      return email.toLowerCase();
-    }
-
-    const username = request.username?.trim();
-    if (username && username.length > 0) {
-      return username.toLowerCase();
-    }
-
-    throw new BadRequestException('Email or username is required.');
   }
 
   private async seedInviteCodes() {
@@ -386,6 +432,28 @@ export class AuthService implements OnModuleInit {
           createdAt: new Date().toISOString(),
         });
         await this.inviteCodes.save(invite);
+      }
+    }
+  }
+
+  private async ensureUsernames() {
+    const users = await this.users.find({ where: { username: IsNull() } });
+    for (const user of users) {
+      const emailPrefix = user.email?.split('@')[0] ?? 'user';
+      let base = emailPrefix.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+      if (!base) {
+        base = 'user';
+      }
+
+      let candidate = base;
+      for (let i = 0; i < 20; i++) {
+        const existing = await this.users.findOne({ where: { username: candidate } });
+        if (!existing) {
+          user.username = candidate;
+          await this.users.save(user);
+          break;
+        }
+        candidate = `${base}${i + 1}`;
       }
     }
   }
