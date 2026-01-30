@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.5 — 2026-01-30 21:29 -06:00
+- Fixed auth settings controller build by using type-only Request import.
+
 ## 1.0.4 — 2026-01-30 21:25 -06:00
 - Added admin user management (list/create) and accounts UI.
 - Implemented auth secrets settings (wizard + settings page) with persisted storage.

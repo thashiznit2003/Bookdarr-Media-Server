@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { AuthConfigService } from './auth-config.service';
 import { AuthService } from './auth.service';
 
