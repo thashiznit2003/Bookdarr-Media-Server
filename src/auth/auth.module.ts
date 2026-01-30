@@ -15,6 +15,7 @@ import { AuthConfigService } from './auth-config.service';
 import { AdminGuard } from './admin.guard';
 import { UsersController } from './users.controller';
 import { AuthSettingsController } from './auth-settings.controller';
+import { MeController } from './me.controller';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { AuthSettingsController } from './auth-settings.controller';
       AuthConfigEntity,
     ]),
   ],
-  controllers: [AuthController, UsersController, AuthSettingsController],
+  controllers: [AuthController, UsersController, AuthSettingsController, MeController],
   providers: [
     AuthService,
     MailerService,

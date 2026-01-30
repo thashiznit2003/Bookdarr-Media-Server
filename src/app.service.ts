@@ -132,6 +132,69 @@ export class AppService {
         margin-bottom: 28px;
       }
 
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .user-menu {
+        position: relative;
+      }
+
+      .user-button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #161a23;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .user-dropdown {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 8px;
+        min-width: 180px;
+        box-shadow: var(--shadow);
+        display: none;
+        z-index: 10;
+      }
+
+      .user-dropdown button {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .user-dropdown button:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
       .search {
         display: flex;
         align-items: center;
@@ -479,7 +542,19 @@ export class AppService {
             <span>🔍</span>
             <input id="search" type="search" placeholder="Search your Book Pool" />
           </div>
-          <span class="pill">Bookdarr Media Server</span>
+          <div class="topbar-right">
+            <span class="pill">Bookdarr Media Server</span>
+            <div class="user-menu" id="user-menu">
+              <button class="user-button" id="user-button">
+                <div class="user-avatar" id="user-avatar">?</div>
+                <span id="user-label">Signed out</span>
+              </button>
+              <div class="user-dropdown" id="user-dropdown">
+                <button id="profile-button">Edit Profile</button>
+                <button id="logout-button">Log out</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="page" data-page="library">
@@ -638,6 +713,39 @@ export class AppService {
           </div>
 
           <section class="section-title" style="margin-top: 28px;">
+            <h2>Bookdarr Connection</h2>
+            <span class="pill">Library</span>
+          </section>
+          <div class="panel">
+            <div class="status-grid">
+              <div>
+                <span class="nav-title">IP address / Host</span>
+                <input id="settings-bookdarr-host" type="text" placeholder="192.168.0.103" />
+              </div>
+              <div>
+                <span class="nav-title">Port</span>
+                <input id="settings-bookdarr-port" type="number" placeholder="8787" />
+              </div>
+              <div>
+                <span class="nav-title">API Key</span>
+                <input id="settings-bookdarr-key" type="password" placeholder="Bookdarr API key" />
+              </div>
+              <div>
+                <span class="nav-title">Book Pool Path</span>
+                <input id="settings-bookdarr-path" type="text" placeholder="/api/v1/user/library/pool" />
+              </div>
+              <div>
+                <span class="nav-title">Protocol</span>
+                <label>
+                  <input id="settings-bookdarr-https" type="checkbox" /> Use HTTPS
+                </label>
+              </div>
+            </div>
+            <button id="save-bookdarr" style="margin-top: 12px;">Save Bookdarr Settings</button>
+            <div id="settings-bookdarr-status" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
+
+          <section class="section-title" style="margin-top: 28px;">
             <h2>Auth Secrets</h2>
             <span class="pill">JWT</span>
           </section>
@@ -693,6 +801,50 @@ export class AppService {
             <button id="create-user" style="margin-top: 12px;">Create User</button>
             <div id="create-user-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
+          <div class="panel" style="margin-top: 20px;">
+            <h3 style="margin-top: 0;">My Profile</h3>
+            <div class="status-grid">
+              <div>
+                <span class="nav-title">Username</span>
+                <input id="profile-username" type="text" placeholder="username" />
+              </div>
+              <div>
+                <span class="nav-title">Email</span>
+                <input id="profile-email" type="email" placeholder="you@example.com" />
+              </div>
+              <div>
+                <span class="nav-title">Current Password</span>
+                <input id="profile-current-password" type="password" placeholder="current password" />
+              </div>
+              <div>
+                <span class="nav-title">New Password</span>
+                <input id="profile-new-password" type="password" placeholder="new password" />
+              </div>
+            </div>
+            <button id="save-profile" style="margin-top: 12px;">Save Profile</button>
+            <div id="profile-status" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
+        </div>
+
+        <div class="page" data-page="login">
+          <section class="section-title">
+            <h2>Sign in</h2>
+            <span class="pill">BMS</span>
+          </section>
+          <div class="panel">
+            <div class="status-grid">
+              <div>
+                <span class="nav-title">Username or Email</span>
+                <input id="login-page-username" type="text" placeholder="admin" />
+              </div>
+              <div>
+                <span class="nav-title">Password</span>
+                <input id="login-page-password" type="password" placeholder="password" />
+              </div>
+            </div>
+            <button id="login-page-submit" style="margin-top: 12px;">Log in</button>
+            <div id="login-page-status" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -727,6 +879,7 @@ export class AppService {
       const navLinks = document.querySelectorAll('[data-page-link]');
       const activePage = window.location.pathname.replace('/', '') || 'library';
       const isLibraryPage = activePage === 'library';
+      const isLoginPage = activePage === 'login';
 
       const bookdarrHost = document.getElementById('bookdarr-host');
       const bookdarrPort = document.getElementById('bookdarr-port');
@@ -737,6 +890,13 @@ export class AppService {
       const settingsRefresh = document.getElementById('settings-refresh-secret');
       const saveAuthButton = document.getElementById('save-auth-secrets');
       const authSecretStatus = document.getElementById('auth-secret-status');
+      const settingsBookdarrHost = document.getElementById('settings-bookdarr-host');
+      const settingsBookdarrPort = document.getElementById('settings-bookdarr-port');
+      const settingsBookdarrKey = document.getElementById('settings-bookdarr-key');
+      const settingsBookdarrPath = document.getElementById('settings-bookdarr-path');
+      const settingsBookdarrHttps = document.getElementById('settings-bookdarr-https');
+      const saveBookdarrButton = document.getElementById('save-bookdarr');
+      const settingsBookdarrStatus = document.getElementById('settings-bookdarr-status');
       const accountsList = document.getElementById('accounts-list');
       const accountsStatus = document.getElementById('accounts-status');
       const createUserButton = document.getElementById('create-user');
@@ -745,6 +905,23 @@ export class AppService {
       const newUserEmail = document.getElementById('new-user-email');
       const newUserPassword = document.getElementById('new-user-password');
       const newUserAdmin = document.getElementById('new-user-admin');
+      const profileUsername = document.getElementById('profile-username');
+      const profileEmail = document.getElementById('profile-email');
+      const profileCurrentPassword = document.getElementById('profile-current-password');
+      const profileNewPassword = document.getElementById('profile-new-password');
+      const saveProfileButton = document.getElementById('save-profile');
+      const profileStatus = document.getElementById('profile-status');
+      const loginPageUsername = document.getElementById('login-page-username');
+      const loginPagePassword = document.getElementById('login-page-password');
+      const loginPageSubmit = document.getElementById('login-page-submit');
+      const loginPageStatus = document.getElementById('login-page-status');
+      const userMenu = document.getElementById('user-menu');
+      const userButton = document.getElementById('user-button');
+      const userDropdown = document.getElementById('user-dropdown');
+      const userAvatar = document.getElementById('user-avatar');
+      const userLabel = document.getElementById('user-label');
+      const profileButton = document.getElementById('profile-button');
+      const logoutButton = document.getElementById('logout-button');
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -766,18 +943,48 @@ export class AppService {
         wizardPanel.style.display = isLibraryPage ? 'block' : 'none';
       }
 
-      function setAuth(token) {
+      function updateUserMenu(user) {
+        if (!userMenu || !userButton || !userAvatar || !userLabel) {
+          return;
+        }
+        if (!user) {
+          userAvatar.textContent = '?';
+          userLabel.textContent = 'Signed out';
+          userMenu.style.display = 'none';
+          return;
+        }
+        const letter = (user.username || user.email || 'U')[0]?.toUpperCase() ?? 'U';
+        userAvatar.textContent = letter;
+        userLabel.textContent = user.username || user.email;
+        userMenu.style.display = 'block';
+      }
+
+      function setAuth(token, refreshToken) {
         state.token = token;
         if (token) {
           localStorage.setItem('bmsAccessToken', token);
+          if (refreshToken) {
+            localStorage.setItem('bmsRefreshToken', refreshToken);
+          }
           loginPanel.style.display = 'none';
           bookdarrPanel.style.display = 'block';
           setBookdarrEnabled(true);
           loadBookdarrConfig();
           loadAccounts();
+          loadProfile();
+          fetch('/api/me', { headers: authHeaders() })
+            .then((response) => response.json())
+            .then((data) => {
+              updateUserMenu(data);
+            })
+            .catch(() => {
+              updateUserMenu(null);
+            });
         } else {
           localStorage.removeItem('bmsAccessToken');
+          localStorage.removeItem('bmsRefreshToken');
           setBookdarrEnabled(false);
+          updateUserMenu(null);
         }
       }
 
@@ -786,7 +993,7 @@ export class AppService {
       }
 
       function setBookdarrEnabled(enabled) {
-        [bookdarrHost, bookdarrPort, bookdarrKey, bookdarrHttps].forEach((input) => {
+        [bookdarrHost, bookdarrPort, bookdarrKey, bookdarrPath, bookdarrHttps].forEach((input) => {
           if (input) {
             input.disabled = !enabled;
           }
@@ -801,11 +1008,16 @@ export class AppService {
 
       setBookdarrEnabled(false);
       const cachedToken = localStorage.getItem('bmsAccessToken');
+      const cachedRefresh = localStorage.getItem('bmsRefreshToken');
       if (cachedToken) {
-        setAuth(cachedToken);
+        setAuth(cachedToken, cachedRefresh ?? undefined);
+      }
+      if (!cachedToken) {
+        updateUserMenu(null);
       }
 
       let authSecretsConfigured = false;
+      let setupRequired = false;
 
       function loadAuthSecretsStatus() {
         fetch('/api/settings/auth')
@@ -955,6 +1167,9 @@ export class AppService {
                 bookdarrHost.value = url.hostname;
                 bookdarrPort.value = url.port || (url.protocol === 'https:' ? '443' : '80');
                 bookdarrHttps.checked = url.protocol === 'https:';
+                if (settingsBookdarrHost) settingsBookdarrHost.value = url.hostname;
+                if (settingsBookdarrPort) settingsBookdarrPort.value = url.port || (url.protocol === 'https:' ? '443' : '80');
+                if (settingsBookdarrHttps) settingsBookdarrHttps.checked = url.protocol === 'https:';
               } catch {
                 // ignore parse errors
               }
@@ -965,9 +1180,15 @@ export class AppService {
             if (bookdarrPath && !bookdarrPath.value) {
               bookdarrPath.value = '/api/v1/user/library/pool';
             }
+            if (settingsBookdarrPath) {
+              settingsBookdarrPath.value = data?.poolPath ?? '/api/v1/user/library/pool';
+            }
             if (data?.configured) {
               bookdarrStatus.textContent = 'Bookdarr is connected.';
               loadLibrary();
+            }
+            if (data?.configured && wizardPanel) {
+              wizardPanel.style.display = 'none';
             }
           })
           .catch(() => {
@@ -1035,20 +1256,58 @@ export class AppService {
           });
       }
 
+      function loadProfile() {
+        if (activePage !== 'accounts') {
+          return;
+        }
+        if (!state.token) {
+          if (profileStatus) {
+            profileStatus.textContent = 'Log in to edit your profile.';
+          }
+          return;
+        }
+        fetch('/api/me', { headers: authHeaders() })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              profileStatus.textContent = body?.message ?? 'Unable to load profile.';
+              return;
+            }
+            if (profileUsername) profileUsername.value = body?.username ?? '';
+            if (profileEmail) profileEmail.value = body?.email ?? '';
+            if (profileStatus) profileStatus.textContent = '';
+          })
+          .catch(() => {
+            if (profileStatus) profileStatus.textContent = 'Unable to load profile.';
+          });
+      }
+
+      function handleSetupStatus(data) {
+        setupRequired = Boolean(data?.required);
+        if (data?.required) {
+          setupPanel.style.display = 'block';
+          loginPanel.style.display = 'none';
+          bookdarrPanel.style.display = 'block';
+          setBookdarrEnabled(false);
+        } else {
+          setupPanel.style.display = 'none';
+          loginPanel.style.display = 'block';
+          bookdarrPanel.style.display = 'block';
+          if (!state.token && isLibraryPage) {
+            window.location.href = '/login';
+          }
+        }
+
+        if (isLoginPage && loginPageStatus) {
+          loginPageStatus.textContent = data?.required
+            ? 'No users yet. Complete first-run setup.'
+            : '';
+        }
+      }
+
       fetch('/auth/setup')
         .then((response) => response.json())
-        .then((data) => {
-          if (data.required) {
-            setupPanel.style.display = 'block';
-            loginPanel.style.display = 'none';
-            bookdarrPanel.style.display = 'block';
-            setBookdarrEnabled(false);
-          } else {
-            setupPanel.style.display = 'none';
-            loginPanel.style.display = 'block';
-            bookdarrPanel.style.display = 'block';
-          }
-        })
+        .then(handleSetupStatus)
         .catch(() => {});
 
       loadAuthSecretsStatus();
@@ -1078,7 +1337,7 @@ export class AppService {
               setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
               setupPanel.style.display = 'none';
               loginPanel.style.display = 'none';
-              setAuth(body?.tokens?.accessToken);
+              setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
             })
             .catch(() => {
               setupStatus.textContent = 'Setup failed.';
@@ -1125,17 +1384,116 @@ export class AppService {
               return;
             }
             loginStatus.textContent = 'Signed in.';
-            setAuth(body?.tokens?.accessToken);
+            setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
           })
           .catch(() => {
             loginStatus.textContent = 'Login failed.';
           });
       });
 
+      loginPageSubmit?.addEventListener('click', () => {
+        const username = loginPageUsername?.value;
+        const password = loginPagePassword?.value;
+        loginPageStatus.textContent = 'Signing in...';
+        fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Login failed.';
+              loginPageStatus.textContent = message;
+              return;
+            }
+            loginPageStatus.textContent = 'Signed in.';
+            setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
+            window.location.href = '/';
+          })
+          .catch(() => {
+            loginPageStatus.textContent = 'Login failed.';
+          });
+      });
+
+      if (isLoginPage) {
+        if (setupRequired) {
+          loginPageStatus.textContent = 'No users yet. Complete first-run setup.';
+        }
+      }
+
+      userButton?.addEventListener('click', () => {
+        if (!userDropdown) return;
+        userDropdown.style.display = userDropdown.style.display === 'block' ? 'none' : 'block';
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!userDropdown || !userMenu) return;
+        if (!userMenu.contains(event.target)) {
+          userDropdown.style.display = 'none';
+        }
+      });
+
+      logoutButton?.addEventListener('click', () => {
+        const refreshToken = localStorage.getItem('bmsRefreshToken');
+        if (!refreshToken) {
+          setAuth(null);
+          window.location.href = '/login';
+          return;
+        }
+        fetch('/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        })
+          .finally(() => {
+            setAuth(null);
+            window.location.href = '/login';
+          });
+      });
+
+      profileButton?.addEventListener('click', () => {
+        window.location.href = '/accounts';
+      });
+
       saveAuthButton?.addEventListener('click', () => {
         const accessSecret = settingsAccess?.value;
         const refreshSecret = settingsRefresh?.value;
         saveAuthSecrets(accessSecret, refreshSecret, authSecretStatus);
+      });
+
+      saveBookdarrButton?.addEventListener('click', () => {
+        if (!state.token) {
+          settingsBookdarrStatus.textContent = 'Log in to update Bookdarr.';
+          return;
+        }
+        const host = settingsBookdarrHost?.value;
+        const port = Number(settingsBookdarrPort?.value);
+        const apiKey = settingsBookdarrKey?.value;
+        const poolPath = settingsBookdarrPath?.value;
+        const useHttps = settingsBookdarrHttps?.checked;
+        settingsBookdarrStatus.textContent = 'Saving...';
+        fetch('/settings/bookdarr', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+          body: JSON.stringify({ host, port, apiKey, poolPath, useHttps }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Save failed.';
+              settingsBookdarrStatus.textContent = message;
+              return;
+            }
+            settingsBookdarrStatus.textContent = 'Bookdarr settings saved.';
+            loadBookdarrConfig();
+          })
+          .catch(() => {
+            settingsBookdarrStatus.textContent = 'Save failed.';
+          });
       });
 
       bookdarrButton?.addEventListener('click', () => {
@@ -1166,6 +1524,9 @@ export class AppService {
             }
             bookdarrStatus.textContent = 'Bookdarr connected.';
             loadLibrary();
+            if (wizardPanel) {
+              wizardPanel.style.display = 'none';
+            }
           })
           .catch(() => {
             bookdarrStatus.textContent = 'Save failed.';
@@ -1209,8 +1570,44 @@ export class AppService {
           });
       });
 
+      saveProfileButton?.addEventListener('click', () => {
+        if (!state.token) {
+          profileStatus.textContent = 'Log in to edit your profile.';
+          return;
+        }
+        const username = profileUsername?.value;
+        const email = profileEmail?.value;
+        const currentPassword = profileCurrentPassword?.value;
+        const newPassword = profileNewPassword?.value;
+        profileStatus.textContent = 'Saving profile...';
+        fetch('/api/me', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+          body: JSON.stringify({ username, email, currentPassword, newPassword }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to update profile.';
+              profileStatus.textContent = message;
+              return;
+            }
+            profileStatus.textContent = 'Profile updated.';
+            if (profileCurrentPassword) profileCurrentPassword.value = '';
+            if (profileNewPassword) profileNewPassword.value = '';
+            updateUserMenu(body);
+          })
+          .catch(() => {
+            profileStatus.textContent = 'Unable to update profile.';
+          });
+      });
+
       loadLibrary();
       loadAccounts();
+      loadProfile();
 
       fetch('/api/settings')
         .then((response) => response.json())

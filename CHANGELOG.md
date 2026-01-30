@@ -1,5 +1,14 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.7 — 2026-01-30 21:37 -06:00
+- Ensure an admin user exists (promote oldest user if none).
+
+## 1.0.6 — 2026-01-30 21:36 -06:00
+- Added dedicated login page, user menu with logout/profile, and profile editor.
+- Ensured first-run wizard hides after Bookdarr is connected and settings are editable in Settings.
+- Added Bookdarr settings form in Settings and wired configurable Book Pool path.
+- Added /api/me endpoints for profile load/update and stored tokens for logout.
+
 ## 1.0.5 — 2026-01-30 21:29 -06:00
 - Fixed auth settings controller build by using type-only Request import.
 

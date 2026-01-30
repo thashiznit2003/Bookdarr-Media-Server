@@ -51,6 +51,7 @@ export class AuthService implements OnModuleInit {
   async onModuleInit() {
     await this.seedInviteCodes();
     await this.ensureUsernames();
+    await this.ensureAdminUser();
   }
 
   async signup(request: SignupRequest) {
@@ -218,6 +219,67 @@ export class AuthService implements OnModuleInit {
       isActive: true,
       isAdmin: Boolean(input.isAdmin),
     });
+
+    await this.users.save(user);
+    return this.toAuthUser(user);
+  }
+
+  async getUserById(userId?: string) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    return this.toAuthUser(user);
+  }
+
+  async updateProfile(
+    userId: string | undefined,
+    input: { username?: string; email?: string; currentPassword?: string; newPassword?: string },
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+
+    if (input.username) {
+      const username = this.normalizeUsername(input.username);
+      this.assertUsername(username);
+      const existing = await this.users.findOne({ where: { username } });
+      if (existing && existing.id !== user.id) {
+        throw new BadRequestException('Username is already in use.');
+      }
+      user.username = username;
+    }
+
+    if (input.email) {
+      const email = this.normalizeEmail(input.email);
+      this.assertEmail(email);
+      const existing = await this.users.findOne({ where: { email } });
+      if (existing && existing.id !== user.id) {
+        throw new BadRequestException('Email is already in use.');
+      }
+      user.email = email;
+    }
+
+    if (input.newPassword) {
+      if (!input.currentPassword) {
+        throw new BadRequestException('Current password is required.');
+      }
+      const matches = await argon2.verify(user.passwordHash, input.currentPassword);
+      if (!matches) {
+        throw new UnauthorizedException('Current password is invalid.');
+      }
+      this.assertPassword(input.newPassword);
+      user.passwordHash = await argon2.hash(input.newPassword, {
+        type: argon2.argon2id,
+      });
+    }
 
     await this.users.save(user);
     return this.toAuthUser(user);
@@ -507,6 +569,21 @@ export class AuthService implements OnModuleInit {
         candidate = `${base}${i + 1}`;
       }
     }
+  }
+
+  private async ensureAdminUser() {
+    const adminCount = await this.users.count({ where: { isAdmin: true } });
+    if (adminCount > 0) {
+      return;
+    }
+
+    const users = await this.users.find({ order: { createdAt: 'ASC' } });
+    if (users.length === 0) {
+      return;
+    }
+
+    users[0].isAdmin = true;
+    await this.users.save(users[0]);
   }
 
   private async consumeInviteCode(code: string, userId: string) {

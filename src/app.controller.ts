@@ -11,7 +11,7 @@ export class AppController {
     return this.appService.getIndexHtml();
   }
 
-  @Get(['downloads', 'diagnostics', 'settings', 'accounts'])
+  @Get(['downloads', 'diagnostics', 'settings', 'accounts', 'login'])
   @Header('content-type', 'text/html; charset=utf-8')
   getPage(): string {
     return this.appService.getIndexHtml();
