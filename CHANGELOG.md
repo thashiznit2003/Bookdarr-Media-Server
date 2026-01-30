@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.6
+- Added a basic admin UI placeholder at `/` that surfaces redacted settings.
+
 ## 0.0.5
 - Silenced Node webstorage warning in test scripts.
 

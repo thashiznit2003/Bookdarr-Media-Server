@@ -33,6 +33,9 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 
 GET `/settings` returns a redacted settings summary for debugging.
 
+The root route (`/`) serves a temporary admin UI placeholder that reads
+settings from `/settings`.
+
 ## Docs
 - AGENTS.md
 - HANDOFF.md

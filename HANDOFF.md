@@ -5,6 +5,7 @@
 - Docs updated for new agent handoff.
 - Settings module added (env parsing + redacted `/settings` endpoint).
 - Test scripts disable experimental webstorage to avoid Node warnings.
+- Basic admin UI placeholder added at `/` (HTML + fetches `/settings`).
 
 ## Decisions
 - Stack: Node.js + NestJS

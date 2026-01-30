@@ -15,8 +15,9 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return the admin placeholder HTML', () => {
+      expect(appController.getIndex()).toContain('Bookdarr Media Server');
+      expect(appController.getIndex()).toContain('Admin UI placeholder');
     });
   });
 });
