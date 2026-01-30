@@ -12,6 +12,8 @@ const DEFAULT_AUTH_REFRESH_TTL = '30d';
 const DEFAULT_AUTH_RESET_TTL_MINUTES = 30;
 const DEFAULT_DB_TYPE = 'sqlite';
 const DEFAULT_DB_PATH = 'data/bms.sqlite';
+const DEFAULT_BOOKPOOL_PATH = '/api/v1/user/library/pool';
+const DEFAULT_OPENLIBRARY_BASE = 'https://openlibrary.org';
 
 @Injectable()
 export class SettingsService {
@@ -57,6 +59,7 @@ export class SettingsService {
       bookdarr: {
         apiUrl: this.settings.bookdarr.apiUrl,
         configured: bookdarrConfigured,
+        poolPath: this.settings.bookdarr.poolPath,
       },
       database: {
         type: this.settings.database.type,
@@ -88,6 +91,9 @@ export class SettingsService {
         accessTokenTtl: this.settings.auth.accessTokenTtl,
         refreshTokenTtl: this.settings.auth.refreshTokenTtl,
         resetTokenTtlMinutes: this.settings.auth.resetTokenTtlMinutes,
+      },
+      openLibrary: {
+        baseUrl: this.settings.openLibrary.baseUrl,
       },
     };
   }
@@ -132,6 +138,11 @@ export class SettingsService {
     const dbPass = this.readEnv('DB_PASS');
     const dbName = this.readEnv('DB_NAME');
     const dbSsl = this.parseBoolean(this.readEnv('DB_SSL'), false);
+    const bookPoolPath =
+      this.readEnv('BOOKDARR_BOOKPOOL_PATH') ?? DEFAULT_BOOKPOOL_PATH;
+    const openLibraryBase =
+      this.parseUrl(this.readEnv('OPENLIBRARY_BASE_URL'), 'OPENLIBRARY_BASE_URL') ??
+      DEFAULT_OPENLIBRARY_BASE;
 
     const apiUrl = this.parseUrl(process.env.BOOKDARR_API_URL, 'BOOKDARR_API_URL');
 
@@ -140,6 +151,7 @@ export class SettingsService {
       bookdarr: {
         apiUrl,
         apiKey: this.readEnv('BOOKDARR_API_KEY'),
+        poolPath: bookPoolPath,
       },
       database: {
         type: dbType,
@@ -176,6 +188,9 @@ export class SettingsService {
         refreshTokenTtl: authRefreshTtl,
         resetTokenTtlMinutes: resetTtlMinutes,
         inviteCodes,
+      },
+      openLibrary: {
+        baseUrl: openLibraryBase,
       },
     };
   }

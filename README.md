@@ -4,6 +4,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 
 ## Goals
 - Public API + streaming (Plex‑like)
+- Plex-inspired library UI for books
 - Separate BMS user accounts (invite codes)
 - Gmail SMTP password reset
 - Offline downloads in Reader app
@@ -23,6 +24,8 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 ## Configuration (env)
 - `BOOKDARR_API_URL` (http/https, no trailing slash)
 - `BOOKDARR_API_KEY`
+- `BOOKDARR_BOOKPOOL_PATH` (default `/api/v1/user/library/pool`)
+- `OPENLIBRARY_BASE_URL` (default `https://openlibrary.org`)
 - `DB_TYPE` (`sqlite` default, or `postgres`)
 - `DB_PATH` (sqlite file, default `data/bms.sqlite`)
 - `DB_SYNC` (default true for sqlite, false for postgres)
@@ -48,6 +51,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 
 GET `/settings` returns a redacted settings summary for debugging.
 POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo (requires auth if JWT secrets are set).
+GET `/library` returns the Book Pool with Open Library metadata.
 Auth endpoints (invite-only signup):
 - `GET /auth/setup` (first-run status)
 - `POST /auth/setup` (create first user without invite)

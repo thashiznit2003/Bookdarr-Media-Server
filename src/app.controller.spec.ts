@@ -15,9 +15,9 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return the admin placeholder HTML', () => {
+    it('should return the Plex-style HTML shell', () => {
       expect(appController.getIndex()).toContain('Bookdarr Media Server');
-      expect(appController.getIndex()).toContain('Admin UI placeholder');
+      expect(appController.getIndex()).toContain('Book Pool Library');
     });
   });
 });

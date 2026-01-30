@@ -9,6 +9,7 @@ import { SettingsService } from './settings/settings.service';
 import { UserEntity } from './auth/entities/user.entity';
 import { InviteCodeEntity } from './auth/entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './auth/entities/password-reset-token.entity';
+import { LibraryModule } from './library/library.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PasswordResetTokenEntity } from './auth/entities/password-reset-token.e
     }),
     DiagnosticsModule,
     AuthModule,
+    LibraryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

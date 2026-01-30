@@ -11,6 +11,7 @@
 - Diagnostics endpoint now requires auth when JWT secrets are configured.
 - e2e tests cover auth-required diagnostics and README now includes login + diagnostics curl flow.
 - First-run setup wizard added for initial user creation (GET/POST `/auth/setup`).
+- Book Pool library endpoint added (`GET /library`) with Open Library enrichment and Plex-inspired UI.
 
 ## Decisions
 - Stack: Node.js + NestJS

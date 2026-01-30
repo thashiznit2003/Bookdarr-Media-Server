@@ -10,12 +10,12 @@
 - [x] Invite code system (persisted)
 - [x] Auth (JWT + refresh, persisted)
 - [ ] Rate limiting
-- [ ] Library list from Book Pool
+- [x] Library list from Book Pool (Open Library metadata)
 - [ ] Audiobook streaming
 - [ ] Ebook downloads
 
 ## Security
-- [ ] Argon2id hashing
+- [x] Argon2id hashing
 - [ ] Login lockout/backoff
 - [ ] CORS locked to Reader app
 

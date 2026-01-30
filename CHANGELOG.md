@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.13
+- Added Book Pool library endpoint with Open Library enrichment and a Plex-like UI refresh.
+
 ## 0.0.12
 - Added first-run setup endpoint and UI wizard for initial user creation.
 

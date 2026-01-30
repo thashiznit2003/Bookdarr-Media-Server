@@ -3,6 +3,7 @@ export interface Settings {
   bookdarr: {
     apiUrl?: string;
     apiKey?: string;
+    poolPath?: string;
   };
   database: {
     type: 'sqlite' | 'postgres';
@@ -37,6 +38,9 @@ export interface Settings {
     resetTokenTtlMinutes: number;
     inviteCodes: string[];
   };
+  openLibrary: {
+    baseUrl: string;
+  };
 }
 
 export interface PublicSettings {
@@ -44,6 +48,7 @@ export interface PublicSettings {
   bookdarr: {
     apiUrl?: string;
     configured: boolean;
+    poolPath?: string;
   };
   database: {
     type: 'sqlite' | 'postgres';
@@ -75,5 +80,8 @@ export interface PublicSettings {
     accessTokenTtl: string;
     refreshTokenTtl: string;
     resetTokenTtlMinutes: number;
+  };
+  openLibrary: {
+    baseUrl: string;
   };
 }
