@@ -18,7 +18,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 ## Constraints
 - Read‑only access to Bookdarr data
 - Progress stored on device (Reader), not server
-- Diagnostics opt‑in; later hidden behind secret unlock
+- Diagnostics required during development; later hidden behind secret unlock
 
 ## Required Docs
 - README.md

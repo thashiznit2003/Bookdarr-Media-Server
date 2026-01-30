@@ -7,7 +7,8 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - Separate BMS user accounts (invite codes)
 - Gmail SMTP password reset
 - Offline downloads in Reader app
-- Diagnostics opt‑in
+- Diagnostics required during development (opt‑in at release)
+- Web app UI on port 9797
 
 ## Tech Stack
 - Node.js + NestJS
@@ -16,6 +17,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 
 ## Development
 - Target OS: Ubuntu
+- Port: 9797
 - Docker later
 
 ## Docs

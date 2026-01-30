@@ -10,7 +10,9 @@
 - Accounts: BMS‑only accounts, invite codes
 - SMTP: Gmail via app password
 - Bookdarr integration: API key stored in BMS settings UI (server‑side only)
-- Diagnostics: opt‑in by default; later hidden behind secret unlock
+- UI: web app on port 9797
+- Target OS: Ubuntu until Docker
+- Diagnostics: required during development; opt‑in later behind secret unlock
 
 ## Immediate Next Steps
 1. Create config/settings module (Bookdarr API URL/key, Gmail SMTP, diagnostics opt‑in).
