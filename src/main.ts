@@ -20,6 +20,10 @@ async function bootstrap() {
   if (existsSync(epubPath)) {
     app.use('/vendor/epub', express.static(epubPath));
   }
+  const jszipPath = join(process.cwd(), 'node_modules', 'jszip', 'dist');
+  if (existsSync(jszipPath)) {
+    app.use('/vendor/jszip', express.static(jszipPath));
+  }
   const pdfPath = join(process.cwd(), 'node_modules', 'pdfjs-dist', 'build');
   if (existsSync(pdfPath)) {
     app.use('/vendor/pdfjs', express.static(pdfPath));

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.23 — 2026-01-30 11:53 -06:00
+- Match Bookdarr’s EPUB reader flow by loading JSZip and rendering from a blob object URL.
+
 ## 1.0.22 — 2026-01-30 11:08 -06:00
 - Force EPUB loading as archived files and add a buffered fallback so readers open reliably.
 

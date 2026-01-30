@@ -33,6 +33,7 @@
 - Added on-disk Book Pool cache, Bookdarr MediaCover fallback, and filtering of books without files.
 - Added My Library with per-user checkout/return plus refresh-token session persistence and dropdown filters.
 - EPUB reader now forces archived loading and falls back to buffered fetch if streaming mode fails.
+- EPUB reader now loads JSZip and renders from a blob object URL to mirror Bookdarr behavior.
 
 ## Decisions
 - Stack: Node.js + NestJS

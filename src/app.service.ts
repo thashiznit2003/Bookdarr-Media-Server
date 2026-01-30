@@ -1231,6 +1231,7 @@ export class AppService {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
       window.pdfjsLib = pdfjsLib;
     </script>
+    <script src="/vendor/jszip/jszip.min.js"></script>
     <script src="/vendor/epub/epub.min.js"></script>
     <script>
       const state = {
@@ -1795,6 +1796,7 @@ export class AppService {
       let pdfPage = 1;
       let epubBook = null;
       let epubRendition = null;
+      let epubObjectUrl = null;
       let readerFile = null;
       let currentDetail = null;
 
@@ -1815,6 +1817,14 @@ export class AppService {
         }
         epubBook = null;
         epubRendition = null;
+        if (epubObjectUrl) {
+          try {
+            URL.revokeObjectURL(epubObjectUrl);
+          } catch {
+            // ignore
+          }
+          epubObjectUrl = null;
+        }
         pdfDoc = null;
         pdfPage = 1;
         readerFile = null;
@@ -1969,13 +1979,12 @@ export class AppService {
 
       function openEpubReader(file) {
         if (!readerView) return;
-        if (!window['ePub']) {
+        if (!window['ePub'] || !window['JSZip']) {
           readerView.innerHTML = '<div class="empty">EPUB reader unavailable.</div>';
           return;
         }
 
         const saved = loadProgress('ebook-epub', file.id);
-        const url = withToken(file.streamUrl);
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
         const timeout = setTimeout(() => {
           if (!epubRendition && readerView) {
@@ -1995,7 +2004,14 @@ export class AppService {
           });
 
           const displayTarget = saved?.cfi ?? undefined;
-          epubRendition.display(displayTarget);
+          const displayPromise = epubRendition.display(displayTarget);
+          if (displayPromise && displayPromise.catch) {
+            displayPromise.catch(() => {
+              if (readerView) {
+                readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
+              }
+            });
+          }
           epubRendition.on('relocated', (location) => {
             if (location?.start?.cfi) {
               saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
@@ -2006,30 +2022,25 @@ export class AppService {
           });
         };
 
-        const openFromUrl = async () => {
-          epubBook = window['ePub']({
-            openAs: 'epub',
-            requestHeaders: authHeaders()
-          });
-          await epubBook.open(url, 'epub');
-          await epubBook.ready;
-        };
+        (async () => {
+          if (epubObjectUrl) {
+            try {
+              URL.revokeObjectURL(epubObjectUrl);
+            } catch {
+              // ignore
+            }
+            epubObjectUrl = null;
+          }
 
-        const openFromBuffer = async () => {
           const response = await fetchWithAuth(file.streamUrl);
           if (!response.ok) {
             throw new Error('Failed to load EPUB');
           }
-          const buffer = await response.arrayBuffer();
-          epubBook = window['ePub'](buffer);
-          await epubBook.ready;
-        };
-
-        (async () => {
-          try {
-            await openFromUrl();
-          } catch {
-            await openFromBuffer();
+          const blob = await response.blob();
+          epubObjectUrl = URL.createObjectURL(blob);
+          epubBook = window['ePub'](epubObjectUrl, { openAs: 'epub' });
+          if (epubBook.ready) {
+            await epubBook.ready;
           }
           clearTimeout(timeout);
           mountRendition(epubBook);
