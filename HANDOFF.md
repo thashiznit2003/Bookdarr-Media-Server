@@ -8,6 +8,7 @@
 - Basic admin UI placeholder added at `/` (HTML + fetches `/settings`).
 - Diagnostics endpoint added (`POST /diagnostics`) that pushes payloads to the diagnostics repo.
 - Auth module added with invite-only signup, JWT access/refresh, and password reset via SMTP (SQLite/Postgres storage via TypeORM).
+- Diagnostics endpoint now requires auth when JWT secrets are configured.
 
 ## Decisions
 - Stack: Node.js + NestJS

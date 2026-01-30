@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.10
+- Secured diagnostics endpoint behind JWT auth when configured.
+
 ## 0.0.9
 - Persisted auth data using SQLite/Postgres via TypeORM.
 

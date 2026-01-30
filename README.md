@@ -47,7 +47,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - `PORT` (default 9797)
 
 GET `/settings` returns a redacted settings summary for debugging.
-POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo.
+POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo (requires auth if JWT secrets are set).
 Auth endpoints (invite-only signup):
 - `POST /auth/signup`
 - `POST /auth/login`

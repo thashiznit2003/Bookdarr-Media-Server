@@ -8,6 +8,8 @@ import { SettingsModule } from '../settings/settings.module';
 import { UserEntity } from './entities/user.entity';
 import { InviteCodeEntity } from './entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
+import { JwtStrategy } from './jwt.strategy';
+import { AuthGuard } from './auth.guard';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { PasswordResetTokenEntity } from './entities/password-reset-token.entity
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, MailerService],
+  providers: [AuthService, MailerService, JwtStrategy, AuthGuard],
+  exports: [AuthGuard],
 })
 export class AuthModule {}
