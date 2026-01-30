@@ -674,11 +674,52 @@ export class AppService {
         cursor: pointer;
       }
 
+      .reader-nav-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .reader-modal[data-reader-mode="epub"] .reader-nav-overlay,
+      .reader-modal[data-reader-mode="pdf"] .reader-nav-overlay {
+        opacity: 1;
+      }
+
+      .reader-arrow {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(0, 0, 0, 0.45);
+        color: #fff;
+        font-size: 1.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      }
+
+      .reader-arrow:hover {
+        background: rgba(0, 0, 0, 0.6);
+      }
+
       .reader-view {
         flex: 1;
         overflow: auto;
         padding: 16px;
         position: relative;
+      }
+
+      .reader-modal[data-reader-mode="epub"] .reader-view {
+        overflow: hidden;
       }
 
       .reader-canvas {
@@ -1221,6 +1262,10 @@ export class AppService {
             <button class="reader-button" id="reader-next">Next</button>
             <a class="reader-button" id="reader-download" href="#" target="_blank" rel="noreferrer">Download</a>
           </div>
+          <div class="reader-nav-overlay" id="reader-nav-overlay">
+            <button class="reader-arrow" id="reader-prev-arrow" aria-label="Previous page">‹</button>
+            <button class="reader-arrow" id="reader-next-arrow" aria-label="Next page">›</button>
+          </div>
           <div class="reader-view" id="reader-view"></div>
         </div>
       </div>
@@ -1328,6 +1373,8 @@ export class AppService {
       const readerProgress = document.getElementById('reader-progress');
       const readerPrev = document.getElementById('reader-prev');
       const readerNext = document.getElementById('reader-next');
+      const readerPrevArrow = document.getElementById('reader-prev-arrow');
+      const readerNextArrow = document.getElementById('reader-next-arrow');
       const readerDownload = document.getElementById('reader-download');
       const readerView = document.getElementById('reader-view');
 
@@ -1384,22 +1431,57 @@ export class AppService {
           closeReader();
         }
       });
-      readerPrev?.addEventListener('click', () => {
+
+      const goPrev = () => {
         if (epubRendition) {
           epubRendition.prev();
         } else if (pdfDoc) {
           pdfPage = Math.max(1, pdfPage - 1);
           renderPdfPage();
         }
-      });
-      readerNext?.addEventListener('click', () => {
+      };
+      const goNext = () => {
         if (epubRendition) {
           epubRendition.next();
         } else if (pdfDoc) {
           pdfPage = Math.min(pdfDoc.numPages, pdfPage + 1);
           renderPdfPage();
         }
-      });
+      };
+
+      readerPrev?.addEventListener('click', goPrev);
+      readerNext?.addEventListener('click', goNext);
+      readerPrevArrow?.addEventListener('click', goPrev);
+      readerNextArrow?.addEventListener('click', goNext);
+
+      let touchStartX = null;
+      let touchStartY = null;
+      readerView?.addEventListener('touchstart', (event) => {
+        if (!event.touches || event.touches.length !== 1) {
+          return;
+        }
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+      }, { passive: true });
+      readerView?.addEventListener('touchend', (event) => {
+        if (touchStartX == null || touchStartY == null || !event.changedTouches || event.changedTouches.length !== 1) {
+          touchStartX = null;
+          touchStartY = null;
+          return;
+        }
+        const deltaX = event.changedTouches[0].clientX - touchStartX;
+        const deltaY = event.changedTouches[0].clientY - touchStartY;
+        touchStartX = null;
+        touchStartY = null;
+        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
+          return;
+        }
+        if (deltaX < 0) {
+          goNext();
+        } else {
+          goPrev();
+        }
+      }, { passive: true });
       window.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
           closeBookDetail();
@@ -1897,6 +1979,7 @@ export class AppService {
         await ensureFreshToken();
         readerModal.classList.add('active');
         readerModal.setAttribute('aria-hidden', 'false');
+        readerModal.dataset.readerMode = file.format === '.epub' ? 'epub' : (file.format === '.pdf' ? 'pdf' : 'other');
         if (readerTitle) {
           readerTitle.textContent = title ?? 'Reader';
         }
@@ -1926,6 +2009,7 @@ export class AppService {
           return;
         }
         resetReaderState();
+        readerModal.dataset.readerMode = 'none';
         readerModal.classList.remove('active');
         readerModal.setAttribute('aria-hidden', 'true');
       }
@@ -2000,7 +2084,8 @@ export class AppService {
           epubRendition = book.renderTo(readerView, {
             width: '100%',
             height: '100%',
-            spread: 'none'
+            spread: 'none',
+            flow: 'paginated'
           });
 
           const displayTarget = saved?.cfi ?? undefined;

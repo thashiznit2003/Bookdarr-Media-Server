@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.24 — 2026-01-30 11:58 -06:00
+- Add EPUB navigation arrows, swipe gestures, and enforce single-page pagination.
+
 ## 1.0.23 — 2026-01-30 11:53 -06:00
 - Match Bookdarr’s EPUB reader flow by loading JSZip and rendering from a blob object URL.
 
