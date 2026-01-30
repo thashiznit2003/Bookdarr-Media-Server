@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.0
+- Added visible UI version tag (top-left next to BMS) and aligned app version with package.json.
+
 ## 0.0.16
 - Resolved security alerts (nodemailer update, tar override) and hardened email validation.
 

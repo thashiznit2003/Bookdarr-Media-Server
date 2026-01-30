@@ -14,6 +14,7 @@
 - Book Pool library endpoint added (`GET /library`) with Open Library enrichment and Plex-inspired UI.
 - Added Ubuntu install script at `scripts/install-bms.sh` (systemd + env file).
 - Bookdarr connection wizard added after login (stores Bookdarr IP/port/API key in DB).
+- Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
 
 ## Decisions
 - Stack: Node.js + NestJS
@@ -33,3 +34,4 @@
 ## Notes
 - BMS must never expose Bookdarr API key.
 - BMS should not modify Bookdarr data (read‑only).
+- Version bump rule: one GitHub push = increment patch (x.x.n+1) in `package.json` and `CHANGELOG.md`.

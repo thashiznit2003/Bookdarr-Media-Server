@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+const { version: appVersion } = require('../package.json');
+
 @Injectable()
 export class AppService {
   getIndexHtml(): string {
@@ -62,13 +64,31 @@ export class AppService {
         padding: 32px 24px;
       }
 
+      .brand-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+
       .brand {
         font-weight: 600;
         font-size: 1.3rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--accent);
-        margin-bottom: 32px;
+      }
+
+      .version-tag {
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
       }
 
       .nav-section {
@@ -418,7 +438,10 @@ export class AppService {
   <body>
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand">BMS</div>
+        <div class="brand-row">
+          <div class="brand">BMS</div>
+          <div class="version-tag">v${appVersion}</div>
+        </div>
         <div class="nav-section">
           <div class="nav-title">Library</div>
           <div class="nav-link active">Book Pool</div>
