@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.14 — 2026-01-30 23:29 -06:00
+- Fix Bookdarr cover selection to use image URLs directly so covers render in the Book Pool.
+
 ## 1.0.13 — 2026-01-30 23:24 -06:00
 - Proxy Bookdarr cover art through BMS and use it as the primary artwork source.
 - Pull book overviews from Bookdarr and only fallback to Open Library when missing.

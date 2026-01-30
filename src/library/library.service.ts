@@ -24,17 +24,11 @@ export class LibraryService {
           item.book?.author?.authorNameLastFirst ??
           undefined;
 
-        const bookdarrCoverRaw =
-          item.book?.images?.find((image) => image.remoteUrl || image.url)
-            ?.remoteUrl ??
-          item.book?.images?.find((image) => image.url)?.url;
+        const bookdarrCoverRaw = this.pickCoverPath(item.book?.images);
         let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
         if (!bookdarrCover) {
           const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-          const resourceCoverRaw =
-            bookResource?.images?.find((image) => image.remoteUrl || image.url)
-              ?.remoteUrl ??
-            bookResource?.images?.find((image) => image.url)?.url;
+          const resourceCoverRaw = this.pickCoverPath(bookResource?.images);
           bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
         }
         let match;
@@ -81,17 +75,11 @@ export class LibraryService {
       item.book?.author?.authorNameLastFirst ??
       undefined;
 
-    const bookdarrCoverRaw =
-      item.book?.images?.find((image) => image.remoteUrl || image.url)
-        ?.remoteUrl ??
-      item.book?.images?.find((image) => image.url)?.url;
+    const bookdarrCoverRaw = this.pickCoverPath(item.book?.images);
     let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
     if (!bookdarrCover) {
       const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-      const resourceCoverRaw =
-        bookResource?.images?.find((image) => image.remoteUrl || image.url)
-          ?.remoteUrl ??
-        bookResource?.images?.find((image) => image.url)?.url;
+      const resourceCoverRaw = this.pickCoverPath(bookResource?.images);
       bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
     }
     let bookdarrOverview: string | undefined;
@@ -184,17 +172,11 @@ export class LibraryService {
       details = undefined;
     }
 
-    const bookdarrCoverRaw =
-      item.book?.images?.find((image) => image.remoteUrl || image.url)
-        ?.remoteUrl ??
-      item.book?.images?.find((image) => image.url)?.url;
+    const bookdarrCoverRaw = this.pickCoverPath(item.book?.images);
     let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
     if (!bookdarrCover) {
       const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-      const resourceCoverRaw =
-        bookResource?.images?.find((image) => image.remoteUrl || image.url)
-          ?.remoteUrl ??
-        bookResource?.images?.find((image) => image.url)?.url;
+      const resourceCoverRaw = this.pickCoverPath(bookResource?.images);
       bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
     }
     const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
@@ -292,6 +274,14 @@ export class LibraryService {
     } catch {
       return undefined;
     }
+  }
+
+  private pickCoverPath(images?: { remoteUrl?: string; url?: string }[]): string | undefined {
+    if (!images || images.length === 0) {
+      return undefined;
+    }
+    const image = images.find((entry) => entry.remoteUrl || entry.url);
+    return image?.remoteUrl ?? image?.url;
   }
 
   private extractYear(dateValue?: string): number | undefined {
