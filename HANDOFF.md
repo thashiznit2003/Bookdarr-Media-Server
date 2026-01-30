@@ -4,6 +4,7 @@
 - Repo initialized with NestJS scaffold.
 - Docs updated for new agent handoff.
 - Settings module added (env parsing + redacted `/settings` endpoint).
+- Test scripts disable experimental webstorage to avoid Node warnings.
 
 ## Decisions
 - Stack: Node.js + NestJS

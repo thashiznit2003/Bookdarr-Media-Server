@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.5
+- Silenced Node webstorage warning in test scripts.
+
 ## 0.0.4
 - Added settings module with env parsing and public settings endpoint.
 
