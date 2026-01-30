@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.9
+- Persisted auth data using SQLite/Postgres via TypeORM.
+
 ## 0.0.8
 - Added invite-only auth with JWT access/refresh tokens and SMTP password reset.
 

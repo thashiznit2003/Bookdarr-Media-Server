@@ -23,6 +23,11 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 ## Configuration (env)
 - `BOOKDARR_API_URL` (http/https, no trailing slash)
 - `BOOKDARR_API_KEY`
+- `DB_TYPE` (`sqlite` default, or `postgres`)
+- `DB_PATH` (sqlite file, default `data/bms.sqlite`)
+- `DB_SYNC` (default true for sqlite, false for postgres)
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` (postgres)
+- `DB_SSL` (default false; postgres only)
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_USER`
@@ -50,6 +55,9 @@ Auth endpoints (invite-only signup):
 - `POST /auth/logout`
 - `POST /auth/password/request`
 - `POST /auth/password/reset`
+
+Invite codes in `INVITE_CODES` are seeded into the database on startup so they
+persist across restarts.
 
 The root route (`/`) serves a temporary admin UI placeholder that reads
 settings from `/settings`.

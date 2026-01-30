@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { mkdirSync } from 'fs';
+import { dirname } from 'path';
 import { PublicSettings, Settings } from './settings.types';
 
 const DEFAULT_PORT = 9797;
@@ -8,6 +10,8 @@ const DEFAULT_DIAGNOSTICS_PATH = 'bms';
 const DEFAULT_AUTH_ACCESS_TTL = '15m';
 const DEFAULT_AUTH_REFRESH_TTL = '30d';
 const DEFAULT_AUTH_RESET_TTL_MINUTES = 30;
+const DEFAULT_DB_TYPE = 'sqlite';
+const DEFAULT_DB_PATH = 'data/bms.sqlite';
 
 @Injectable()
 export class SettingsService {
@@ -31,6 +35,15 @@ export class SettingsService {
     const bookdarrConfigured = Boolean(
       this.settings.bookdarr.apiUrl && this.settings.bookdarr.apiKey,
     );
+    const databaseConfigured =
+      this.settings.database.type === 'sqlite'
+        ? Boolean(this.settings.database.sqlitePath)
+        : Boolean(
+            this.settings.database.host &&
+              this.settings.database.port &&
+              this.settings.database.username &&
+              this.settings.database.name,
+          );
     const diagnosticsConfigured = Boolean(
       this.settings.diagnostics.repo && this.settings.diagnostics.token,
     );
@@ -44,6 +57,16 @@ export class SettingsService {
       bookdarr: {
         apiUrl: this.settings.bookdarr.apiUrl,
         configured: bookdarrConfigured,
+      },
+      database: {
+        type: this.settings.database.type,
+        configured: databaseConfigured,
+        synchronize: this.settings.database.synchronize,
+        sqlitePath: this.settings.database.sqlitePath,
+        host: this.settings.database.host,
+        port: this.settings.database.port,
+        name: this.settings.database.name,
+        ssl: this.settings.database.ssl,
       },
       smtp: {
         host: this.settings.smtp.host,
@@ -92,6 +115,23 @@ export class SettingsService {
       'RESET_TOKEN_TTL_MINUTES',
     );
     const inviteCodes = this.parseCsv(this.readEnv('INVITE_CODES'));
+    const dbTypeRaw = this.readEnv('DB_TYPE') ?? DEFAULT_DB_TYPE;
+    const dbType = this.parseDbType(dbTypeRaw);
+    const dbSyncDefault = dbType === 'sqlite';
+    const dbSync = this.parseBoolean(
+      this.readEnv('DB_SYNC'),
+      dbSyncDefault,
+    );
+    const dbPath = this.readEnv('DB_PATH') ?? DEFAULT_DB_PATH;
+    if (dbType === 'sqlite') {
+      this.ensureSqliteDirectory(dbPath);
+    }
+    const dbHost = this.readEnv('DB_HOST');
+    const dbPort = this.parsePort(this.readEnv('DB_PORT'), undefined, 'DB_PORT');
+    const dbUser = this.readEnv('DB_USER');
+    const dbPass = this.readEnv('DB_PASS');
+    const dbName = this.readEnv('DB_NAME');
+    const dbSsl = this.parseBoolean(this.readEnv('DB_SSL'), false);
 
     const apiUrl = this.parseUrl(process.env.BOOKDARR_API_URL, 'BOOKDARR_API_URL');
 
@@ -100,6 +140,17 @@ export class SettingsService {
       bookdarr: {
         apiUrl,
         apiKey: this.readEnv('BOOKDARR_API_KEY'),
+      },
+      database: {
+        type: dbType,
+        synchronize: dbSync,
+        sqlitePath: dbType === 'sqlite' ? dbPath : undefined,
+        host: dbType === 'postgres' ? dbHost : undefined,
+        port: dbType === 'postgres' ? dbPort : undefined,
+        username: dbType === 'postgres' ? dbUser : undefined,
+        password: dbType === 'postgres' ? dbPass : undefined,
+        name: dbType === 'postgres' ? dbName : undefined,
+        ssl: dbType === 'postgres' ? dbSsl : undefined,
       },
       smtp: {
         host: this.readEnv('SMTP_HOST'),
@@ -187,6 +238,28 @@ export class SettingsService {
     }
 
     return trimmed;
+  }
+
+  private parseDbType(value: string): 'sqlite' | 'postgres' {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'sqlite' || normalized === 'postgres') {
+      return normalized;
+    }
+
+    throw new Error('DB_TYPE must be sqlite or postgres.');
+  }
+
+  private ensureSqliteDirectory(dbPath: string) {
+    if (dbPath === ':memory:') {
+      return;
+    }
+
+    const folder = dirname(dbPath);
+    if (!folder || folder === '.') {
+      return;
+    }
+
+    mkdirSync(folder, { recursive: true });
   }
 
   private parsePositiveInt(

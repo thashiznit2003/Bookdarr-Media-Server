@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  OnModuleInit,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -8,7 +9,6 @@ import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
 import { randomBytes } from 'crypto';
 import { SettingsService } from '../settings/settings.service';
-import { AuthStore } from './auth.store';
 import {
   AuthTokens,
   AuthUser,
@@ -20,25 +20,41 @@ import {
   SignupRequest,
 } from './auth.types';
 import { MailerService } from './mailer.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserEntity } from './entities/user.entity';
+import { InviteCodeEntity } from './entities/invite-code.entity';
+import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
 
 const MIN_PASSWORD_LENGTH = 8;
 
 @Injectable()
-export class AuthService {
-  private readonly store = new AuthStore();
-
+export class AuthService implements OnModuleInit {
   constructor(
     private readonly settingsService: SettingsService,
     private readonly jwtService: JwtService,
     private readonly mailerService: MailerService,
+    @InjectRepository(UserEntity)
+    private readonly users: Repository<UserEntity>,
+    @InjectRepository(InviteCodeEntity)
+    private readonly inviteCodes: Repository<InviteCodeEntity>,
+    @InjectRepository(PasswordResetTokenEntity)
+    private readonly resetTokens: Repository<PasswordResetTokenEntity>,
   ) {}
+
+  async onModuleInit() {
+    await this.seedInviteCodes();
+  }
 
   async signup(request: SignupRequest) {
     this.assertEmail(request.email);
     this.assertPassword(request.password);
-    this.assertInviteCode(request.inviteCode);
+    await this.assertInviteCode(request.inviteCode);
 
-    const existing = this.store.findUserByEmail(request.email);
+    const normalizedEmail = request.email.trim().toLowerCase();
+    const existing = await this.users.findOne({
+      where: { email: normalizedEmail },
+    });
     if (existing) {
       throw new BadRequestException('User already exists.');
     }
@@ -47,12 +63,15 @@ export class AuthService {
       type: argon2.argon2id,
     });
 
-    const user = this.store.createUser({
-      email: request.email,
+    const user = this.users.create({
+      email: normalizedEmail,
       passwordHash,
+      createdAt: new Date().toISOString(),
+      isActive: true,
     });
+    await this.users.save(user);
 
-    this.store.markInviteCodeUsed(request.inviteCode.trim());
+    await this.consumeInviteCode(request.inviteCode.trim(), user.id);
 
     const tokens = await this.issueTokens(user.id, user.email);
     return { user: this.toAuthUser(user), tokens };
@@ -62,7 +81,8 @@ export class AuthService {
     this.assertEmail(request.email);
     this.assertPassword(request.password, false);
 
-    const user = this.store.findUserByEmail(request.email);
+    const normalizedEmail = request.email.trim().toLowerCase();
+    const user = await this.users.findOne({ where: { email: normalizedEmail } });
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials.');
     }
@@ -82,7 +102,7 @@ export class AuthService {
     }
 
     const payload = await this.verifyRefreshToken(request.refreshToken);
-    const user = this.store.findUserById(payload.sub);
+    const user = await this.users.findOne({ where: { id: payload.sub } });
 
     if (!user || user.refreshTokenId !== payload.jti) {
       throw new UnauthorizedException('Refresh token is invalid.');
@@ -98,10 +118,10 @@ export class AuthService {
     }
 
     const payload = await this.verifyRefreshToken(request.refreshToken);
-    const user = this.store.findUserById(payload.sub);
+    const user = await this.users.findOne({ where: { id: payload.sub } });
     if (user) {
       user.refreshTokenId = undefined;
-      this.store.updateUser(user);
+      await this.users.save(user);
     }
 
     return { status: 'ok' };
@@ -110,22 +130,22 @@ export class AuthService {
   async requestPasswordReset(request: PasswordResetRequest) {
     this.assertEmail(request.email);
 
-    const user = this.store.findUserByEmail(request.email);
+    const normalizedEmail = request.email.trim().toLowerCase();
+    const user = await this.users.findOne({ where: { email: normalizedEmail } });
     if (!user || !user.isActive) {
       return { status: 'ok' };
     }
 
     const settings = this.settingsService.getSettings();
-    const token = this.generateToken();
-    const tokenHash = await argon2.hash(token, { type: argon2.argon2id });
-
-    this.store.storeResetToken(token, {
-      tokenHash,
+    const { token, tokenId, secretHash } = await this.generateResetToken();
+    const resetToken = this.resetTokens.create({
+      id: tokenId,
+      secretHash,
       userId: user.id,
-      expiresAt:
-        Date.now() + settings.auth.resetTokenTtlMinutes * 60 * 1000,
-      used: false,
+      expiresAt: Date.now() + settings.auth.resetTokenTtlMinutes * 60 * 1000,
+      createdAt: new Date().toISOString(),
     });
+    await this.resetTokens.save(resetToken);
 
     await this.mailerService.sendPasswordReset(
       user.email,
@@ -143,21 +163,22 @@ export class AuthService {
 
     this.assertPassword(request.newPassword);
 
-    const record = this.store.getResetToken(request.token);
+    const { tokenId, secret } = this.parseResetToken(request.token);
+    const record = await this.resetTokens.findOne({ where: { id: tokenId } });
     if (!record) {
       throw new BadRequestException('Reset token is invalid.');
     }
 
-    if (record.used || Date.now() > record.expiresAt) {
+    if (record.usedAt || Date.now() > Number(record.expiresAt)) {
       throw new BadRequestException('Reset token has expired.');
     }
 
-    const matches = await argon2.verify(record.tokenHash, request.token);
+    const matches = await argon2.verify(record.secretHash, secret);
     if (!matches) {
       throw new BadRequestException('Reset token is invalid.');
     }
 
-    const user = this.store.findUserById(record.userId);
+    const user = await this.users.findOne({ where: { id: record.userId } });
     if (!user) {
       throw new BadRequestException('Reset token is invalid.');
     }
@@ -166,8 +187,9 @@ export class AuthService {
       type: argon2.argon2id,
     });
     user.refreshTokenId = undefined;
-    this.store.updateUser(user);
-    this.store.markResetTokenUsed(request.token);
+    await this.users.save(user);
+    record.usedAt = new Date().toISOString();
+    await this.resetTokens.save(record);
 
     return { status: 'ok' };
   }
@@ -201,10 +223,10 @@ export class AuthService {
       },
     );
 
-    const user = this.store.findUserById(userId);
+    const user = await this.users.findOne({ where: { id: userId } });
     if (user) {
       user.refreshTokenId = refreshId;
-      this.store.updateUser(user);
+      await this.users.save(user);
     }
 
     return {
@@ -237,19 +259,19 @@ export class AuthService {
     return auth;
   }
 
-  private assertInviteCode(inviteCode: string) {
+  private async assertInviteCode(inviteCode: string) {
     if (!inviteCode || inviteCode.trim().length === 0) {
       throw new BadRequestException('Invite code is required.');
     }
 
-    const auth = this.settingsService.getSettings().auth;
-    if (auth.inviteCodes.length === 0) {
+    const totalInviteCodes = await this.inviteCodes.count();
+    if (totalInviteCodes === 0) {
       throw new ServiceUnavailableException('Invite codes are not configured.');
     }
 
     const normalized = inviteCode.trim();
-    const isValid = auth.inviteCodes.includes(normalized);
-    if (!isValid || this.store.isInviteCodeUsed(normalized)) {
+    const code = await this.inviteCodes.findOne({ where: { code: normalized } });
+    if (!code || code.usedAt) {
       throw new UnauthorizedException('Invite code is invalid.');
     }
   }
@@ -280,5 +302,55 @@ export class AuthService {
 
   private generateToken(): string {
     return randomBytes(32).toString('base64url');
+  }
+
+  private async seedInviteCodes() {
+    const codes = this.settingsService.getSettings().auth.inviteCodes;
+    if (codes.length === 0) {
+      return;
+    }
+
+    for (const code of codes) {
+      const normalized = code.trim();
+      if (normalized.length === 0) {
+        continue;
+      }
+      const existing = await this.inviteCodes.findOne({
+        where: { code: normalized },
+      });
+      if (!existing) {
+        const invite = this.inviteCodes.create({
+          code: normalized,
+          createdAt: new Date().toISOString(),
+        });
+        await this.inviteCodes.save(invite);
+      }
+    }
+  }
+
+  private async consumeInviteCode(code: string, userId: string) {
+    const record = await this.inviteCodes.findOne({ where: { code } });
+    if (!record || record.usedAt) {
+      throw new UnauthorizedException('Invite code is invalid.');
+    }
+
+    record.usedAt = new Date().toISOString();
+    record.usedByUserId = userId;
+    await this.inviteCodes.save(record);
+  }
+
+  private async generateResetToken() {
+    const tokenId = this.generateToken();
+    const secret = this.generateToken();
+    const secretHash = await argon2.hash(secret, { type: argon2.argon2id });
+    return { token: `${tokenId}.${secret}`, tokenId, secretHash };
+  }
+
+  private parseResetToken(token: string) {
+    const [tokenId, secret] = token.split('.');
+    if (!tokenId || !secret) {
+      throw new BadRequestException('Reset token is invalid.');
+    }
+    return { tokenId, secret };
   }
 }

@@ -7,8 +7,8 @@
 ## Core Features
 - [ ] Settings UI: Bookdarr API URL/key
 - [ ] Gmail SMTP settings + test email
-- [x] Invite code system (in-memory)
-- [x] Auth (JWT + refresh, in-memory)
+- [x] Invite code system (persisted)
+- [x] Auth (JWT + refresh, persisted)
 - [ ] Rate limiting
 - [ ] Library list from Book Pool
 - [ ] Audiobook streaming

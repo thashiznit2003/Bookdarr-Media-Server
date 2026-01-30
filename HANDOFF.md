@@ -7,7 +7,7 @@
 - Test scripts disable experimental webstorage to avoid Node warnings.
 - Basic admin UI placeholder added at `/` (HTML + fetches `/settings`).
 - Diagnostics endpoint added (`POST /diagnostics`) that pushes payloads to the diagnostics repo.
-- Auth module added with invite-only signup, JWT access/refresh, and password reset via SMTP (in-memory storage).
+- Auth module added with invite-only signup, JWT access/refresh, and password reset via SMTP (SQLite/Postgres storage via TypeORM).
 
 ## Decisions
 - Stack: Node.js + NestJS

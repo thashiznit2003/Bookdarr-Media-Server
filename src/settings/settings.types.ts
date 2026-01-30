@@ -4,6 +4,17 @@ export interface Settings {
     apiUrl?: string;
     apiKey?: string;
   };
+  database: {
+    type: 'sqlite' | 'postgres';
+    synchronize: boolean;
+    sqlitePath?: string;
+    host?: string;
+    port?: number;
+    username?: string;
+    password?: string;
+    name?: string;
+    ssl?: boolean;
+  };
   smtp: {
     host?: string;
     port?: number;
@@ -33,6 +44,16 @@ export interface PublicSettings {
   bookdarr: {
     apiUrl?: string;
     configured: boolean;
+  };
+  database: {
+    type: 'sqlite' | 'postgres';
+    configured: boolean;
+    synchronize: boolean;
+    sqlitePath?: string;
+    host?: string;
+    port?: number;
+    name?: string;
+    ssl?: boolean;
   };
   smtp: {
     host?: string;

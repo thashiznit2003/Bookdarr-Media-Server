@@ -120,6 +120,7 @@ export class AppService {
           const items = [
             ['Port', data.port],
             ['Bookdarr API', data.bookdarr?.configured ? 'Configured' : 'Missing', data.bookdarr?.configured],
+            ['Database', data.database?.configured ? 'Configured (' + data.database?.type + ')' : 'Missing', data.database?.configured],
             ['SMTP', data.smtp?.configured ? 'Configured' : 'Missing', data.smtp?.configured],
             ['Diagnostics Required', data.diagnostics?.required ? 'Yes' : 'No', data.diagnostics?.required],
             ['Diagnostics Repo', data.diagnostics?.repo ?? 'Not set', data.diagnostics?.configured],
