@@ -276,19 +276,61 @@ export class LibraryService {
     }
   }
 
-  private pickCoverPath(images?: { remoteUrl?: string; url?: string }[]): string | undefined {
+  private pickCoverPath(
+    images?: { remoteUrl?: string; url?: string; extension?: string; coverType?: string }[],
+  ): string | undefined {
     if (!images || images.length === 0) {
       return undefined;
     }
-    const isValidPath = (value?: string) =>
-      typeof value === 'string' && (value.startsWith('/') || value.startsWith('http'));
 
-    const imageWithUrl = images.find((entry) => isValidPath(entry.url));
-    if (imageWithUrl?.url) {
-      return imageWithUrl.url;
+    const normalize = (value?: string) => {
+      if (typeof value !== 'string') {
+        return undefined;
+      }
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return undefined;
+      }
+      if (trimmed.startsWith('MediaCover/')) {
+        return `/${trimmed}`;
+      }
+      return trimmed;
+    };
+
+    const isUsable = (value?: string) =>
+      typeof value === 'string' &&
+      (value.startsWith('/') || value.startsWith('http') || value.startsWith('MediaCover/'));
+
+    const hasImageExtension = (value?: string, extension?: string) => {
+      if (extension && /\.(jpe?g|png|gif|webp)$/i.test(extension)) {
+        return true;
+      }
+      return typeof value === 'string' && /\.(jpe?g|png|gif|webp)(\\?|$)/i.test(value);
+    };
+
+    const preferred = images.filter((entry) =>
+      entry.coverType ? entry.coverType.toLowerCase() === 'cover' : true,
+    );
+
+    for (const entry of preferred) {
+      const url = normalize(entry.url);
+      if (url && isUsable(url) && hasImageExtension(url, entry.extension)) {
+        return url;
+      }
+      const remote = normalize(entry.remoteUrl);
+      if (remote && isUsable(remote) && hasImageExtension(remote, entry.extension)) {
+        return remote;
+      }
     }
-    const imageWithRemote = images.find((entry) => isValidPath(entry.remoteUrl));
-    return imageWithRemote?.remoteUrl;
+
+    for (const entry of preferred) {
+      const remote = normalize(entry.remoteUrl);
+      if (remote && remote.startsWith('http') && hasImageExtension(remote, entry.extension)) {
+        return remote;
+      }
+    }
+
+    return undefined;
   }
 
   private extractYear(dateValue?: string): number | undefined {

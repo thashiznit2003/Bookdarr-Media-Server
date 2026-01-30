@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.20 — 2026-01-30 00:02 -06:00
+- Only use Bookdarr cover URLs when they resolve to actual image files; fall back otherwise.
+
 ## 1.0.19 — 2026-01-30 23:55 -06:00
 - Documented the reader/modal updates in handoff notes.
 

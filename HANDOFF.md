@@ -29,6 +29,7 @@
 - Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
 - Book detail modal now truncates descriptions to 100 words with a More/Less toggle and supports scrolling.
 - PDF reader assets now load from the module build so the in-app reader renders correctly.
+- Book cover selection now prefers Bookdarr URLs that resolve to actual image files and falls back otherwise.
 
 ## Decisions
 - Stack: Node.js + NestJS

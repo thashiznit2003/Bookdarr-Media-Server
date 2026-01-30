@@ -43,3 +43,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 ## UI Notes
 - Book detail modal shows a 100-word description preview with a More/Less toggle; modal content can scroll.
 - PDF reader loads module assets from `/vendor/pdfjs/pdf.mjs` with worker `/vendor/pdfjs/pdf.worker.mjs`.
+- Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
