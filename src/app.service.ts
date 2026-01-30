@@ -624,6 +624,12 @@ export class AppService {
         z-index: 60;
       }
 
+      .reader-modal.touch-fullscreen {
+        padding: 0;
+        align-items: stretch;
+        justify-content: stretch;
+      }
+
       .reader-modal.active {
         display: flex;
       }
@@ -638,6 +644,12 @@ export class AppService {
         flex-direction: column;
         overflow: hidden;
         position: relative;
+      }
+
+      .reader-modal.touch-fullscreen .reader-card {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
       }
 
       .reader-header {
@@ -663,6 +675,24 @@ export class AppService {
       .reader-progress {
         color: var(--muted);
         font-size: 0.85rem;
+      }
+
+      .reader-back {
+        border: none;
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--text);
+        padding: 6px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+
+      .reader-modal.touch-fullscreen .reader-back {
+        display: inline-flex;
+      }
+
+      .reader-modal:not(.touch-fullscreen) .reader-back {
+        display: none;
       }
 
       .reader-controls {
@@ -731,6 +761,11 @@ export class AppService {
         overflow: hidden;
       }
 
+      .reader-modal.touch-fullscreen .reader-view {
+        padding: 0;
+        overflow: hidden;
+      }
+
       .reader-view.page-turn-next {
         animation: pageTurnNext 0.25s ease;
       }
@@ -768,6 +803,10 @@ export class AppService {
         color: var(--text);
         font-size: 1.1rem;
         cursor: pointer;
+      }
+
+      .reader-modal.touch-fullscreen .reader-close {
+        display: none;
       }
 
       .panel {
@@ -1282,6 +1321,7 @@ export class AppService {
           <button class="reader-close" id="reader-close">✕</button>
           <div class="reader-header">
             <div class="reader-header-left">
+              <button class="reader-back" id="reader-back">Back</button>
               <div class="reader-title" id="reader-title">Reader</div>
               <div class="reader-progress" id="reader-progress"></div>
             </div>
@@ -1398,6 +1438,7 @@ export class AppService {
       const detailCheckoutStatus = document.getElementById('detail-checkout-status');
       const readerModal = document.getElementById('reader-modal');
       const readerClose = document.getElementById('reader-close');
+      const readerBack = document.getElementById('reader-back');
       const readerTitle = document.getElementById('reader-title');
       const readerProgress = document.getElementById('reader-progress');
       const readerPrev = document.getElementById('reader-prev');
@@ -1455,6 +1496,7 @@ export class AppService {
         }
       });
       readerClose?.addEventListener('click', closeReader);
+      readerBack?.addEventListener('click', closeReader);
       readerModal?.addEventListener('click', (event) => {
         if (event.target === readerModal) {
           closeReader();
@@ -1483,37 +1525,45 @@ export class AppService {
       readerPrevArrow?.addEventListener('click', goPrev);
       readerNextArrow?.addEventListener('click', goNext);
 
-      let touchStartX = null;
-      let touchStartY = null;
-      readerView?.addEventListener('touchstart', (event) => {
-        if (!event.touches || event.touches.length !== 1) {
+      const swipeTargets = new WeakSet();
+      function attachSwipeTarget(target) {
+        if (!target || swipeTargets.has(target) || !isTouchDevice()) {
           return;
         }
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-      }, { passive: true });
-      readerView?.addEventListener('touchend', (event) => {
-        if (touchStartX == null || touchStartY == null || !event.changedTouches || event.changedTouches.length !== 1) {
+        swipeTargets.add(target);
+        let touchStartX = null;
+        let touchStartY = null;
+        target.addEventListener('touchstart', (event) => {
+          if (!event.touches || event.touches.length !== 1) {
+            return;
+          }
+          touchStartX = event.touches[0].clientX;
+          touchStartY = event.touches[0].clientY;
+        }, { passive: true });
+        target.addEventListener('touchend', (event) => {
+          if (touchStartX == null || touchStartY == null || !event.changedTouches || event.changedTouches.length !== 1) {
+            touchStartX = null;
+            touchStartY = null;
+            return;
+          }
+          const deltaX = event.changedTouches[0].clientX - touchStartX;
+          const deltaY = event.changedTouches[0].clientY - touchStartY;
           touchStartX = null;
           touchStartY = null;
-          return;
-        }
-        const deltaX = event.changedTouches[0].clientX - touchStartX;
-        const deltaY = event.changedTouches[0].clientY - touchStartY;
-        touchStartX = null;
-        touchStartY = null;
-        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
-          return;
-        }
-        const isTouch = ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
-        if (deltaX < 0) {
-          if (isTouch) animatePageTurn('next');
-          goNext();
-        } else {
-          if (isTouch) animatePageTurn('prev');
-          goPrev();
-        }
-      }, { passive: true });
+          if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
+            return;
+          }
+          if (deltaX < 0) {
+            animatePageTurn('next');
+            goNext();
+          } else {
+            animatePageTurn('prev');
+            goPrev();
+          }
+        }, { passive: true });
+      }
+
+      attachSwipeTarget(readerView);
       window.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
           closeBookDetail();
@@ -1875,6 +1925,10 @@ export class AppService {
         return value.toFixed(value >= 10 ? 0 : 1) + ' ' + units[index];
       }
 
+      function isTouchDevice() {
+        return ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
+      }
+
       function withToken(url) {
         if (!state.token || !url || !url.startsWith('/')) return url;
         const joiner = url.includes('?') ? '&' : '?';
@@ -1913,6 +1967,7 @@ export class AppService {
       let epubObjectUrl = null;
       let epubLocationsReady = false;
       let epubLocationsGenerating = false;
+      let readerBodyOverflow = null;
       let readerFile = null;
       let currentDetail = null;
 
@@ -2105,6 +2160,12 @@ export class AppService {
         readerModal.classList.add('active');
         readerModal.setAttribute('aria-hidden', 'false');
         readerModal.dataset.readerMode = file.format === '.epub' ? 'epub' : (file.format === '.pdf' ? 'pdf' : 'other');
+        const touchFullscreen = isTouchDevice() && file.format === '.epub';
+        readerModal.classList.toggle('touch-fullscreen', touchFullscreen);
+        if (touchFullscreen) {
+          readerBodyOverflow = document.body.style.overflow;
+          document.body.style.overflow = 'hidden';
+        }
         if (readerTitle) {
           readerTitle.textContent = title ?? 'Reader';
         }
@@ -2135,8 +2196,13 @@ export class AppService {
         }
         resetReaderState();
         readerModal.dataset.readerMode = 'none';
+        readerModal.classList.remove('touch-fullscreen');
         readerModal.classList.remove('active');
         readerModal.setAttribute('aria-hidden', 'true');
+        if (readerBodyOverflow != null) {
+          document.body.style.overflow = readerBodyOverflow;
+          readerBodyOverflow = null;
+        }
       }
 
       function openPdfReader(file) {
@@ -2232,6 +2298,17 @@ export class AppService {
               saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
             }
             updateEpubPageNumbers(location);
+          });
+          epubRendition.on('rendered', (_section, iframe) => {
+            const doc = iframe?.contentDocument;
+            if (doc?.documentElement) {
+              doc.documentElement.style.overflow = 'hidden';
+            }
+            if (doc?.body) {
+              doc.body.style.overflow = 'hidden';
+              doc.body.style.margin = '0';
+            }
+            attachSwipeTarget(doc?.body || doc?.documentElement);
           });
         };
 
