@@ -27,6 +27,8 @@
 - Package-lock synced after adding reader dependencies.
 - Cover proxy now uses /library/cover-image and prefers actual Bookdarr image URLs.
 - Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
+- Book detail modal now truncates descriptions to 100 words with a More/Less toggle and supports scrolling.
+- PDF reader assets now load from the module build so the in-app reader renders correctly.
 
 ## Decisions
 - Stack: Node.js + NestJS
