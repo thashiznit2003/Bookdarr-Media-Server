@@ -1165,8 +1165,8 @@ export class AppService {
       </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.93/epub.min.js"></script>
+    <script src="/vendor/pdfjs/pdf.min.js"></script>
+    <script src="/vendor/epub/epub.min.js"></script>
     <script>
       const state = {
         filter: 'all',
@@ -1642,7 +1642,7 @@ export class AppService {
           return;
         }
         const pdfjsLib = window['pdfjsLib'];
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
 
         const saved = loadProgress('ebook-pdf', file.id);
         const url = withToken(file.streamUrl);

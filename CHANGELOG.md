@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.15 — 2026-01-30 23:32 -06:00
+- Bundle EPUB/PDF reader libraries locally to avoid “EPUB reader unavailable” when offline.
+
 ## 1.0.14 — 2026-01-30 23:29 -06:00
 - Fix Bookdarr cover selection to use image URLs directly so covers render in the Book Pool.
 

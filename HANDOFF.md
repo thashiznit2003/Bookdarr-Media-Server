@@ -23,6 +23,7 @@
 - Login now submits on Enter key in both login flows.
 - Cover art now proxies through BMS, Bookdarr overviews are preferred, and reader progress is persisted locally.
 - Fixed Bookdarr cover selection to use the correct image URL.
+- Reader libraries now served locally from node_modules to avoid CDN dependency.
 - Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
 
 ## Decisions

@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+import { existsSync } from 'fs';
+import { join } from 'path';
+import * as express from 'express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SettingsService } from './settings/settings.service';
@@ -12,6 +15,16 @@ async function bootstrap() {
   const requestLogger = new RequestLoggingMiddleware(logger);
   app.use(requestLogger.use.bind(requestLogger));
   app.useGlobalFilters(new HttpExceptionFilter(logger));
+
+  const epubPath = join(process.cwd(), 'node_modules', 'epubjs', 'dist');
+  if (existsSync(epubPath)) {
+    app.use('/vendor/epub', express.static(epubPath));
+  }
+  const pdfPath = join(process.cwd(), 'node_modules', 'pdfjs-dist', 'build');
+  if (existsSync(pdfPath)) {
+    app.use('/vendor/pdfjs', express.static(pdfPath));
+  }
+
   const settings = app.get(SettingsService);
   await app.listen(settings.getSettings().port);
 }
