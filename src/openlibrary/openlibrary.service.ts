@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SettingsService } from '../settings/settings.service';
 import {
+  OpenLibraryDetails,
   OpenLibraryMatch,
   OpenLibrarySearchResponse,
 } from './openlibrary.types';
@@ -53,5 +54,53 @@ export class OpenLibraryService {
     }
     const baseUrl = this.settingsService.getSettings().openLibrary.baseUrl;
     return `${baseUrl.replace(/\/$/, '')}/b/id/${coverId}-${size}.jpg`;
+  }
+
+  async lookupDetails(match?: OpenLibraryMatch): Promise<OpenLibraryDetails | undefined> {
+    if (!match?.key && !match?.editionKey) {
+      return undefined;
+    }
+
+    const baseUrl = this.settingsService.getSettings().openLibrary.baseUrl;
+    let path: string | undefined;
+
+    if (match.editionKey) {
+      path = `/books/${match.editionKey}.json`;
+    } else if (match.key) {
+      path = match.key.startsWith('/') ? `${match.key}.json` : `/works/${match.key}.json`;
+    }
+
+    if (!path) {
+      return undefined;
+    }
+
+    const url = new URL(path, baseUrl);
+    const response = await fetch(url.toString(), {
+      headers: {
+        'User-Agent': 'bookdarr-media-server',
+      },
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const data = (await response.json()) as {
+      description?: string | { value?: string };
+      subjects?: string[];
+      number_of_pages?: number;
+      pages?: number;
+    };
+
+    const description =
+      typeof data.description === 'string'
+        ? data.description
+        : data.description?.value;
+
+    return {
+      description: description?.trim() || undefined,
+      subjects: Array.isArray(data.subjects) ? data.subjects : undefined,
+      pageCount: data.number_of_pages ?? data.pages,
+    };
   }
 }

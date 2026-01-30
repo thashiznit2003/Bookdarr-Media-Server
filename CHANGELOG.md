@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.10 — 2026-01-30 22:36 -06:00
+- Added book detail modal with Open Library metadata, subjects, and description.
+- Added Bookdarr-backed file listing with in-browser audiobook playback and ebook open/download actions.
+- Added secure Bookdarr file streaming proxy and token-aware streaming support.
+
 ## 1.0.9 — 2026-01-30 22:08 -06:00
 - Auto-generate and persist JWT secrets on first run.
 - Removed auth secret inputs from the setup wizard and settings form.

@@ -20,3 +20,9 @@ export interface OpenLibraryMatch {
   key?: string;
   editionKey?: string;
 }
+
+export interface OpenLibraryDetails {
+  description?: string;
+  subjects?: string[];
+  pageCount?: number;
+}

@@ -388,6 +388,187 @@ export class AppService {
         background: #cbd5f5;
       }
 
+      .book-card {
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .book-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 22px 40px rgba(5, 8, 20, 0.55);
+      }
+
+      .detail-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 10, 16, 0.78);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        z-index: 50;
+      }
+
+      .detail-modal.active {
+        display: flex;
+      }
+
+      .detail-card {
+        width: min(1100px, 96vw);
+        max-height: 92vh;
+        overflow: hidden;
+        background: var(--panel-strong);
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .detail-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--text);
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+
+      .detail-body {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 24px;
+        padding: 26px;
+      }
+
+      .detail-cover {
+        width: 220px;
+        height: 320px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(245, 185, 66, 0.2), rgba(90, 138, 255, 0.3));
+        position: relative;
+      }
+
+      .detail-cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .detail-title {
+        margin: 0 0 8px;
+        font-size: 1.6rem;
+      }
+
+      .detail-author {
+        color: var(--muted);
+        font-size: 1rem;
+        margin-bottom: 12px;
+      }
+
+      .detail-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .detail-pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .detail-description {
+        color: var(--text);
+        line-height: 1.6;
+        margin: 0 0 12px;
+      }
+
+      .detail-subjects {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .detail-subject {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        background: rgba(90, 138, 255, 0.15);
+        color: #d7e2ff;
+      }
+
+      .detail-media {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 20px 26px 26px;
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .detail-media-section {
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 16px;
+      }
+
+      .detail-media-section h3 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+      }
+
+      .file-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .file-item button,
+      .file-item a {
+        border: none;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #161a23;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .detail-player {
+        width: 100%;
+        margin-bottom: 12px;
+      }
+
+      .ebook-frame {
+        width: 100%;
+        height: 260px;
+        border-radius: 12px;
+        border: none;
+        background: #0f1115;
+      }
+
       .panel {
         background: var(--panel);
         border-radius: 18px;
@@ -513,6 +694,13 @@ export class AppService {
         }
         .hero {
           grid-template-columns: 1fr;
+        }
+        .detail-body {
+          grid-template-columns: 1fr;
+        }
+        .detail-cover {
+          width: 100%;
+          height: 300px;
         }
       }
     </style>
@@ -840,6 +1028,32 @@ export class AppService {
           </div>
         </div>
       </div>
+
+      <div id="book-detail-modal" class="detail-modal" aria-hidden="true">
+        <div class="detail-card">
+          <button class="detail-close" id="detail-close">✕</button>
+          <div class="detail-body">
+            <div class="detail-cover" id="detail-cover"></div>
+            <div>
+              <h2 class="detail-title" id="detail-title">Loading…</h2>
+              <div class="detail-author" id="detail-author"></div>
+              <div class="detail-meta" id="detail-meta"></div>
+              <p class="detail-description" id="detail-description"></p>
+              <div class="detail-subjects" id="detail-subjects"></div>
+            </div>
+          </div>
+          <div class="detail-media">
+            <div class="detail-media-section">
+              <h3>Audiobook</h3>
+              <div id="detail-audio"></div>
+            </div>
+            <div class="detail-media-section">
+              <h3>Ebook</h3>
+              <div id="detail-ebook"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -913,6 +1127,16 @@ export class AppService {
       const userLabel = document.getElementById('user-label');
       const profileButton = document.getElementById('profile-button');
       const logoutButton = document.getElementById('logout-button');
+      const detailModal = document.getElementById('book-detail-modal');
+      const detailClose = document.getElementById('detail-close');
+      const detailCover = document.getElementById('detail-cover');
+      const detailTitle = document.getElementById('detail-title');
+      const detailAuthor = document.getElementById('detail-author');
+      const detailMeta = document.getElementById('detail-meta');
+      const detailDescription = document.getElementById('detail-description');
+      const detailSubjects = document.getElementById('detail-subjects');
+      const detailAudio = document.getElementById('detail-audio');
+      const detailEbook = document.getElementById('detail-ebook');
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -933,6 +1157,26 @@ export class AppService {
       if (wizardPanel) {
         wizardPanel.style.display = isLibraryPage ? 'block' : 'none';
       }
+
+      libraryGrid?.addEventListener('click', (event) => {
+        const card = event.target.closest('.book-card');
+        if (!card || !card.dataset.id) {
+          return;
+        }
+        openBookDetail(card.dataset.id);
+      });
+
+      detailClose?.addEventListener('click', closeBookDetail);
+      detailModal?.addEventListener('click', (event) => {
+        if (event.target === detailModal) {
+          closeBookDetail();
+        }
+      });
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeBookDetail();
+        }
+      });
 
       function updateUserMenu(user) {
         if (!userMenu || !userButton || !userAvatar || !userLabel) {
@@ -1084,7 +1328,7 @@ export class AppService {
             : '<span class="badge">Ready</span>';
 
           return (
-            '<article class="book-card">' +
+            '<article class="book-card" data-id="' + item.id + '">' +
               '<div class="cover">' + cover + '</div>' +
               '<div class="book-title">' + item.title + '</div>' +
               '<div class="book-author">' + (item.author ?? 'Unknown author') + '</div>' +
@@ -1107,7 +1351,11 @@ export class AppService {
         if (!isLibraryPage) {
           return;
         }
-        fetch('/library')
+        if (!state.token) {
+          libraryGrid.innerHTML = '<div class="empty">Log in to view your Book Pool.</div>';
+          return;
+        }
+        fetch('/library', { headers: authHeaders() })
           .then((response) => response.json())
           .then((data) => {
             state.library = Array.isArray(data) ? data : [];
@@ -1117,6 +1365,182 @@ export class AppService {
           .catch(() => {
             libraryGrid.innerHTML = '<div class="empty">Unable to load Book Pool.</div>';
           });
+      }
+
+      function formatBytes(bytes) {
+        if (!bytes) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        let index = 0;
+        let value = bytes;
+        while (value >= 1024 && index < units.length - 1) {
+          value /= 1024;
+          index += 1;
+        }
+        return value.toFixed(value >= 10 ? 0 : 1) + ' ' + units[index];
+      }
+
+      function withToken(url) {
+        if (!state.token) return url;
+        const joiner = url.includes('?') ? '&' : '?';
+        return url + joiner + 'token=' + encodeURIComponent(state.token);
+      }
+
+      function renderAudioSection(files) {
+        if (!detailAudio) return;
+        detailAudio.innerHTML = '';
+        if (!files.length) {
+          detailAudio.innerHTML = '<div class="empty">No audiobook files yet.</div>';
+          return;
+        }
+
+        const player = document.createElement('audio');
+        player.className = 'detail-player';
+        player.controls = true;
+        player.src = withToken(files[0].streamUrl);
+
+        const list = document.createElement('div');
+        list.className = 'file-list';
+        files.forEach((file) => {
+          const row = document.createElement('div');
+          row.className = 'file-item';
+          const name = document.createElement('span');
+          name.textContent = file.fileName + ' · ' + formatBytes(file.size);
+          const button = document.createElement('button');
+          button.textContent = 'Play';
+          button.addEventListener('click', () => {
+            player.src = withToken(file.streamUrl);
+            player.play();
+          });
+          row.appendChild(name);
+          row.appendChild(button);
+          list.appendChild(row);
+        });
+
+        detailAudio.appendChild(player);
+        detailAudio.appendChild(list);
+      }
+
+      function renderEbookSection(files) {
+        if (!detailEbook) return;
+        detailEbook.innerHTML = '';
+        if (!files.length) {
+          detailEbook.innerHTML = '<div class="empty">No ebook files yet.</div>';
+          return;
+        }
+
+        const primary = files[0];
+        if (primary.format === '.pdf') {
+          const frame = document.createElement('iframe');
+          frame.className = 'ebook-frame';
+          frame.src = withToken(primary.streamUrl);
+          detailEbook.appendChild(frame);
+        }
+
+        const list = document.createElement('div');
+        list.className = 'file-list';
+        files.forEach((file) => {
+          const row = document.createElement('div');
+          row.className = 'file-item';
+          const name = document.createElement('span');
+          name.textContent = file.fileName + ' · ' + formatBytes(file.size);
+          const link = document.createElement('a');
+          link.href = withToken(file.streamUrl);
+          link.target = '_blank';
+          link.rel = 'noreferrer';
+          link.textContent = primary.format === '.pdf' ? 'Open' : 'Download';
+          row.appendChild(name);
+          row.appendChild(link);
+          list.appendChild(row);
+        });
+
+        detailEbook.appendChild(list);
+      }
+
+      function renderBookDetail(data) {
+        if (!detailModal) return;
+        if (detailTitle) detailTitle.textContent = data?.title ?? 'Unknown title';
+        if (detailAuthor) {
+          detailAuthor.textContent = data?.author ?? 'Unknown author';
+        }
+        if (detailCover) {
+          if (data?.coverUrl) {
+            detailCover.innerHTML =
+              '<img src="' + data.coverUrl + '" alt="' + (data.title ?? 'Book') + ' cover" />';
+          } else {
+            detailCover.innerHTML = '<div class="cover-fallback">' + (data?.title ?? '') + '</div>';
+          }
+        }
+
+        if (detailMeta) {
+          const metaBits = [];
+          if (data?.publishYear) metaBits.push('Published ' + data.publishYear);
+          if (data?.pageCount) metaBits.push(data.pageCount + ' pages');
+          if (data?.bookdarrStatus) metaBits.push(data.bookdarrStatus);
+          if (data?.hasAudiobook) metaBits.push('Audiobook ready');
+          if (data?.hasEbook) metaBits.push('Ebook ready');
+          if (data?.releaseDate) metaBits.push('Release ' + data.releaseDate);
+          detailMeta.innerHTML = metaBits
+            .map((bit) => '<span class="detail-pill">' + bit + '</span>')
+            .join('');
+        }
+
+        if (detailDescription) {
+          detailDescription.textContent =
+            data?.description ??
+            data?.overview ??
+            'No description available yet.';
+        }
+
+        if (detailSubjects) {
+          const subjects = Array.isArray(data?.subjects) ? data.subjects.slice(0, 8) : [];
+          detailSubjects.innerHTML = subjects
+            .map((subject) => '<span class="detail-subject">' + subject + '</span>')
+            .join('');
+        }
+
+        renderAudioSection(Array.isArray(data?.audiobookFiles) ? data.audiobookFiles : []);
+        renderEbookSection(Array.isArray(data?.ebookFiles) ? data.ebookFiles : []);
+      }
+
+      function openBookDetail(bookId) {
+        if (!detailModal) return;
+        detailModal.classList.add('active');
+        detailModal.setAttribute('aria-hidden', 'false');
+        if (detailTitle) detailTitle.textContent = 'Loading...';
+        if (detailDescription) detailDescription.textContent = '';
+        if (detailSubjects) detailSubjects.innerHTML = '';
+        if (detailAudio) detailAudio.innerHTML = '';
+        if (detailEbook) detailEbook.innerHTML = '';
+
+        if (!state.token) {
+          if (detailDescription) {
+            detailDescription.textContent = 'Log in to view book details.';
+          }
+          return;
+        }
+
+        fetch('/library/' + bookId, { headers: authHeaders() })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              if (detailDescription) {
+                detailDescription.textContent = body?.message ?? 'Unable to load book details.';
+              }
+              return;
+            }
+            renderBookDetail(body);
+          })
+          .catch(() => {
+            if (detailDescription) {
+              detailDescription.textContent = 'Unable to load book details.';
+            }
+          });
+      }
+
+      function closeBookDetail() {
+        if (!detailModal) return;
+        detailModal.classList.remove('active');
+        detailModal.setAttribute('aria-hidden', 'true');
       }
 
       function loadBookdarrConfig() {

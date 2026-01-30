@@ -16,7 +16,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly users: Repository<UserEntity>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (request) => {
+          const token = request?.query?.token ?? request?.query?.accessToken;
+          return typeof token === 'string' ? token : null;
+        },
+      ]),
       ignoreExpiration: false,
       secretOrKeyProvider: async (request, rawJwtToken, done) => {
         const auth = settingsService.getSettings().auth;

@@ -18,3 +18,15 @@ export interface BookdarrBookPoolItem {
 }
 
 export interface BookdarrBookPoolResponse extends Array<BookdarrBookPoolItem> {}
+
+export interface BookdarrBookFileResource {
+  id: number;
+  bookId: number;
+  path?: string;
+  size?: number;
+  mediaType?: number | string;
+  quality?: unknown;
+  dateAdded?: string;
+}
+
+export interface BookdarrBookFilesResponse extends Array<BookdarrBookFileResource> {}

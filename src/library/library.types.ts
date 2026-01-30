@@ -14,3 +14,24 @@ export interface LibraryItem {
     editionKey?: string;
   };
 }
+
+export type LibraryMediaType = 'audiobook' | 'ebook' | 'unknown';
+
+export interface LibraryFile {
+  id: number;
+  fileName: string;
+  size: number;
+  mediaType: LibraryMediaType;
+  format?: string;
+  streamUrl: string;
+}
+
+export interface LibraryDetail extends LibraryItem {
+  releaseDate?: string;
+  description?: string;
+  subjects?: string[];
+  pageCount?: number;
+  files: LibraryFile[];
+  audiobookFiles: LibraryFile[];
+  ebookFiles: LibraryFile[];
+}
