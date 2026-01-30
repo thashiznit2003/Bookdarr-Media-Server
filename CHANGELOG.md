@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.18 — 2026-01-30 23:50 -06:00
+- Load PDF reader assets via module build so the in-app reader renders correctly.
+- Add 100-word book description preview with More/Less toggle and scrollable detail modal.
+
 ## 1.0.17 — 2026-01-30 23:36 -06:00
 - Fix Bookdarr cover URL selection and move cover proxy route to avoid ID routing conflicts.
 

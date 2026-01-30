@@ -415,7 +415,7 @@ export class AppService {
 
       .detail-card {
         width: min(1100px, 96vw);
-        max-height: 92vh;
+        height: min(92vh, 860px);
         overflow: hidden;
         background: var(--panel-strong);
         border-radius: 22px;
@@ -424,6 +424,14 @@ export class AppService {
         display: flex;
         flex-direction: column;
         position: relative;
+      }
+
+      .detail-scroll {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
       }
 
       .detail-close {
@@ -494,6 +502,17 @@ export class AppService {
         color: var(--text);
         line-height: 1.6;
         margin: 0 0 12px;
+      }
+
+      .detail-toggle {
+        border: none;
+        background: none;
+        color: var(--accent);
+        font-weight: 600;
+        cursor: pointer;
+        padding: 0;
+        margin: 0 0 12px;
+        text-align: left;
       }
 
       .detail-subjects {
@@ -1121,28 +1140,31 @@ export class AppService {
       <div id="book-detail-modal" class="detail-modal" aria-hidden="true">
         <div class="detail-card">
           <button class="detail-close" id="detail-close">✕</button>
-          <div class="detail-body">
-            <div class="detail-cover" id="detail-cover"></div>
-            <div>
-              <h2 class="detail-title" id="detail-title">Loading…</h2>
-              <div class="detail-author" id="detail-author"></div>
-              <div class="detail-meta" id="detail-meta"></div>
-              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
-                <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+          <div class="detail-scroll" id="detail-scroll">
+            <div class="detail-body">
+              <div class="detail-cover" id="detail-cover"></div>
+              <div>
+                <h2 class="detail-title" id="detail-title">Loading…</h2>
+                <div class="detail-author" id="detail-author"></div>
+                <div class="detail-meta" id="detail-meta"></div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                  <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
+                  <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+                </div>
+                <p class="detail-description" id="detail-description"></p>
+                <button class="detail-toggle" id="detail-description-toggle" style="display: none;">More...</button>
+                <div class="detail-subjects" id="detail-subjects"></div>
               </div>
-              <p class="detail-description" id="detail-description"></p>
-              <div class="detail-subjects" id="detail-subjects"></div>
             </div>
-          </div>
-          <div class="detail-media">
-            <div class="detail-media-section">
-              <h3>Audiobook</h3>
-              <div id="detail-audio"></div>
-            </div>
-            <div class="detail-media-section">
-              <h3>Ebook</h3>
-              <div id="detail-ebook"></div>
+            <div class="detail-media">
+              <div class="detail-media-section">
+                <h3>Audiobook</h3>
+                <div id="detail-audio"></div>
+              </div>
+              <div class="detail-media-section">
+                <h3>Ebook</h3>
+                <div id="detail-ebook"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1165,7 +1187,11 @@ export class AppService {
       </div>
     </div>
 
-    <script src="/vendor/pdfjs/pdf.min.js"></script>
+    <script type="module">
+      import * as pdfjsLib from '/vendor/pdfjs/pdf.mjs';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
+      window.pdfjsLib = pdfjsLib;
+    </script>
     <script src="/vendor/epub/epub.min.js"></script>
     <script>
       const state = {
@@ -1246,6 +1272,7 @@ export class AppService {
       const detailAuthor = document.getElementById('detail-author');
       const detailMeta = document.getElementById('detail-meta');
       const detailDescription = document.getElementById('detail-description');
+      const detailDescriptionToggle = document.getElementById('detail-description-toggle');
       const detailSubjects = document.getElementById('detail-subjects');
       const detailAudio = document.getElementById('detail-audio');
       const detailEbook = document.getElementById('detail-ebook');
@@ -1290,6 +1317,7 @@ export class AppService {
 
       detailClose?.addEventListener('click', closeBookDetail);
       detailRefresh?.addEventListener('click', refreshBookDetail);
+      detailDescriptionToggle?.addEventListener('click', toggleDetailDescription);
       detailModal?.addEventListener('click', (event) => {
         if (event.target === detailModal) {
           closeBookDetail();
@@ -1597,6 +1625,57 @@ export class AppService {
         }
       }
 
+      function truncateWords(text, limit) {
+        const clean = (text ?? '').trim();
+        if (!clean) {
+          return { text: '', truncated: false };
+        }
+        const words = clean.split(/\s+/);
+        if (words.length <= limit) {
+          return { text: clean, truncated: false };
+        }
+        return { text: words.slice(0, limit).join(' ') + '...', truncated: true };
+      }
+
+      let detailDescriptionExpanded = false;
+      let detailDescriptionFull = '';
+
+      function setDetailDescription(rawText) {
+        detailDescriptionFull = (rawText ?? '').trim();
+        detailDescriptionExpanded = false;
+        const fallback = detailDescriptionFull || 'No description available yet.';
+        const { text, truncated } = truncateWords(fallback, 100);
+        if (detailDescription) {
+          detailDescription.textContent = truncated ? text : fallback;
+        }
+        if (detailDescriptionToggle) {
+          if (truncated) {
+            detailDescriptionToggle.style.display = 'inline-flex';
+            detailDescriptionToggle.textContent = 'More...';
+          } else {
+            detailDescriptionToggle.style.display = 'none';
+            detailDescriptionToggle.textContent = 'More...';
+          }
+        }
+      }
+
+      function toggleDetailDescription() {
+        if (!detailDescription || !detailDescriptionToggle || !detailDescriptionFull) {
+          return;
+        }
+        if (!detailDescriptionExpanded) {
+          detailDescriptionExpanded = true;
+          detailDescription.textContent = detailDescriptionFull;
+          detailDescriptionToggle.textContent = 'Less';
+          return;
+        }
+
+        detailDescriptionExpanded = false;
+        const { text, truncated } = truncateWords(detailDescriptionFull, 100);
+        detailDescription.textContent = truncated ? text : detailDescriptionFull;
+        detailDescriptionToggle.textContent = 'More...';
+      }
+
       function openReader(file, title) {
         if (!readerModal || !readerView) {
           return;
@@ -1612,6 +1691,7 @@ export class AppService {
         updateReaderProgress('');
         resetReaderState();
         readerFile = file;
+        readerView.innerHTML = '<div class="empty">Loading reader...</div>';
 
         const format = file.format;
         if (format === '.pdf') {
@@ -1642,10 +1722,13 @@ export class AppService {
           return;
         }
         const pdfjsLib = window['pdfjsLib'];
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
+        }
 
         const saved = loadProgress('ebook-pdf', file.id);
         const url = withToken(file.streamUrl);
+        readerView.innerHTML = '<div class="empty">Loading PDF...</div>';
         pdfjsLib.getDocument(url).promise.then((doc) => {
           pdfDoc = doc;
           pdfPage = saved?.page ?? 1;
@@ -1688,21 +1771,32 @@ export class AppService {
 
         const saved = loadProgress('ebook-epub', file.id);
         const url = withToken(file.streamUrl);
+        readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
         epubBook = window['ePub'](url);
-        epubRendition = epubBook.renderTo(readerView, {
-          width: '100%',
-          height: '100%',
-          spread: 'none'
-        });
-
-        const displayTarget = saved?.cfi ?? undefined;
-        epubRendition.display(displayTarget);
-        epubRendition.on('relocated', (location) => {
-          if (location?.start?.cfi) {
-            saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
+        epubBook.ready.then(() => {
+          if (!readerView) {
+            return;
           }
-          if (location?.start?.percentage != null) {
-            updateReaderProgress(Math.round(location.start.percentage * 100) + '%');
+          readerView.innerHTML = '';
+          epubRendition = epubBook.renderTo(readerView, {
+            width: '100%',
+            height: '100%',
+            spread: 'none'
+          });
+
+          const displayTarget = saved?.cfi ?? undefined;
+          epubRendition.display(displayTarget);
+          epubRendition.on('relocated', (location) => {
+            if (location?.start?.cfi) {
+              saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
+            }
+            if (location?.start?.percentage != null) {
+              updateReaderProgress(Math.round(location.start.percentage * 100) + '%');
+            }
+          });
+        }).catch(() => {
+          if (readerView) {
+            readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           }
         });
       }
@@ -1845,12 +1939,7 @@ export class AppService {
             .join('');
         }
 
-        if (detailDescription) {
-          detailDescription.textContent =
-            data?.description ??
-            data?.overview ??
-            'No description available yet.';
-        }
+        setDetailDescription(data?.description ?? data?.overview ?? '');
 
         if (detailSubjects) {
           const subjects = Array.isArray(data?.subjects) ? data.subjects.slice(0, 8) : [];
@@ -1870,6 +1959,12 @@ export class AppService {
         detailModal.setAttribute('aria-hidden', 'false');
         if (detailTitle) detailTitle.textContent = 'Loading...';
         if (detailDescription) detailDescription.textContent = '';
+        if (detailDescriptionToggle) {
+          detailDescriptionToggle.style.display = 'none';
+          detailDescriptionToggle.textContent = 'More...';
+        }
+        detailDescriptionExpanded = false;
+        detailDescriptionFull = '';
         if (detailSubjects) detailSubjects.innerHTML = '';
         if (detailAudio) detailAudio.innerHTML = '';
         if (detailEbook) detailEbook.innerHTML = '';

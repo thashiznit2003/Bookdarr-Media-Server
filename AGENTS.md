@@ -39,3 +39,7 @@ Update `HANDOFF.md` and `CHANGELOG.md` after each meaningful change.
 Track app version in `package.json` and surface it in the UI (top-left next to BMS).
 Each GitHub push increments the patch version (x.x.n+1) and adds a changelog entry with date + time (newest first).
 After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the latest build.
+
+## UI Notes
+- Book detail modal shows a 100-word description preview with a More/Less toggle; modal content can scroll.
+- PDF reader loads module assets from `/vendor/pdfjs/pdf.mjs` with worker `/vendor/pdfjs/pdf.worker.mjs`.
