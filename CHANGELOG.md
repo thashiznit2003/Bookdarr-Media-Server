@@ -1,5 +1,12 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.4 — 2026-01-30 21:25 -06:00
+- Added admin user management (list/create) and accounts UI.
+- Implemented auth secrets settings (wizard + settings page) with persisted storage.
+- Added configurable Book Pool API path and Bookdarr config persistence.
+- Updated auth to include admin flag and ensured JWT uses stored secrets.
+- Removed invite code display from settings and added auth secret status entries.
+
 ## 1.0.3 — 2026-01-30 21:06 -06:00
 - Fixed auth user typing to build cleanly after username support.
 

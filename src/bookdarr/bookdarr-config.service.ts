@@ -8,6 +8,7 @@ export interface BookdarrConfigInput {
   port: number;
   apiKey: string;
   useHttps?: boolean;
+  poolPath?: string;
 }
 
 @Injectable()
@@ -45,11 +46,14 @@ export class BookdarrConfigService {
     const apiUrl = `${protocol}://${host}:${input.port}`;
 
     const existing = await this.getConfig();
+    const poolPathRaw = input.poolPath?.trim();
+    const poolPath = poolPathRaw && poolPathRaw.length > 0 ? poolPathRaw : existing?.poolPath ?? null;
     const now = new Date().toISOString();
     const record = this.configRepo.create({
       id: 1,
       apiUrl,
       apiKey,
+      poolPath,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     });

@@ -11,6 +11,7 @@ import { InviteCodeEntity } from './auth/entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './auth/entities/password-reset-token.entity';
 import { LibraryModule } from './library/library.module';
 import { BookdarrConfigEntity } from './bookdarr/bookdarr-config.entity';
+import { AuthConfigEntity } from './auth/auth-config.entity';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { BookdarrConfigEntity } from './bookdarr/bookdarr-config.entity';
               InviteCodeEntity,
               PasswordResetTokenEntity,
               BookdarrConfigEntity,
+              AuthConfigEntity,
             ],
           };
         }
@@ -48,6 +50,7 @@ import { BookdarrConfigEntity } from './bookdarr/bookdarr-config.entity';
             InviteCodeEntity,
             PasswordResetTokenEntity,
             BookdarrConfigEntity,
+            AuthConfigEntity,
           ],
         };
       },

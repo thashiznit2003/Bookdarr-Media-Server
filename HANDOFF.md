@@ -14,6 +14,7 @@
 - Book Pool library endpoint added (`GET /library`) with Open Library enrichment and Plex-inspired UI.
 - Added Ubuntu install script at `scripts/install-bms.sh` (systemd + env file).
 - Bookdarr connection wizard added after login (stores Bookdarr IP/port/API key in DB).
+- Added auth secrets storage + UI settings, username-based login, and admin accounts tooling.
 - Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
 
 ## Decisions

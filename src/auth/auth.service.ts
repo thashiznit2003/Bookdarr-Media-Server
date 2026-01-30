@@ -27,6 +27,7 @@ import { IsNull, Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
 import { InviteCodeEntity } from './entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
+import { AuthConfigService } from './auth-config.service';
 
 const MIN_PASSWORD_LENGTH = 8;
 const MIN_USERNAME_LENGTH = 3;
@@ -38,6 +39,7 @@ export class AuthService implements OnModuleInit {
     private readonly settingsService: SettingsService,
     private readonly jwtService: JwtService,
     private readonly mailerService: MailerService,
+    private readonly authConfigService: AuthConfigService,
     @InjectRepository(UserEntity)
     private readonly users: Repository<UserEntity>,
     @InjectRepository(InviteCodeEntity)
@@ -77,6 +79,7 @@ export class AuthService implements OnModuleInit {
       passwordHash,
       createdAt: new Date().toISOString(),
       isActive: true,
+      isAdmin: false,
     });
     await this.users.save(user);
 
@@ -114,6 +117,7 @@ export class AuthService implements OnModuleInit {
       passwordHash,
       createdAt: new Date().toISOString(),
       isActive: true,
+      isAdmin: true,
     });
     await this.users.save(user);
 
@@ -182,6 +186,41 @@ export class AuthService implements OnModuleInit {
     }
 
     return { status: 'ok' };
+  }
+
+  async listUsers() {
+    const users = await this.users.find({ order: { createdAt: 'DESC' } });
+    return users.map((user) => this.toAuthUser(user));
+  }
+
+  async createUser(input: { username: string; email: string; password: string; isAdmin?: boolean }) {
+    const username = this.normalizeUsername(input.username);
+    const email = this.normalizeEmail(input.email);
+
+    this.assertUsername(username);
+    this.assertEmail(email);
+    this.assertPassword(input.password);
+
+    const existing = await this.users.findOne({ where: [{ username }, { email }] });
+    if (existing) {
+      throw new BadRequestException('User already exists.');
+    }
+
+    const passwordHash = await argon2.hash(input.password, {
+      type: argon2.argon2id,
+    });
+
+    const user = this.users.create({
+      username,
+      email,
+      passwordHash,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+      isAdmin: Boolean(input.isAdmin),
+    });
+
+    await this.users.save(user);
+    return this.toAuthUser(user);
   }
 
   async requestPasswordReset(request: PasswordResetRequest) {
@@ -262,16 +301,17 @@ export class AuthService implements OnModuleInit {
       username: user.username ?? '',
       email: user.email,
       isActive: user.isActive,
+      isAdmin: user.isAdmin,
       createdAt: user.createdAt,
     };
   }
 
   private async issueTokens(user: UserEntity): Promise<AuthTokens> {
-    const auth = this.getAuthSettings();
+    const auth = await this.getAuthSettings();
     const refreshId = this.generateToken();
 
     const accessToken = await this.jwtService.signAsync(
-      { sub: user.id, username: user.username, email: user.email },
+      { sub: user.id, username: user.username, email: user.email, isAdmin: user.isAdmin },
       {
         secret: auth.accessSecret,
         expiresIn: auth.accessTokenTtl as StringValue,
@@ -298,7 +338,7 @@ export class AuthService implements OnModuleInit {
 
   private async verifyRefreshToken(token: string) {
     try {
-      const auth = this.getAuthSettings();
+      const auth = await this.getAuthSettings();
       return await this.jwtService.verifyAsync<{ sub: string; jti: string }>(
         token,
         {
@@ -310,13 +350,30 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  private getAuthSettings() {
+  private async getAuthSettings() {
     const auth = this.settingsService.getSettings().auth;
-    if (!auth.accessSecret || !auth.refreshSecret) {
+    const secrets = await this.authConfigService.getSecrets();
+    const accessSecret = secrets.accessSecret ?? auth.accessSecret;
+    const refreshSecret = secrets.refreshSecret ?? auth.refreshSecret;
+
+    if (!accessSecret || !refreshSecret) {
       throw new ServiceUnavailableException('JWT secrets are not configured.');
     }
 
-    return auth;
+    return {
+      ...auth,
+      accessSecret,
+      refreshSecret,
+    };
+  }
+
+  async getAuthSecrets() {
+    const auth = this.settingsService.getSettings().auth;
+    const secrets = await this.authConfigService.getSecrets();
+    return {
+      accessSecret: secrets.accessSecret ?? auth.accessSecret,
+      refreshSecret: secrets.refreshSecret ?? auth.refreshSecret,
+    };
   }
 
   private async assertInviteCode(inviteCode: string) {

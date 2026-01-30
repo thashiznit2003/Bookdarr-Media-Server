@@ -9,6 +9,7 @@ export interface AuthUser {
   username: string;
   email: string;
   isActive: boolean;
+  isAdmin: boolean;
   createdAt: string;
 }
 

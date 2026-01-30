@@ -20,7 +20,10 @@ export class BookdarrService {
       throw new ServiceUnavailableException('Bookdarr API is not configured.');
     }
 
-    const poolPath = settings.bookdarr.poolPath ?? '/api/v1/user/library/pool';
+    const poolPath =
+      storedConfig?.poolPath ??
+      settings.bookdarr.poolPath ??
+      '/api/v1/user/library/pool';
     const url = this.joinUrl(apiUrl, poolPath);
 
     const response = await fetch(url, {

@@ -534,6 +534,14 @@ export class AppService {
                   <span class="nav-title">Password</span>
                   <input id="setup-password" type="password" placeholder="password" />
                 </div>
+                <div>
+                  <span class="nav-title">Auth Access Secret</span>
+                  <input id="auth-access-secret" type="password" placeholder="Paste or generate" />
+                </div>
+                <div>
+                  <span class="nav-title">Auth Refresh Secret</span>
+                  <input id="auth-refresh-secret" type="password" placeholder="Paste or generate" />
+                </div>
               </div>
               <button id="setup-submit">Create Admin User</button>
               <div id="setup-status" style="margin-top: 10px; color: var(--muted);"></div>
@@ -571,6 +579,10 @@ export class AppService {
                 <div>
                   <span class="nav-title">API Key</span>
                   <input id="bookdarr-key" type="password" placeholder="Bookdarr API key" />
+                </div>
+                <div>
+                  <span class="nav-title">Book Pool Path</span>
+                  <input id="bookdarr-path" type="text" placeholder="/api/v1/user/library/pool" />
                 </div>
                 <div>
                   <span class="nav-title">Protocol</span>
@@ -624,6 +636,25 @@ export class AppService {
           <div class="panel">
             <div id="settings" class="status-grid">Loading settings…</div>
           </div>
+
+          <section class="section-title" style="margin-top: 28px;">
+            <h2>Auth Secrets</h2>
+            <span class="pill">JWT</span>
+          </section>
+          <div class="panel">
+            <div class="status-grid">
+              <div>
+                <span class="nav-title">Access Secret</span>
+                <input id="settings-access-secret" type="password" placeholder="Set access secret" />
+              </div>
+              <div>
+                <span class="nav-title">Refresh Secret</span>
+                <input id="settings-refresh-secret" type="password" placeholder="Set refresh secret" />
+              </div>
+            </div>
+            <button id="save-auth-secrets" style="margin-top: 12px;">Save Auth Secrets</button>
+            <div id="auth-secret-status" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
         </div>
 
         <div class="page" data-page="accounts">
@@ -632,9 +663,35 @@ export class AppService {
             <span class="pill">Admin</span>
           </section>
           <div class="panel">
-            <p style="margin: 0; color: var(--muted);">
-              User management will land here once account tooling is ready.
-            </p>
+            <div id="accounts-status" style="color: var(--muted); margin-bottom: 12px;">
+              Log in as an admin to manage users.
+            </div>
+            <div id="accounts-list" class="status-grid"></div>
+          </div>
+          <div class="panel" style="margin-top: 20px;">
+            <h3 style="margin-top: 0;">Create User</h3>
+            <div class="status-grid">
+              <div>
+                <span class="nav-title">Username</span>
+                <input id="new-user-username" type="text" placeholder="reader1" />
+              </div>
+              <div>
+                <span class="nav-title">Email</span>
+                <input id="new-user-email" type="email" placeholder="reader@example.com" />
+              </div>
+              <div>
+                <span class="nav-title">Password</span>
+                <input id="new-user-password" type="password" placeholder="password" />
+              </div>
+              <div>
+                <span class="nav-title">Admin</span>
+                <label>
+                  <input id="new-user-admin" type="checkbox" /> Grant admin access
+                </label>
+              </div>
+            </div>
+            <button id="create-user" style="margin-top: 12px;">Create User</button>
+            <div id="create-user-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
         </div>
       </div>
@@ -657,6 +714,8 @@ export class AppService {
       const setupEmail = document.getElementById('setup-email');
       const setupStatus = document.getElementById('setup-status');
       const setupButton = document.getElementById('setup-submit');
+      const authAccessInput = document.getElementById('auth-access-secret');
+      const authRefreshInput = document.getElementById('auth-refresh-secret');
       const loginPanel = document.getElementById('login-panel');
       const loginStatus = document.getElementById('login-status');
       const loginButton = document.getElementById('login-submit');
@@ -672,7 +731,20 @@ export class AppService {
       const bookdarrHost = document.getElementById('bookdarr-host');
       const bookdarrPort = document.getElementById('bookdarr-port');
       const bookdarrKey = document.getElementById('bookdarr-key');
+      const bookdarrPath = document.getElementById('bookdarr-path');
       const bookdarrHttps = document.getElementById('bookdarr-https');
+      const settingsAccess = document.getElementById('settings-access-secret');
+      const settingsRefresh = document.getElementById('settings-refresh-secret');
+      const saveAuthButton = document.getElementById('save-auth-secrets');
+      const authSecretStatus = document.getElementById('auth-secret-status');
+      const accountsList = document.getElementById('accounts-list');
+      const accountsStatus = document.getElementById('accounts-status');
+      const createUserButton = document.getElementById('create-user');
+      const createUserStatus = document.getElementById('create-user-status');
+      const newUserUsername = document.getElementById('new-user-username');
+      const newUserEmail = document.getElementById('new-user-email');
+      const newUserPassword = document.getElementById('new-user-password');
+      const newUserAdmin = document.getElementById('new-user-admin');
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -697,11 +769,14 @@ export class AppService {
       function setAuth(token) {
         state.token = token;
         if (token) {
+          localStorage.setItem('bmsAccessToken', token);
           loginPanel.style.display = 'none';
           bookdarrPanel.style.display = 'block';
           setBookdarrEnabled(true);
           loadBookdarrConfig();
+          loadAccounts();
         } else {
+          localStorage.removeItem('bmsAccessToken');
           setBookdarrEnabled(false);
         }
       }
@@ -725,6 +800,64 @@ export class AppService {
       }
 
       setBookdarrEnabled(false);
+      const cachedToken = localStorage.getItem('bmsAccessToken');
+      if (cachedToken) {
+        setAuth(cachedToken);
+      }
+
+      let authSecretsConfigured = false;
+
+      function loadAuthSecretsStatus() {
+        fetch('/api/settings/auth')
+          .then((response) => response.json())
+          .then((data) => {
+            authSecretsConfigured = Boolean(
+              data?.accessSecretConfigured && data?.refreshSecretConfigured,
+            );
+            if (authSecretStatus && activePage === 'settings') {
+              authSecretStatus.textContent = authSecretsConfigured
+                ? 'Auth secrets are configured.'
+                : 'Auth secrets are not configured.';
+            }
+          })
+          .catch(() => {
+            if (authSecretStatus && activePage === 'settings') {
+              authSecretStatus.textContent = 'Unable to load auth secrets.';
+            }
+          });
+      }
+
+      function saveAuthSecrets(accessSecret, refreshSecret, statusEl) {
+        if (!accessSecret || !refreshSecret) {
+          statusEl.textContent = 'Both auth secrets are required.';
+          return Promise.resolve(false);
+        }
+
+        statusEl.textContent = 'Saving auth secrets...';
+        return fetch('/api/settings/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+          body: JSON.stringify({ accessSecret, refreshSecret }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to save auth secrets.';
+              statusEl.textContent = message;
+              return false;
+            }
+            authSecretsConfigured = true;
+            statusEl.textContent = 'Auth secrets saved.';
+            return true;
+          })
+          .catch(() => {
+            statusEl.textContent = 'Unable to save auth secrets.';
+            return false;
+          });
+      }
 
       if (isLibraryPage) {
         filterButtons.forEach((button) => {
@@ -826,6 +959,12 @@ export class AppService {
                 // ignore parse errors
               }
             }
+            if (data?.poolPath && bookdarrPath) {
+              bookdarrPath.value = data.poolPath;
+            }
+            if (bookdarrPath && !bookdarrPath.value) {
+              bookdarrPath.value = '/api/v1/user/library/pool';
+            }
             if (data?.configured) {
               bookdarrStatus.textContent = 'Bookdarr is connected.';
               loadLibrary();
@@ -833,6 +972,66 @@ export class AppService {
           })
           .catch(() => {
             bookdarrStatus.textContent = 'Unable to load Bookdarr settings.';
+          });
+      }
+
+      function renderAccounts(users) {
+        if (!accountsList) {
+          return;
+        }
+        if (!users.length) {
+          accountsList.innerHTML = '<div class="empty">No users found.</div>';
+          return;
+        }
+        accountsList.innerHTML = users
+          .map((user) => {
+            const role = user.isAdmin ? 'Admin' : 'User';
+            const status = user.isActive ? 'Active' : 'Disabled';
+            return (
+              '<div class="status-item">' +
+                '<span>' + user.username + '</span>' +
+                '<div class="status-value">' +
+                  '<div class="dot ' + (user.isActive ? 'ok' : 'warn') + '"></div>' +
+                  '<strong>' + role + ' · ' + status + '</strong>' +
+                '</div>' +
+              '</div>'
+            );
+          })
+          .join('');
+      }
+
+      function loadAccounts() {
+        if (activePage !== 'accounts') {
+          return;
+        }
+        if (!state.token) {
+          if (accountsStatus) {
+            accountsStatus.textContent = 'Log in as an admin to manage users.';
+          }
+          return;
+        }
+        if (accountsStatus) {
+          accountsStatus.textContent = 'Loading users...';
+        }
+        fetch('/api/users', { headers: authHeaders() })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to load users.';
+              if (accountsStatus) {
+                accountsStatus.textContent = message;
+              }
+              return;
+            }
+            if (accountsStatus) {
+              accountsStatus.textContent = 'Users loaded.';
+            }
+            renderAccounts(Array.isArray(body) ? body : []);
+          })
+          .catch(() => {
+            if (accountsStatus) {
+              accountsStatus.textContent = 'Unable to load users.';
+            }
           });
       }
 
@@ -852,30 +1051,60 @@ export class AppService {
         })
         .catch(() => {});
 
+      loadAuthSecretsStatus();
+
       setupButton?.addEventListener('click', () => {
         const username = document.getElementById('setup-username').value;
         const email = setupEmail?.value;
         const password = document.getElementById('setup-password').value;
-        setupStatus.textContent = 'Creating user...';
-        fetch('/auth/setup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, email, password }),
-        })
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
-            if (!ok) {
-              const message = body?.message ?? 'Setup failed.';
-              setupStatus.textContent = message;
+        const accessSecret = authAccessInput?.value;
+        const refreshSecret = authRefreshInput?.value;
+        setupStatus.textContent = 'Preparing setup...';
+
+        const createUser = () => {
+          setupStatus.textContent = 'Creating user...';
+          fetch('/auth/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password }),
+          })
+            .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+            .then(({ ok, body }) => {
+              if (!ok) {
+                const message = body?.message ?? 'Setup failed.';
+                setupStatus.textContent = message;
+                return;
+              }
+              setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
+              setupPanel.style.display = 'none';
+              loginPanel.style.display = 'none';
+              setAuth(body?.tokens?.accessToken);
+            })
+            .catch(() => {
+              setupStatus.textContent = 'Setup failed.';
+            });
+        };
+
+        fetch('/api/settings/auth')
+          .then((response) => response.json())
+          .then((data) => {
+            authSecretsConfigured = Boolean(
+              data?.accessSecretConfigured && data?.refreshSecretConfigured,
+            );
+
+            if (!authSecretsConfigured) {
+              saveAuthSecrets(accessSecret, refreshSecret, setupStatus).then((saved) => {
+                if (saved) {
+                  createUser();
+                }
+              });
               return;
             }
-            setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
-            setupPanel.style.display = 'none';
-            loginPanel.style.display = 'none';
-            setAuth(body?.tokens?.accessToken);
+
+            createUser();
           })
           .catch(() => {
-            setupStatus.textContent = 'Setup failed.';
+            setupStatus.textContent = 'Unable to confirm auth secrets.';
           });
       });
 
@@ -903,6 +1132,12 @@ export class AppService {
           });
       });
 
+      saveAuthButton?.addEventListener('click', () => {
+        const accessSecret = settingsAccess?.value;
+        const refreshSecret = settingsRefresh?.value;
+        saveAuthSecrets(accessSecret, refreshSecret, authSecretStatus);
+      });
+
       bookdarrButton?.addEventListener('click', () => {
         if (!state.token) {
           bookdarrStatus.textContent = 'Please log in first.';
@@ -911,6 +1146,7 @@ export class AppService {
         const host = bookdarrHost.value;
         const port = Number(bookdarrPort.value);
         const apiKey = bookdarrKey.value;
+        const poolPath = bookdarrPath?.value;
         const useHttps = bookdarrHttps.checked;
         bookdarrStatus.textContent = 'Saving connection...';
         fetch('/settings/bookdarr', {
@@ -919,7 +1155,7 @@ export class AppService {
             'Content-Type': 'application/json',
             ...authHeaders(),
           },
-          body: JSON.stringify({ host, port, apiKey, useHttps }),
+          body: JSON.stringify({ host, port, apiKey, poolPath, useHttps }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
@@ -936,7 +1172,45 @@ export class AppService {
           });
       });
 
+      createUserButton?.addEventListener('click', () => {
+        if (!state.token) {
+          createUserStatus.textContent = 'Log in as an admin to create users.';
+          return;
+        }
+        const username = newUserUsername?.value;
+        const email = newUserEmail?.value;
+        const password = newUserPassword?.value;
+        const isAdmin = Boolean(newUserAdmin?.checked);
+        createUserStatus.textContent = 'Creating user...';
+        fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+          body: JSON.stringify({ username, email, password, isAdmin }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to create user.';
+              createUserStatus.textContent = message;
+              return;
+            }
+            createUserStatus.textContent = 'User created.';
+            if (newUserUsername) newUserUsername.value = '';
+            if (newUserEmail) newUserEmail.value = '';
+            if (newUserPassword) newUserPassword.value = '';
+            if (newUserAdmin) newUserAdmin.checked = false;
+            loadAccounts();
+          })
+          .catch(() => {
+            createUserStatus.textContent = 'Unable to create user.';
+          });
+      });
+
       loadLibrary();
+      loadAccounts();
 
       fetch('/api/settings')
         .then((response) => response.json())
@@ -948,8 +1222,8 @@ export class AppService {
             ['SMTP', data.smtp?.configured ? 'Configured' : 'Missing', data.smtp?.configured],
             ['Diagnostics', data.diagnostics?.required ? 'Required' : 'Optional', data.diagnostics?.required],
             ['Diagnostics Repo', data.diagnostics?.repo ?? 'Not set', data.diagnostics?.configured],
-            ['Auth Secrets', data.auth?.configured ? 'Configured' : 'Missing', data.auth?.configured],
-            ['Invite Codes', data.auth?.inviteCodesConfigured ? 'Configured' : 'Missing', data.auth?.inviteCodesConfigured],
+            ['Auth Access Secret', data.auth?.configured ? 'Configured' : 'Missing', data.auth?.configured],
+            ['Auth Refresh Secret', data.auth?.configured ? 'Configured' : 'Missing', data.auth?.configured],
             ['Open Library', data.openLibrary?.baseUrl ?? 'Not set'],
           ];
 

@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { AuthConfigService } from './auth-config.service';
 import { SettingsService } from '../settings/settings.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,14 +11,17 @@ import { UserEntity } from './entities/user.entity';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly settingsService: SettingsService,
+    private readonly authConfigService: AuthConfigService,
     @InjectRepository(UserEntity)
     private readonly users: Repository<UserEntity>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKeyProvider: (request, rawJwtToken, done) => {
-        const secret = settingsService.getSettings().auth.accessSecret;
+      secretOrKeyProvider: async (request, rawJwtToken, done) => {
+        const auth = settingsService.getSettings().auth;
+        const secrets = await authConfigService.getSecrets();
+        const secret = secrets.accessSecret ?? auth.accessSecret;
         if (!secret) {
           return done(new UnauthorizedException('JWT secret is not configured.'));
         }
@@ -32,6 +36,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid token.');
     }
 
-    return { userId: user.id, username: user.username, email: user.email };
+    return {
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    };
   }
 }

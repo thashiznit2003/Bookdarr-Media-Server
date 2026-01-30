@@ -11,6 +11,9 @@ export class BookdarrConfigEntity {
   @Column()
   apiKey!: string;
 
+  @Column({ type: 'text', nullable: true })
+  poolPath?: string | null;
+
   @Column()
   createdAt!: string;
 

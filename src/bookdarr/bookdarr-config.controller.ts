@@ -14,6 +14,7 @@ export class BookdarrConfigController {
     return {
       configured: Boolean(config?.apiUrl && config?.apiKey),
       apiUrl: config?.apiUrl,
+      poolPath: config?.poolPath ?? undefined,
     };
   }
 
@@ -24,6 +25,7 @@ export class BookdarrConfigController {
     return {
       configured: Boolean(config.apiUrl && config.apiKey),
       apiUrl: config.apiUrl,
+      poolPath: config.poolPath ?? undefined,
     };
   }
 }
