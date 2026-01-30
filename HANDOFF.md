@@ -36,6 +36,7 @@
 - EPUB reader now loads JSZip and renders from a blob object URL to mirror Bookdarr behavior.
 - EPUB reader now paginates single-page views with arrows + swipe navigation.
 - EPUB reader arrows now render above reader content (overlay z-index fix).
+- EPUB reader now shows page numbers + percent in the header and persists location with touch-only page-turn animation.
 
 ## Decisions
 - Stack: Node.js + NestJS

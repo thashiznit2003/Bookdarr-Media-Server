@@ -43,7 +43,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 ## UI Notes
 - Book detail modal shows a 100-word description preview with a More/Less toggle; modal content can scroll.
 - PDF reader loads module assets from `/vendor/pdfjs/pdf.mjs` with worker `/vendor/pdfjs/pdf.worker.mjs`.
-- EPUB reader shows left/right arrows above content, supports swipe navigation, and paginates single-page spreads.
+- EPUB reader shows page numbers + percent in the header, persists location, and animates touch page turns.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.26 — 2026-01-30 12:48 -06:00
+- Show EPUB page numbers + percent in the reader header and persist location.
+- Add touch-only page-turn animation and move progress text away from the close button.
+
 ## 1.0.25 — 2026-01-30 12:39 -06:00
 - Raise EPUB navigation arrows above reader content so they remain visible.
 

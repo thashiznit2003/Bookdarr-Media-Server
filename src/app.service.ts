@@ -642,11 +642,18 @@ export class AppService {
 
       .reader-header {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        align-items: flex-start;
+        justify-content: flex-start;
         padding: 16px 20px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         gap: 12px;
+        padding-right: 64px;
+      }
+
+      .reader-header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
       }
 
       .reader-title {
@@ -722,6 +729,24 @@ export class AppService {
 
       .reader-modal[data-reader-mode="epub"] .reader-view {
         overflow: hidden;
+      }
+
+      .reader-view.page-turn-next {
+        animation: pageTurnNext 0.25s ease;
+      }
+
+      .reader-view.page-turn-prev {
+        animation: pageTurnPrev 0.25s ease;
+      }
+
+      @keyframes pageTurnNext {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(-24px); opacity: 0.7; }
+      }
+
+      @keyframes pageTurnPrev {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(24px); opacity: 0.7; }
       }
 
       .reader-canvas {
@@ -1256,8 +1281,10 @@ export class AppService {
         <div class="reader-card">
           <button class="reader-close" id="reader-close">✕</button>
           <div class="reader-header">
-            <div class="reader-title" id="reader-title">Reader</div>
-            <div class="reader-progress" id="reader-progress"></div>
+            <div class="reader-header-left">
+              <div class="reader-title" id="reader-title">Reader</div>
+              <div class="reader-progress" id="reader-progress"></div>
+            </div>
           </div>
           <div class="reader-controls">
             <button class="reader-button" id="reader-prev">Prev</button>
@@ -1478,9 +1505,12 @@ export class AppService {
         if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) {
           return;
         }
+        const isTouch = ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
         if (deltaX < 0) {
+          if (isTouch) animatePageTurn('next');
           goNext();
         } else {
+          if (isTouch) animatePageTurn('prev');
           goPrev();
         }
       }, { passive: true });
@@ -1881,6 +1911,8 @@ export class AppService {
       let epubBook = null;
       let epubRendition = null;
       let epubObjectUrl = null;
+      let epubLocationsReady = false;
+      let epubLocationsGenerating = false;
       let readerFile = null;
       let currentDetail = null;
 
@@ -1909,6 +1941,8 @@ export class AppService {
           }
           epubObjectUrl = null;
         }
+        epubLocationsReady = false;
+        epubLocationsGenerating = false;
         pdfDoc = null;
         pdfPage = 1;
         readerFile = null;
@@ -1921,6 +1955,95 @@ export class AppService {
         if (readerProgress) {
           readerProgress.textContent = text ?? '';
         }
+      }
+
+      function formatPercent(value) {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+          return null;
+        }
+        return Math.max(0, Math.min(100, Math.round(value * 100)));
+      }
+
+      function getEpubLocationsTotal() {
+        if (!epubBook || !epubBook.locations) {
+          return 0;
+        }
+        if (typeof epubBook.locations.length === 'function') {
+          return epubBook.locations.length();
+        }
+        if (typeof epubBook.locations.total === 'number') {
+          return epubBook.locations.total;
+        }
+        if (typeof epubBook.locations.length === 'number') {
+          return epubBook.locations.length;
+        }
+        return 0;
+      }
+
+      function syncEpubLocation() {
+        if (!epubRendition || !epubRendition.currentLocation) {
+          return;
+        }
+        const location = epubRendition.currentLocation();
+        if (location) {
+          updateEpubPageNumbers(location);
+        }
+      }
+
+      function prepareEpubLocations() {
+        if (!epubBook || !epubBook.locations || epubLocationsReady || epubLocationsGenerating) {
+          return;
+        }
+        epubLocationsGenerating = true;
+        const generation = epubBook.locations.generate(1600);
+        const finalize = () => {
+          if (getEpubLocationsTotal() > 0) {
+            epubLocationsReady = true;
+            syncEpubLocation();
+          }
+          epubLocationsGenerating = false;
+        };
+        if (generation && generation.then) {
+          generation.then(finalize).catch(() => {
+            epubLocationsGenerating = false;
+          });
+        } else {
+          finalize();
+        }
+      }
+
+      function updateEpubPageNumbers(location) {
+        const start = location?.start ?? null;
+        const cfi = start?.cfi ?? null;
+        const percentage = formatPercent(start?.percentage ?? null);
+        let pageText = null;
+
+        if (cfi && epubBook && epubBook.locations && epubLocationsReady) {
+          const total = getEpubLocationsTotal();
+          const index = epubBook.locations.locationFromCfi(cfi);
+          if (total && index != null && index >= 0) {
+            pageText = 'Page ' + (index + 1) + ' / ' + total;
+          }
+        }
+
+        const parts = [];
+        if (pageText) {
+          parts.push(pageText);
+        }
+        if (percentage != null) {
+          parts.push(percentage + '%');
+        }
+        updateReaderProgress(parts.join(' · '));
+      }
+
+      function animatePageTurn(direction) {
+        if (!readerView) return;
+        readerView.classList.remove('page-turn-next', 'page-turn-prev');
+        void readerView.offsetWidth;
+        readerView.classList.add(direction === 'next' ? 'page-turn-next' : 'page-turn-prev');
+        setTimeout(() => {
+          readerView.classList.remove('page-turn-next', 'page-turn-prev');
+        }, 260);
       }
 
       function truncateWords(text, limit) {
@@ -2099,13 +2222,16 @@ export class AppService {
               }
             });
           }
+          if (displayPromise && displayPromise.then) {
+            displayPromise.then(() => {
+              syncEpubLocation();
+            });
+          }
           epubRendition.on('relocated', (location) => {
             if (location?.start?.cfi) {
               saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
             }
-            if (location?.start?.percentage != null) {
-              updateReaderProgress(Math.round(location.start.percentage * 100) + '%');
-            }
+            updateEpubPageNumbers(location);
           });
         };
 
@@ -2131,6 +2257,7 @@ export class AppService {
           }
           clearTimeout(timeout);
           mountRendition(epubBook);
+          prepareEpubLocations();
         })().catch(() => {
           clearTimeout(timeout);
           if (readerView) {
