@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.8
+- Added invite-only auth with JWT access/refresh tokens and SMTP password reset.
+
 ## 0.0.7
 - Added diagnostics endpoint that pushes payloads to GitHub repo.
 

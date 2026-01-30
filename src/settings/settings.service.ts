@@ -5,6 +5,9 @@ const DEFAULT_PORT = 9797;
 const DEFAULT_DIAGNOSTICS_REPO = 'thashiznit2003/Bookdarr-Media-Diagnostics';
 const DEFAULT_DIAGNOSTICS_BRANCH = 'main';
 const DEFAULT_DIAGNOSTICS_PATH = 'bms';
+const DEFAULT_AUTH_ACCESS_TTL = '15m';
+const DEFAULT_AUTH_REFRESH_TTL = '30d';
+const DEFAULT_AUTH_RESET_TTL_MINUTES = 30;
 
 @Injectable()
 export class SettingsService {
@@ -31,6 +34,10 @@ export class SettingsService {
     const diagnosticsConfigured = Boolean(
       this.settings.diagnostics.repo && this.settings.diagnostics.token,
     );
+    const authConfigured = Boolean(
+      this.settings.auth.accessSecret && this.settings.auth.refreshSecret,
+    );
+    const inviteCodesConfigured = this.settings.auth.inviteCodes.length > 0;
 
     return {
       port: this.settings.port,
@@ -51,6 +58,14 @@ export class SettingsService {
         branch: this.settings.diagnostics.branch,
         path: this.settings.diagnostics.path,
       },
+      auth: {
+        configured: authConfigured,
+        inviteRequired: true,
+        inviteCodesConfigured,
+        accessTokenTtl: this.settings.auth.accessTokenTtl,
+        refreshTokenTtl: this.settings.auth.refreshTokenTtl,
+        resetTokenTtlMinutes: this.settings.auth.resetTokenTtlMinutes,
+      },
     };
   }
 
@@ -67,6 +82,16 @@ export class SettingsService {
     const diagnosticsPath =
       this.readEnv('DIAGNOSTICS_PATH') ?? DEFAULT_DIAGNOSTICS_PATH;
     const diagnosticsToken = this.readEnv('DIAGNOSTICS_TOKEN');
+    const authAccessTtl =
+      this.readEnv('JWT_ACCESS_TTL') ?? DEFAULT_AUTH_ACCESS_TTL;
+    const authRefreshTtl =
+      this.readEnv('JWT_REFRESH_TTL') ?? DEFAULT_AUTH_REFRESH_TTL;
+    const resetTtlMinutes = this.parsePositiveInt(
+      this.readEnv('RESET_TOKEN_TTL_MINUTES'),
+      DEFAULT_AUTH_RESET_TTL_MINUTES,
+      'RESET_TOKEN_TTL_MINUTES',
+    );
+    const inviteCodes = this.parseCsv(this.readEnv('INVITE_CODES'));
 
     const apiUrl = this.parseUrl(process.env.BOOKDARR_API_URL, 'BOOKDARR_API_URL');
 
@@ -92,6 +117,14 @@ export class SettingsService {
         token: diagnosticsToken,
         branch: diagnosticsBranch,
         path: diagnosticsPath,
+      },
+      auth: {
+        accessSecret: this.readEnv('JWT_ACCESS_SECRET'),
+        refreshSecret: this.readEnv('JWT_REFRESH_SECRET'),
+        accessTokenTtl: authAccessTtl,
+        refreshTokenTtl: authRefreshTtl,
+        resetTokenTtlMinutes: resetTtlMinutes,
+        inviteCodes,
       },
     };
   }
@@ -154,5 +187,33 @@ export class SettingsService {
     }
 
     return trimmed;
+  }
+
+  private parsePositiveInt(
+    value: string | undefined,
+    defaultValue: number,
+    name: string,
+  ): number {
+    if (!value || value.trim().length === 0) {
+      return defaultValue;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      throw new Error(`${name} must be a positive integer.`);
+    }
+
+    return parsed;
+  }
+
+  private parseCsv(value: string | undefined): string[] {
+    if (!value || value.trim().length === 0) {
+      return [];
+    }
+
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
   }
 }

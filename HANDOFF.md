@@ -7,6 +7,7 @@
 - Test scripts disable experimental webstorage to avoid Node warnings.
 - Basic admin UI placeholder added at `/` (HTML + fetches `/settings`).
 - Diagnostics endpoint added (`POST /diagnostics`) that pushes payloads to the diagnostics repo.
+- Auth module added with invite-only signup, JWT access/refresh, and password reset via SMTP (in-memory storage).
 
 ## Decisions
 - Stack: Node.js + NestJS
@@ -18,7 +19,7 @@
 - Diagnostics: required during development; opt‑in later behind secret unlock
 
 ## Immediate Next Steps
-1. Auth module: invite code signup, JWT + refresh, password reset email.
+1. Persist auth storage (DB), add rate limiting and account management.
 2. Admin UI placeholder (simple web UI or API endpoints for settings).
 3. Bookdarr client module (read‑only Book Pool endpoints).
 4. Lock down diagnostics endpoint once auth exists.

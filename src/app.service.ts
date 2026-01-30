@@ -123,6 +123,8 @@ export class AppService {
             ['SMTP', data.smtp?.configured ? 'Configured' : 'Missing', data.smtp?.configured],
             ['Diagnostics Required', data.diagnostics?.required ? 'Yes' : 'No', data.diagnostics?.required],
             ['Diagnostics Repo', data.diagnostics?.repo ?? 'Not set', data.diagnostics?.configured],
+            ['Auth Secrets', data.auth?.configured ? 'Configured' : 'Missing', data.auth?.configured],
+            ['Invite Codes', data.auth?.inviteCodesConfigured ? 'Configured' : 'Missing', data.auth?.inviteCodesConfigured],
           ];
 
           settingsEl.innerHTML = items

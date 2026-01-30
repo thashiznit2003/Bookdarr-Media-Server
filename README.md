@@ -33,10 +33,23 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - `DIAGNOSTICS_BRANCH` (default `main`)
 - `DIAGNOSTICS_PATH` (default `bms`)
 - `DIAGNOSTICS_TOKEN` (GitHub token for pushes)
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `JWT_ACCESS_TTL` (default `15m`)
+- `JWT_REFRESH_TTL` (default `30d`)
+- `RESET_TOKEN_TTL_MINUTES` (default `30`)
+- `INVITE_CODES` (comma-separated)
 - `PORT` (default 9797)
 
 GET `/settings` returns a redacted settings summary for debugging.
 POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo.
+Auth endpoints (invite-only signup):
+- `POST /auth/signup`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+- `POST /auth/password/request`
+- `POST /auth/password/reset`
 
 The root route (`/`) serves a temporary admin UI placeholder that reads
 settings from `/settings`.

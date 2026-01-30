@@ -18,6 +18,14 @@ export interface Settings {
     branch: string;
     path: string;
   };
+  auth: {
+    accessSecret?: string;
+    refreshSecret?: string;
+    accessTokenTtl: string;
+    refreshTokenTtl: string;
+    resetTokenTtlMinutes: number;
+    inviteCodes: string[];
+  };
 }
 
 export interface PublicSettings {
@@ -38,5 +46,13 @@ export interface PublicSettings {
     repo?: string;
     branch: string;
     path: string;
+  };
+  auth: {
+    configured: boolean;
+    inviteRequired: boolean;
+    inviteCodesConfigured: boolean;
+    accessTokenTtl: string;
+    refreshTokenTtl: string;
+    resetTokenTtlMinutes: number;
   };
 }
