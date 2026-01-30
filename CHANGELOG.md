@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.21 — 2026-01-30 10:55 -06:00
+- Cache the Book Pool on disk for faster logins and filter out entries with no files.
+- Strengthen Bookdarr cover handling via MediaCover API and fix cover fit to avoid cropping.
+- Add My Library with per-user checkout/return and move filters to a dropdown.
+- Persist sessions with refresh tokens, remove wizard login from the main UI, and improve reader reliability.
+
 ## 1.0.20 — 2026-01-30 00:02 -06:00
 - Only use Bookdarr cover URLs when they resolve to actual image files; fall back otherwise.
 

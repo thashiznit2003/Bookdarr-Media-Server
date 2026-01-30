@@ -13,6 +13,7 @@ import { LibraryModule } from './library/library.module';
 import { BookdarrConfigEntity } from './bookdarr/bookdarr-config.entity';
 import { AuthConfigEntity } from './auth/auth-config.entity';
 import { LoggingModule } from './logging/logging.module';
+import { UserLibraryEntity } from './library/user-library.entity';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { LoggingModule } from './logging/logging.module';
               PasswordResetTokenEntity,
               BookdarrConfigEntity,
               AuthConfigEntity,
+              UserLibraryEntity,
             ],
           };
         }
@@ -53,6 +55,7 @@ import { LoggingModule } from './logging/logging.module';
             PasswordResetTokenEntity,
             BookdarrConfigEntity,
             AuthConfigEntity,
+            UserLibraryEntity,
           ],
         };
       },

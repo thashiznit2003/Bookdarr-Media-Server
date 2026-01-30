@@ -9,6 +9,8 @@ export interface LibraryItem {
   hasEbook: boolean;
   hasAudiobook: boolean;
   inMyLibrary: boolean;
+  checkedOutByMe?: boolean;
+  checkedOutAt?: string | null;
   openLibrary?: {
     key?: string;
     editionKey?: string;

@@ -16,7 +16,7 @@ export class BookdarrService {
     private readonly bookdarrConfigService: BookdarrConfigService,
   ) {}
 
-  private async getApiConfig() {
+  async getApiConfig() {
     const settings = this.settingsService.getSettings();
     const storedConfig = await this.bookdarrConfigService.getConfig();
     const apiUrl = storedConfig?.apiUrl ?? settings.bookdarr.apiUrl;
@@ -34,6 +34,11 @@ export class BookdarrService {
         settings.bookdarr.poolPath ??
         '/api/v1/user/library/pool',
     };
+  }
+
+  async getConfigSignature(): Promise<string> {
+    const { apiUrl, poolPath } = await this.getApiConfig();
+    return `${apiUrl}|${poolPath}`;
   }
 
   async getApiUrl(): Promise<string> {

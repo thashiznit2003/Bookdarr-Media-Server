@@ -30,6 +30,8 @@
 - Book detail modal now truncates descriptions to 100 words with a More/Less toggle and supports scrolling.
 - PDF reader assets now load from the module build so the in-app reader renders correctly.
 - Book cover selection now prefers Bookdarr URLs that resolve to actual image files and falls back otherwise.
+- Added on-disk Book Pool cache, Bookdarr MediaCover fallback, and filtering of books without files.
+- Added My Library with per-user checkout/return plus refresh-token session persistence and dropdown filters.
 
 ## Decisions
 - Stack: Node.js + NestJS

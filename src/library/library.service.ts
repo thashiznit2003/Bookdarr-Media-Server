@@ -4,63 +4,49 @@ import { BookdarrService } from '../bookdarr/bookdarr.service';
 import { OpenLibraryService } from '../openlibrary/openlibrary.service';
 import { LibraryDetail, LibraryFile, LibraryItem, LibraryMediaType } from './library.types';
 import type { BookdarrBookFileResource } from '../bookdarr/bookdarr.types';
+import { LibraryCacheService } from './library-cache.service';
+import { UserLibraryService } from './user-library.service';
 
 @Injectable()
 export class LibraryService {
   constructor(
     private readonly bookdarrService: BookdarrService,
     private readonly openLibraryService: OpenLibraryService,
+    private readonly libraryCacheService: LibraryCacheService,
+    private readonly userLibraryService: UserLibraryService,
   ) {}
 
-  async getLibrary(): Promise<LibraryItem[]> {
-    const bookPool = await this.bookdarrService.getBookPool();
-    const apiUrl = await this.bookdarrService.getApiUrl();
+  async getLibrary(userId?: string): Promise<LibraryItem[]> {
+    const configKey = await this.bookdarrService.getConfigSignature();
+    let items = await this.libraryCacheService.getCached(configKey);
+    if (!items) {
+      items = await this.buildLibraryItems();
+      await this.libraryCacheService.setCached(configKey, items);
+    }
 
-    const items = await Promise.all(
-      bookPool.map(async (item) => {
-        const title = item.book?.title ?? 'Unknown title';
-        const author =
-          item.book?.author?.authorName ??
-          item.book?.author?.authorNameLastFirst ??
-          undefined;
+    const filtered = items;
+    if (!userId) {
+      return filtered;
+    }
 
-        const bookdarrCoverRaw = this.pickCoverPath(item.book?.images);
-        let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
-        if (!bookdarrCover) {
-          const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-          const resourceCoverRaw = this.pickCoverPath(bookResource?.images);
-          bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
-        }
-        let match;
-        if (!bookdarrCover) {
-          try {
-            match = await this.openLibraryService.lookupByTitleAuthor(title, author);
-          } catch {
-            match = undefined;
-          }
-        }
-        const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
-        const coverUrl = bookdarrCover ?? openLibraryCover;
-
-        return {
-          id: item.bookId,
-          title,
-          author,
-          publishYear: this.extractYear(item.book?.releaseDate),
-          overview: item.book?.overview,
-          coverUrl,
-          bookdarrStatus: item.status,
-          hasEbook: item.hasEbook,
-          hasAudiobook: item.hasAudiobook,
-          inMyLibrary: item.inMyLibrary,
-        };
-      }),
-    );
-
-    return items;
+    const checkouts = await this.userLibraryService.getActiveForUser(userId);
+    const checkoutMap = new Map(checkouts.map((entry) => [entry.bookId, entry]));
+    return filtered.map((item) => {
+      const checkout = checkoutMap.get(item.id);
+      return {
+        ...item,
+        checkedOutByMe: Boolean(checkout),
+        checkedOutAt: checkout?.checkedOutAt ?? null,
+      };
+    });
   }
 
-  async getLibraryDetail(bookId: number): Promise<LibraryDetail> {
+  async getMyLibrary(userId: string): Promise<LibraryItem[]> {
+    const library = await this.getLibrary(userId);
+    return library.filter((item) => item.checkedOutByMe);
+  }
+
+  async getLibraryDetail(bookId: number, userId?: string): Promise<LibraryDetail> {
     const bookPool = await this.bookdarrService.getBookPool();
     const item = bookPool.find((entry) => entry.bookId === bookId);
 
@@ -75,11 +61,11 @@ export class LibraryService {
       item.book?.author?.authorNameLastFirst ??
       undefined;
 
-    const bookdarrCoverRaw = this.pickCoverPath(item.book?.images);
+    const bookdarrCoverRaw = this.pickCoverPath(item.book?.images, item.bookId);
     let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
     if (!bookdarrCover) {
       const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-      const resourceCoverRaw = this.pickCoverPath(bookResource?.images);
+      const resourceCoverRaw = this.pickCoverPath(bookResource?.images, item.bookId);
       bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
     }
     let bookdarrOverview: string | undefined;
@@ -122,6 +108,10 @@ export class LibraryService {
     const audiobookFiles = files.filter((file) => file.mediaType === 'audiobook');
     const ebookFiles = files.filter((file) => file.mediaType === 'ebook');
 
+    const checkout = userId
+      ? await this.userLibraryService.getActiveByBookId(userId, bookId)
+      : null;
+
     return {
       id: item.bookId,
       title,
@@ -133,6 +123,8 @@ export class LibraryService {
       hasEbook: item.hasEbook,
       hasAudiobook: item.hasAudiobook,
       inMyLibrary: item.inMyLibrary,
+      checkedOutByMe: Boolean(checkout),
+      checkedOutAt: checkout?.checkedOutAt ?? null,
       releaseDate: item.book?.releaseDate,
       description: overview || details?.description,
       subjects: details?.subjects,
@@ -143,7 +135,7 @@ export class LibraryService {
     };
   }
 
-  async refreshMetadata(bookId: number): Promise<LibraryDetail> {
+  async refreshMetadata(bookId: number, userId?: string): Promise<LibraryDetail> {
     const bookPool = await this.bookdarrService.getBookPool();
     const item = bookPool.find((entry) => entry.bookId === bookId);
 
@@ -172,11 +164,11 @@ export class LibraryService {
       details = undefined;
     }
 
-    const bookdarrCoverRaw = this.pickCoverPath(item.book?.images);
+    const bookdarrCoverRaw = this.pickCoverPath(item.book?.images, item.bookId);
     let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
     if (!bookdarrCover) {
       const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-      const resourceCoverRaw = this.pickCoverPath(bookResource?.images);
+      const resourceCoverRaw = this.pickCoverPath(bookResource?.images, item.bookId);
       bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
     }
     const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
@@ -192,6 +184,10 @@ export class LibraryService {
     const audiobookFiles = files.filter((file) => file.mediaType === 'audiobook');
     const ebookFiles = files.filter((file) => file.mediaType === 'ebook');
 
+    const checkout = userId
+      ? await this.userLibraryService.getActiveByBookId(userId, bookId)
+      : null;
+
     return {
       id: item.bookId,
       title: match?.title ?? title,
@@ -203,6 +199,8 @@ export class LibraryService {
       hasEbook: item.hasEbook,
       hasAudiobook: item.hasAudiobook,
       inMyLibrary: item.inMyLibrary,
+      checkedOutByMe: Boolean(checkout),
+      checkedOutAt: checkout?.checkedOutAt ?? null,
       releaseDate: item.book?.releaseDate,
       description: details?.description ?? item.book?.overview,
       subjects: details?.subjects,
@@ -211,6 +209,69 @@ export class LibraryService {
       audiobookFiles,
       ebookFiles,
     };
+  }
+
+  async checkoutBook(userId: string, bookId: number) {
+    const detail = await this.getLibraryDetail(bookId, userId);
+    if (!detail.hasEbook && !detail.hasAudiobook) {
+      throw new NotFoundException('No media files available for this book.');
+    }
+    await this.userLibraryService.checkout(userId, bookId);
+    return this.getLibraryDetail(bookId, userId);
+  }
+
+  async returnBook(userId: string, bookId: number) {
+    await this.userLibraryService.returnBook(userId, bookId);
+    return this.getLibraryDetail(bookId, userId);
+  }
+
+  private async buildLibraryItems(): Promise<LibraryItem[]> {
+    const bookPool = await this.bookdarrService.getBookPool();
+    const apiUrl = await this.bookdarrService.getApiUrl();
+
+    const items = await Promise.all(
+      bookPool.map(async (item) => {
+        const title = item.book?.title ?? 'Unknown title';
+        const author =
+          item.book?.author?.authorName ??
+          item.book?.author?.authorNameLastFirst ??
+          undefined;
+
+        const bookdarrCoverRaw = this.pickCoverPath(item.book?.images, item.bookId);
+        let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
+        if (!bookdarrCover) {
+          const bookResource = await this.bookdarrService.getBookResource(item.bookId);
+          const resourceCoverRaw = this.pickCoverPath(bookResource?.images, item.bookId);
+          bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
+        }
+
+        let match;
+        if (!bookdarrCover) {
+          try {
+            match = await this.openLibraryService.lookupByTitleAuthor(title, author);
+          } catch {
+            match = undefined;
+          }
+        }
+        const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
+        const coverUrl = bookdarrCover ?? openLibraryCover;
+
+        return {
+          id: item.bookId,
+          title,
+          author,
+          publishYear: this.extractYear(item.book?.releaseDate),
+          overview: item.book?.overview,
+          coverUrl,
+          bookdarrStatus: item.status,
+          hasEbook: item.hasEbook,
+          hasAudiobook: item.hasAudiobook,
+          inMyLibrary: item.inMyLibrary,
+        };
+      }),
+    );
+
+    return items.filter((item) => item.hasEbook || item.hasAudiobook);
   }
 
   private mapBookFile(file: BookdarrBookFileResource): LibraryFile {
@@ -268,7 +329,7 @@ export class LibraryService {
       const resolved = new URL(coverRaw, apiUrl);
       if (resolved.origin === base.origin) {
         const path = resolved.pathname + resolved.search;
-      return `/library/cover-image?path=${encodeURIComponent(path)}`;
+        return `/library/cover-image?path=${encodeURIComponent(path)}`;
       }
       return resolved.toString();
     } catch {
@@ -278,6 +339,7 @@ export class LibraryService {
 
   private pickCoverPath(
     images?: { remoteUrl?: string; url?: string; extension?: string; coverType?: string }[],
+    bookId?: number,
   ): string | undefined {
     if (!images || images.length === 0) {
       return undefined;
@@ -328,6 +390,10 @@ export class LibraryService {
       if (remote && remote.startsWith('http') && hasImageExtension(remote, entry.extension)) {
         return remote;
       }
+    }
+
+    if (bookId && preferred.length > 0) {
+      return `/api/v1/mediacover/book/${bookId}/cover.jpg`;
     }
 
     return undefined;

@@ -14,8 +14,19 @@ export class LibraryController {
 
   @Get()
   @UseGuards(AuthGuard)
-  async getLibrary() {
-    return this.libraryService.getLibrary();
+  async getLibrary(@Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.libraryService.getLibrary(userId);
+  }
+
+  @Get('my')
+  @UseGuards(AuthGuard)
+  async getMyLibrary(@Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    if (!userId) {
+      return [];
+    }
+    return this.libraryService.getMyLibrary(userId);
   }
 
   @Get('files/:id/stream')
@@ -89,13 +100,35 @@ export class LibraryController {
 
   @Get(':id')
   @UseGuards(AuthGuard)
-  async getLibraryDetail(@Param('id', ParseIntPipe) id: number) {
-    return this.libraryService.getLibraryDetail(id);
+  async getLibraryDetail(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.libraryService.getLibraryDetail(id, userId);
   }
 
   @Post(':id/refresh')
   @UseGuards(AuthGuard)
-  async refreshMetadata(@Param('id', ParseIntPipe) id: number) {
-    return this.libraryService.refreshMetadata(id);
+  async refreshMetadata(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.libraryService.refreshMetadata(id, userId);
+  }
+
+  @Post(':id/checkout')
+  @UseGuards(AuthGuard)
+  async checkoutBook(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    if (!userId) {
+      return { status: 'unauthorized' };
+    }
+    return this.libraryService.checkoutBook(userId, id);
+  }
+
+  @Post(':id/return')
+  @UseGuards(AuthGuard)
+  async returnBook(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    if (!userId) {
+      return { status: 'unauthorized' };
+    }
+    return this.libraryService.returnBook(userId, id);
   }
 }

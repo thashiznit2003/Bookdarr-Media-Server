@@ -272,6 +272,31 @@ export class AppService {
         font-size: 1.1rem;
       }
 
+      .library-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .filter-select {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .filter-select select {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--text);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+      }
+
       .section-title {
         display: flex;
         align-items: center;
@@ -334,7 +359,7 @@ export class AppService {
       .cover img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
       }
 
       .cover-fallback {
@@ -467,7 +492,7 @@ export class AppService {
       .detail-cover img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
       }
 
       .detail-title {
@@ -823,6 +848,7 @@ export class AppService {
         <div class="nav-section">
           <div class="nav-title">Library</div>
           <a class="nav-link" href="/" data-page-link="library">Book Pool</a>
+          <a class="nav-link" href="/my-library" data-page-link="my-library">My Library</a>
           <a class="nav-link" href="/downloads" data-page-link="downloads">Downloads</a>
           <a class="nav-link" href="/diagnostics" data-page-link="diagnostics">Diagnostics</a>
         </div>
@@ -857,16 +883,6 @@ export class AppService {
           <section class="hero">
             <div>
               <h1>Book Pool Library</h1>
-              <p>
-                A Plex-inspired bookshelf that mirrors your Bookdarr Book Pool. Books are enriched
-                with Open Library metadata and organized for quick access across devices.
-              </p>
-              <div class="filters" id="filters">
-                <button class="filter-btn active" data-filter="all">All Books</button>
-                <button class="filter-btn" data-filter="ebook">Ebooks</button>
-                <button class="filter-btn" data-filter="audiobook">Audiobooks</button>
-                <button class="filter-btn" data-filter="needs">Needs Files</button>
-              </div>
             </div>
             <div class="hero-meta">
               <div class="hero-stat">
@@ -883,6 +899,17 @@ export class AppService {
               </div>
             </div>
           </section>
+
+          <div class="library-toolbar">
+            <div class="filter-select">
+              <span>Filter</span>
+              <select id="library-filter">
+                <option value="all">All Books</option>
+                <option value="ebook">Ebooks</option>
+                <option value="audiobook">Audiobooks</option>
+              </select>
+            </div>
+          </div>
 
           <section id="wizard" class="wizard">
             <div class="wizard-header">
@@ -910,25 +937,8 @@ export class AppService {
               <div id="setup-status" style="margin-top: 10px; color: var(--muted);"></div>
             </div>
 
-            <div id="login-panel" class="setup-panel">
-              <h3>Step 2: Log in</h3>
-              <p>Sign in to connect your Bookdarr instance.</p>
-              <div class="status-grid">
-                <div>
-                  <span class="nav-title">Username</span>
-                  <input id="login-username" type="text" placeholder="admin" />
-                </div>
-                <div>
-                  <span class="nav-title">Password</span>
-                  <input id="login-password" type="password" placeholder="password" />
-                </div>
-              </div>
-              <button id="login-submit">Log in</button>
-              <div id="login-status" style="margin-top: 10px; color: var(--muted);"></div>
-            </div>
-
             <div id="bookdarr-panel" class="setup-panel">
-              <h3>Step 3: Connect Bookdarr</h3>
+              <h3>Step 2: Connect Bookdarr</h3>
               <p>Provide the IP address, port, and API key for your Bookdarr instance.</p>
               <div class="status-grid">
                 <div>
@@ -964,6 +974,33 @@ export class AppService {
           </section>
           <div id="library-grid" class="grid">
             <div class="empty">Loading Book Pool…</div>
+          </div>
+        </div>
+
+        <div class="page" data-page="my-library">
+          <section class="hero">
+            <div>
+              <h1>My Library</h1>
+              <p>Your checked out books live here.</p>
+            </div>
+          </section>
+
+          <div class="library-toolbar">
+            <div class="filter-select">
+              <span>Filter</span>
+              <select id="my-library-filter">
+                <option value="all">All Books</option>
+                <option value="ebook">Ebooks</option>
+                <option value="audiobook">Audiobooks</option>
+              </select>
+            </div>
+          </div>
+
+          <section class="section-title">
+            <h2>Checked Out</h2>
+          </section>
+          <div id="my-library-grid" class="grid">
+            <div class="empty">No checked out books yet.</div>
           </div>
         </div>
 
@@ -1146,11 +1183,13 @@ export class AppService {
               <div>
                 <h2 class="detail-title" id="detail-title">Loading…</h2>
                 <div class="detail-author" id="detail-author"></div>
-                <div class="detail-meta" id="detail-meta"></div>
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                  <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
-                  <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
-                </div>
+              <div class="detail-meta" id="detail-meta"></div>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
+                <button id="detail-checkout" class="filter-btn">Checkout</button>
+                <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+                <span id="detail-checkout-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+              </div>
                 <p class="detail-description" id="detail-description"></p>
                 <button class="detail-toggle" id="detail-description-toggle" style="display: none;">More...</button>
                 <div class="detail-subjects" id="detail-subjects"></div>
@@ -1198,12 +1237,15 @@ export class AppService {
         filter: 'all',
         query: '',
         library: [],
+        myLibrary: [],
         token: null,
         userId: null
       };
+      let setupRequired = false;
+      let tokenRefreshTimer = null;
 
       const libraryGrid = document.getElementById('library-grid');
-      const filterButtons = document.querySelectorAll('.filter-btn');
+      const myLibraryGrid = document.getElementById('my-library-grid');
       const searchInput = document.getElementById('search');
       const searchWrap = document.getElementById('search-wrap');
       const wizardPanel = document.getElementById('wizard');
@@ -1211,18 +1253,17 @@ export class AppService {
       const setupEmail = document.getElementById('setup-email');
       const setupStatus = document.getElementById('setup-status');
       const setupButton = document.getElementById('setup-submit');
-      const loginPanel = document.getElementById('login-panel');
-      const loginStatus = document.getElementById('login-status');
-      const loginButton = document.getElementById('login-submit');
-      const loginUsername = document.getElementById('login-username');
       const bookdarrPanel = document.getElementById('bookdarr-panel');
       const bookdarrStatus = document.getElementById('bookdarr-status');
       const bookdarrButton = document.getElementById('bookdarr-submit');
       const pageSections = document.querySelectorAll('[data-page]');
       const navLinks = document.querySelectorAll('[data-page-link]');
       const activePage = window.location.pathname.replace('/', '') || 'library';
-      const isLibraryPage = activePage === 'library';
+      const isLibraryPage = activePage === 'library' || activePage === 'my-library';
+      const isMyLibraryPage = activePage === 'my-library';
       const isLoginPage = activePage === 'login';
+      const libraryFilterSelect = document.getElementById('library-filter');
+      const myLibraryFilterSelect = document.getElementById('my-library-filter');
 
       const bookdarrHost = document.getElementById('bookdarr-host');
       const bookdarrPort = document.getElementById('bookdarr-port');
@@ -1278,6 +1319,8 @@ export class AppService {
       const detailEbook = document.getElementById('detail-ebook');
       const detailRefresh = document.getElementById('detail-refresh');
       const detailRefreshStatus = document.getElementById('detail-refresh-status');
+      const detailCheckout = document.getElementById('detail-checkout');
+      const detailCheckoutStatus = document.getElementById('detail-checkout-status');
       const readerModal = document.getElementById('reader-modal');
       const readerClose = document.getElementById('reader-close');
       const readerTitle = document.getElementById('reader-title');
@@ -1302,9 +1345,12 @@ export class AppService {
       if (!isLibraryPage && searchWrap) {
         searchWrap.style.display = 'none';
       }
+      if (searchInput && activePage === 'my-library') {
+        searchInput.placeholder = 'Search your Library';
+      }
 
       if (wizardPanel) {
-        wizardPanel.style.display = isLibraryPage ? 'block' : 'none';
+        wizardPanel.style.display = 'none';
       }
 
       libraryGrid?.addEventListener('click', (event) => {
@@ -1314,9 +1360,17 @@ export class AppService {
         }
         openBookDetail(card.dataset.id);
       });
+      myLibraryGrid?.addEventListener('click', (event) => {
+        const card = event.target.closest('.book-card');
+        if (!card || !card.dataset.id) {
+          return;
+        }
+        openBookDetail(card.dataset.id);
+      });
 
       detailClose?.addEventListener('click', closeBookDetail);
       detailRefresh?.addEventListener('click', refreshBookDetail);
+      detailCheckout?.addEventListener('click', toggleCheckoutStatus);
       detailDescriptionToggle?.addEventListener('click', toggleDetailDescription);
       detailModal?.addEventListener('click', (event) => {
         if (event.target === detailModal) {
@@ -1375,33 +1429,114 @@ export class AppService {
           if (refreshToken) {
             localStorage.setItem('bmsRefreshToken', refreshToken);
           }
-          loginPanel.style.display = 'none';
+          scheduleTokenRefresh();
           bookdarrPanel.style.display = 'block';
           setBookdarrEnabled(true);
           loadBookdarrConfig();
           loadAccounts();
           loadProfile();
-          fetch('/api/me', { headers: authHeaders() })
-            .then((response) => response.json())
-            .then((data) => {
-              updateUserMenu(data);
-              state.userId = data?.id ?? null;
-            })
-            .catch(() => {
-              updateUserMenu(null);
-              state.userId = null;
-            });
+          loadMyLibrary();
+          loadCurrentUser();
         } else {
           localStorage.removeItem('bmsAccessToken');
           localStorage.removeItem('bmsRefreshToken');
           setBookdarrEnabled(false);
           updateUserMenu(null);
           state.userId = null;
+          scheduleTokenRefresh();
+          if (!setupRequired && !isLoginPage && activePage === 'library') {
+            window.location.href = '/login';
+          }
         }
       }
 
       function authHeaders() {
         return state.token ? { Authorization: 'Bearer ' + state.token } : {};
+      }
+
+      function parseTokenExpiry(token) {
+        if (!token || !token.includes('.')) return null;
+        try {
+          const payload = token.split('.')[1]
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+          const decoded = JSON.parse(atob(payload));
+          return decoded?.exp ? decoded.exp * 1000 : null;
+        } catch {
+          return null;
+        }
+      }
+
+      async function refreshAuthToken() {
+        const refreshToken = localStorage.getItem('bmsRefreshToken');
+        if (!refreshToken) {
+          return false;
+        }
+        try {
+          const response = await fetch('/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+          if (!response.ok) {
+            setAuth(null);
+            return false;
+          }
+          const body = await response.json();
+          const tokens = body?.tokens;
+          if (tokens?.accessToken) {
+            setAuth(tokens.accessToken, tokens.refreshToken ?? refreshToken);
+            return true;
+          }
+        } catch {
+          return false;
+        }
+        return false;
+      }
+
+      async function ensureFreshToken() {
+        if (!state.token) {
+          return refreshAuthToken();
+        }
+        const expiry = parseTokenExpiry(state.token);
+        if (expiry && Date.now() > expiry - 60 * 1000) {
+          return refreshAuthToken();
+        }
+        return true;
+      }
+
+      function scheduleTokenRefresh() {
+        if (tokenRefreshTimer) {
+          clearTimeout(tokenRefreshTimer);
+          tokenRefreshTimer = null;
+        }
+        if (!state.token) {
+          return;
+        }
+        const expiry = parseTokenExpiry(state.token);
+        if (!expiry) {
+          return;
+        }
+        const delay = Math.max(expiry - Date.now() - 60 * 1000, 30 * 1000);
+        tokenRefreshTimer = setTimeout(() => {
+          refreshAuthToken();
+        }, delay);
+      }
+
+      async function fetchWithAuth(url, options, retry = true) {
+        const headers = {
+          ...(options?.headers ?? {}),
+          ...authHeaders(),
+        };
+        const response = await fetch(url, { ...(options ?? {}), headers });
+        if (response.status === 401 && retry) {
+          const refreshed = await refreshAuthToken();
+          if (refreshed) {
+            return fetchWithAuth(url, options, false);
+          }
+          setAuth(null);
+        }
+        return response;
       }
 
       function setBookdarrEnabled(enabled) {
@@ -1419,16 +1554,24 @@ export class AppService {
       }
 
       setBookdarrEnabled(false);
-      const cachedToken = localStorage.getItem('bmsAccessToken');
-      const cachedRefresh = localStorage.getItem('bmsRefreshToken');
-      if (cachedToken) {
-        setAuth(cachedToken, cachedRefresh ?? undefined);
-      }
-      if (!cachedToken) {
-        updateUserMenu(null);
+      async function restoreSession() {
+        const cachedToken = localStorage.getItem('bmsAccessToken');
+        const cachedRefresh = localStorage.getItem('bmsRefreshToken');
+        if (cachedToken) {
+          setAuth(cachedToken, cachedRefresh ?? undefined);
+          await ensureFreshToken();
+          loadCurrentUser();
+          return;
+        }
+        if (cachedRefresh) {
+          await refreshAuthToken();
+        }
+        if (!state.token) {
+          updateUserMenu(null);
+        }
       }
 
-      let setupRequired = false;
+      restoreSession();
 
       function loadAuthSecretsStatus() {
         fetch('/api/settings/auth')
@@ -1460,26 +1603,32 @@ export class AppService {
       }
 
       if (isLibraryPage) {
-        filterButtons.forEach((button) => {
-          button.addEventListener('click', () => {
-            filterButtons.forEach((btn) => btn.classList.remove('active'));
-            button.classList.add('active');
-            state.filter = button.dataset.filter;
-            renderLibrary();
-          });
-        });
-
         searchInput?.addEventListener('input', (event) => {
           state.query = event.target.value.toLowerCase();
-          renderLibrary();
+          renderActiveLibrary();
         });
       }
 
-      function renderLibrary() {
-        const filtered = state.library.filter((item) => {
+      function setFilter(value) {
+        state.filter = value;
+        if (libraryFilterSelect) libraryFilterSelect.value = value;
+        if (myLibraryFilterSelect) myLibraryFilterSelect.value = value;
+        renderActiveLibrary();
+      }
+
+      libraryFilterSelect?.addEventListener('change', (event) => {
+        setFilter(event.target.value);
+      });
+      myLibraryFilterSelect?.addEventListener('change', (event) => {
+        setFilter(event.target.value);
+      });
+      if (libraryFilterSelect) libraryFilterSelect.value = state.filter;
+      if (myLibraryFilterSelect) myLibraryFilterSelect.value = state.filter;
+
+      function applyFilters(list) {
+        return list.filter((item) => {
           if (state.filter === 'ebook' && !item.hasEbook) return false;
           if (state.filter === 'audiobook' && !item.hasAudiobook) return false;
-          if (state.filter === 'needs' && (item.hasEbook || item.hasAudiobook)) return false;
 
           if (state.query) {
             const haystack = [item.title, item.author].filter(Boolean).join(' ').toLowerCase();
@@ -1487,13 +1636,17 @@ export class AppService {
           }
           return true;
         });
+      }
 
+      function renderBooks(list, grid, emptyMessage) {
+        if (!grid) return;
+        const filtered = applyFilters(list);
         if (!filtered.length) {
-          libraryGrid.innerHTML = '<div class="empty">No books match this view.</div>';
+          grid.innerHTML = '<div class="empty">' + (emptyMessage || 'No books match this view.') + '</div>';
           return;
         }
 
-        libraryGrid.innerHTML = filtered.map((item) => {
+        grid.innerHTML = filtered.map((item) => {
           const coverSrc = item.coverUrl ? withToken(item.coverUrl) : null;
           const cover = coverSrc
             ? '<img src="' + coverSrc + '" alt="' + item.title + ' cover" loading="lazy" />'
@@ -1501,19 +1654,40 @@ export class AppService {
 
           const ebookBadge = item.hasEbook ? '<span class="badge ok">Ebook</span>' : '<span class="badge dim">No Ebook</span>';
           const audioBadge = item.hasAudiobook ? '<span class="badge ok">Audiobook</span>' : '<span class="badge dim">No Audio</span>';
-          const statusBadge = item.bookdarrStatus && item.bookdarrStatus !== 'Available'
+          const checkoutBadge = item.checkedOutByMe ? '<span class="badge warn">Checked Out</span>' : '';
+          const statusBadge = !item.checkedOutByMe && item.bookdarrStatus && item.bookdarrStatus !== 'Available'
             ? '<span class="badge warn">' + item.bookdarrStatus + '</span>'
-            : '<span class="badge">Ready</span>';
+            : !item.checkedOutByMe
+              ? '<span class="badge">Ready</span>'
+              : '';
 
           return (
             '<article class="book-card" data-id="' + item.id + '">' +
               '<div class="cover">' + cover + '</div>' +
               '<div class="book-title">' + item.title + '</div>' +
               '<div class="book-author">' + (item.author ?? 'Unknown author') + '</div>' +
-              '<div class="badges">' + ebookBadge + audioBadge + statusBadge + '</div>' +
+              '<div class="badges">' + ebookBadge + audioBadge + checkoutBadge + statusBadge + '</div>' +
             '</article>'
           );
         }).join('');
+      }
+
+      function renderLibrary() {
+        renderBooks(state.library, libraryGrid, 'No books match this view.');
+      }
+
+      function renderMyLibrary() {
+        renderBooks(state.myLibrary, myLibraryGrid, 'No checked out books yet.');
+      }
+
+      function renderActiveLibrary() {
+        if (activePage === 'my-library') {
+          renderMyLibrary();
+          return;
+        }
+        if (activePage === 'library') {
+          renderLibrary();
+        }
       }
 
       function updateStats() {
@@ -1525,15 +1699,18 @@ export class AppService {
         document.getElementById('stat-audio').textContent = audio;
       }
 
-      function loadLibrary() {
-        if (!isLibraryPage) {
+      async function loadLibrary() {
+        if (activePage !== 'library') {
           return;
         }
         if (!state.token) {
-          libraryGrid.innerHTML = '<div class="empty">Log in to view your Book Pool.</div>';
+          if (libraryGrid) {
+            libraryGrid.innerHTML = '<div class="empty">Log in to view your Book Pool.</div>';
+          }
           return;
         }
-        fetch('/library', { headers: authHeaders() })
+        await ensureFreshToken();
+        fetchWithAuth('/library')
           .then((response) => response.json())
           .then((data) => {
             state.library = Array.isArray(data) ? data : [];
@@ -1541,7 +1718,33 @@ export class AppService {
             renderLibrary();
           })
           .catch(() => {
-            libraryGrid.innerHTML = '<div class="empty">Unable to load Book Pool.</div>';
+            if (libraryGrid) {
+              libraryGrid.innerHTML = '<div class="empty">Unable to load Book Pool.</div>';
+            }
+          });
+      }
+
+      async function loadMyLibrary() {
+        if (activePage !== 'my-library') {
+          return;
+        }
+        if (!state.token) {
+          if (myLibraryGrid) {
+            myLibraryGrid.innerHTML = '<div class="empty">Log in to view your library.</div>';
+          }
+          return;
+        }
+        await ensureFreshToken();
+        fetchWithAuth('/library/my')
+          .then((response) => response.json())
+          .then((data) => {
+            state.myLibrary = Array.isArray(data) ? data : [];
+            renderMyLibrary();
+          })
+          .catch(() => {
+            if (myLibraryGrid) {
+              myLibraryGrid.innerHTML = '<div class="empty">Unable to load your library.</div>';
+            }
           });
       }
 
@@ -1593,6 +1796,7 @@ export class AppService {
       let epubBook = null;
       let epubRendition = null;
       let readerFile = null;
+      let currentDetail = null;
 
       function resetReaderState() {
         if (epubRendition) {
@@ -1676,10 +1880,11 @@ export class AppService {
         detailDescriptionToggle.textContent = 'More...';
       }
 
-      function openReader(file, title) {
+      async function openReader(file, title) {
         if (!readerModal || !readerView) {
           return;
         }
+        await ensureFreshToken();
         readerModal.classList.add('active');
         readerModal.setAttribute('aria-hidden', 'false');
         if (readerTitle) {
@@ -1773,7 +1978,13 @@ export class AppService {
         const url = withToken(file.streamUrl);
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
         epubBook = window['ePub'](url);
+        const timeout = setTimeout(() => {
+          if (!epubRendition && readerView) {
+            readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
+          }
+        }, 8000);
         epubBook.ready.then(() => {
+          clearTimeout(timeout);
           if (!readerView) {
             return;
           }
@@ -1795,6 +2006,7 @@ export class AppService {
             }
           });
         }).catch(() => {
+          clearTimeout(timeout);
           if (readerView) {
             readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           }
@@ -1912,6 +2124,7 @@ export class AppService {
 
       function renderBookDetail(data) {
         if (!detailModal) return;
+        currentDetail = data ?? null;
         if (detailTitle) detailTitle.textContent = data?.title ?? 'Unknown title';
         if (detailAuthor) {
           detailAuthor.textContent = data?.author ?? 'Unknown author';
@@ -1950,9 +2163,17 @@ export class AppService {
 
         renderAudioSection(Array.isArray(data?.audiobookFiles) ? data.audiobookFiles : []);
         renderEbookSection(Array.isArray(data?.ebookFiles) ? data.ebookFiles : []);
+
+        if (detailCheckout) {
+          detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
+          detailCheckout.textContent = data?.checkedOutByMe ? 'Return to Book Pool' : 'Checkout';
+        }
+        if (detailCheckoutStatus) {
+          detailCheckoutStatus.textContent = '';
+        }
       }
 
-      function openBookDetail(bookId) {
+      async function openBookDetail(bookId) {
         if (!detailModal) return;
         detailModal.dataset.bookId = String(bookId);
         detailModal.classList.add('active');
@@ -1969,6 +2190,12 @@ export class AppService {
         if (detailAudio) detailAudio.innerHTML = '';
         if (detailEbook) detailEbook.innerHTML = '';
         if (detailRefreshStatus) detailRefreshStatus.textContent = '';
+        if (detailCheckoutStatus) detailCheckoutStatus.textContent = '';
+        if (detailCheckout) {
+          detailCheckout.textContent = 'Checkout';
+          detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
+        }
+        currentDetail = null;
 
         if (!state.token) {
           if (detailDescription) {
@@ -1977,7 +2204,8 @@ export class AppService {
           return;
         }
 
-        fetch('/library/' + bookId, { headers: authHeaders() })
+        await ensureFreshToken();
+        fetchWithAuth('/library/' + bookId)
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
@@ -1995,7 +2223,7 @@ export class AppService {
           });
       }
 
-      function refreshBookDetail() {
+      async function refreshBookDetail() {
         if (!detailModal || !detailModal.dataset.bookId) {
           return;
         }
@@ -2008,11 +2236,11 @@ export class AppService {
         if (detailRefreshStatus) {
           detailRefreshStatus.textContent = 'Refreshing from Open Library...';
         }
-        fetch('/library/' + detailModal.dataset.bookId + '/refresh', {
+        await ensureFreshToken();
+        fetchWithAuth('/library/' + detailModal.dataset.bookId + '/refresh', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...authHeaders(),
           },
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
@@ -2036,6 +2264,53 @@ export class AppService {
           });
       }
 
+      async function toggleCheckoutStatus() {
+        if (!detailModal || !detailModal.dataset.bookId) {
+          return;
+        }
+        if (!state.token) {
+          if (detailCheckoutStatus) {
+            detailCheckoutStatus.textContent = 'Log in to manage checkouts.';
+          }
+          return;
+        }
+
+        const action = currentDetail?.checkedOutByMe ? 'return' : 'checkout';
+        if (detailCheckoutStatus) {
+          detailCheckoutStatus.textContent =
+            action === 'return' ? 'Returning book...' : 'Checking out...';
+        }
+
+        await ensureFreshToken();
+        fetchWithAuth('/library/' + detailModal.dataset.bookId + '/' + action, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              if (detailCheckoutStatus) {
+                detailCheckoutStatus.textContent =
+                  body?.message ?? 'Unable to update checkout status.';
+              }
+              return;
+            }
+            renderBookDetail(body);
+            loadLibrary();
+            loadMyLibrary();
+            if (detailCheckoutStatus) {
+              detailCheckoutStatus.textContent = action === 'return' ? 'Returned.' : 'Checked out.';
+            }
+          })
+          .catch(() => {
+            if (detailCheckoutStatus) {
+              detailCheckoutStatus.textContent = 'Unable to update checkout status.';
+            }
+          });
+      }
+
       function closeBookDetail() {
         if (!detailModal) return;
         detailModal.classList.remove('active');
@@ -2048,7 +2323,7 @@ export class AppService {
           return;
         }
         setBookdarrEnabled(true);
-        fetch('/settings/bookdarr', { headers: authHeaders() })
+        fetchWithAuth('/settings/bookdarr')
           .then((response) => response.json())
           .then((data) => {
             if (data?.apiUrl) {
@@ -2076,6 +2351,7 @@ export class AppService {
             if (data?.configured) {
               bookdarrStatus.textContent = 'Bookdarr is connected.';
               loadLibrary();
+              loadMyLibrary();
             }
             if (data?.configured && wizardPanel) {
               wizardPanel.style.display = 'none';
@@ -2124,7 +2400,7 @@ export class AppService {
         if (accountsStatus) {
           accountsStatus.textContent = 'Loading users...';
         }
-        fetch('/api/users', { headers: authHeaders() })
+        fetchWithAuth('/api/users')
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
@@ -2156,7 +2432,7 @@ export class AppService {
           }
           return;
         }
-        fetch('/api/me', { headers: authHeaders() })
+        fetchWithAuth('/api/me')
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
@@ -2172,18 +2448,45 @@ export class AppService {
           });
       }
 
+      function loadCurrentUser() {
+        if (!state.token) {
+          updateUserMenu(null);
+          state.userId = null;
+          return;
+        }
+        fetchWithAuth('/api/me')
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              updateUserMenu(null);
+              state.userId = null;
+              return;
+            }
+            updateUserMenu(body);
+            state.userId = body?.id ?? null;
+          })
+          .catch(() => {
+            updateUserMenu(null);
+            state.userId = null;
+          });
+      }
+
       function handleSetupStatus(data) {
         setupRequired = Boolean(data?.required);
         if (data?.required) {
           setupPanel.style.display = 'block';
-          loginPanel.style.display = 'none';
           bookdarrPanel.style.display = 'block';
           setBookdarrEnabled(false);
+          if (wizardPanel && activePage === 'library') {
+            wizardPanel.style.display = 'block';
+          }
         } else {
           setupPanel.style.display = 'none';
-          loginPanel.style.display = 'block';
           bookdarrPanel.style.display = 'block';
-          if (!state.token && isLibraryPage) {
+          if (wizardPanel && activePage === 'library') {
+            wizardPanel.style.display = state.token ? 'block' : 'none';
+          }
+          if (!state.token && activePage === 'library') {
             window.location.href = '/login';
           }
         }
@@ -2222,37 +2525,12 @@ export class AppService {
             }
             setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
             setupPanel.style.display = 'none';
-            loginPanel.style.display = 'none';
             setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
           })
           .catch(() => {
             setupStatus.textContent = 'Setup failed.';
           });
       });
-
-      function handleWizardLogin() {
-        const username = loginUsername?.value;
-        const password = document.getElementById('login-password').value;
-        loginStatus.textContent = 'Signing in...';
-        fetch('/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        })
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
-            if (!ok) {
-              const message = body?.message ?? 'Login failed.';
-              loginStatus.textContent = message;
-              return;
-            }
-            loginStatus.textContent = 'Signed in.';
-            setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
-          })
-          .catch(() => {
-            loginStatus.textContent = 'Login failed.';
-          });
-      }
 
       function handleLoginPage() {
         const username = loginPageUsername?.value;
@@ -2279,23 +2557,7 @@ export class AppService {
           });
       }
 
-      loginButton?.addEventListener('click', handleWizardLogin);
-
       loginPageSubmit?.addEventListener('click', handleLoginPage);
-
-      loginUsername?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          handleWizardLogin();
-        }
-      });
-
-      document.getElementById('login-password')?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          handleWizardLogin();
-        }
-      });
 
       loginPageUsername?.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
@@ -2367,11 +2629,10 @@ export class AppService {
         if (authRotateStatus) {
           authRotateStatus.textContent = 'Rotating auth secrets...';
         }
-        fetch('/api/settings/auth/rotate', {
+        fetchWithAuth('/api/settings/auth/rotate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...authHeaders(),
           },
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
@@ -2411,11 +2672,10 @@ export class AppService {
         const poolPath = settingsBookdarrPath?.value;
         const useHttps = settingsBookdarrHttps?.checked;
         settingsBookdarrStatus.textContent = 'Saving...';
-        fetch('/settings/bookdarr', {
+        fetchWithAuth('/settings/bookdarr', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...authHeaders(),
           },
           body: JSON.stringify({ host, port, apiKey, poolPath, useHttps }),
         })
@@ -2445,11 +2705,10 @@ export class AppService {
         const poolPath = bookdarrPath?.value;
         const useHttps = bookdarrHttps.checked;
         bookdarrStatus.textContent = 'Saving connection...';
-        fetch('/settings/bookdarr', {
+        fetchWithAuth('/settings/bookdarr', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...authHeaders(),
           },
           body: JSON.stringify({ host, port, apiKey, poolPath, useHttps }),
         })
@@ -2462,6 +2721,7 @@ export class AppService {
             }
             bookdarrStatus.textContent = 'Bookdarr connected.';
             loadLibrary();
+            loadMyLibrary();
             if (wizardPanel) {
               wizardPanel.style.display = 'none';
             }
@@ -2481,11 +2741,10 @@ export class AppService {
         const password = newUserPassword?.value;
         const isAdmin = Boolean(newUserAdmin?.checked);
         createUserStatus.textContent = 'Creating user...';
-        fetch('/api/users', {
+        fetchWithAuth('/api/users', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...authHeaders(),
           },
           body: JSON.stringify({ username, email, password, isAdmin }),
         })
@@ -2518,11 +2777,10 @@ export class AppService {
         const currentPassword = profileCurrentPassword?.value;
         const newPassword = profileNewPassword?.value;
         profileStatus.textContent = 'Saving profile...';
-        fetch('/api/me', {
+        fetchWithAuth('/api/me', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            ...authHeaders(),
           },
           body: JSON.stringify({ username, email, currentPassword, newPassword }),
         })
@@ -2544,6 +2802,7 @@ export class AppService {
       });
 
       loadLibrary();
+      loadMyLibrary();
       loadAccounts();
       loadProfile();
 
