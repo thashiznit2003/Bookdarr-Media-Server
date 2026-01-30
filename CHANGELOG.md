@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.9 — 2026-01-30 22:08 -06:00
+- Auto-generate and persist JWT secrets on first run.
+- Removed auth secret inputs from the setup wizard and settings form.
+- Added admin-only “rotate auth secrets” action with status + last rotated timestamp.
+
 ## 1.0.8 — 2026-01-30 21:41 -06:00
 - Added structured file logging (requests + errors) and diagnostics push logs.
 - Registered global exception logging and request logging middleware.

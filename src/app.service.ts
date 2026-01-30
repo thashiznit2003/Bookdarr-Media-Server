@@ -609,14 +609,6 @@ export class AppService {
                   <span class="nav-title">Password</span>
                   <input id="setup-password" type="password" placeholder="password" />
                 </div>
-                <div>
-                  <span class="nav-title">Auth Access Secret</span>
-                  <input id="auth-access-secret" type="password" placeholder="Paste or generate" />
-                </div>
-                <div>
-                  <span class="nav-title">Auth Refresh Secret</span>
-                  <input id="auth-refresh-secret" type="password" placeholder="Paste or generate" />
-                </div>
               </div>
               <button id="setup-submit">Create Admin User</button>
               <div id="setup-status" style="margin-top: 10px; color: var(--muted);"></div>
@@ -751,16 +743,18 @@ export class AppService {
           <div class="panel">
             <div class="status-grid">
               <div>
-                <span class="nav-title">Access Secret</span>
-                <input id="settings-access-secret" type="password" placeholder="Set access secret" />
+                <span class="nav-title">Status</span>
+                <div id="auth-secret-status" style="margin-top: 6px; color: var(--muted);">
+                  Loading...
+                </div>
               </div>
               <div>
-                <span class="nav-title">Refresh Secret</span>
-                <input id="settings-refresh-secret" type="password" placeholder="Set refresh secret" />
+                <span class="nav-title">Last rotated</span>
+                <div id="auth-secret-updated" style="margin-top: 6px; color: var(--muted);">--</div>
               </div>
             </div>
-            <button id="save-auth-secrets" style="margin-top: 12px;">Save Auth Secrets</button>
-            <div id="auth-secret-status" style="margin-top: 8px; color: var(--muted);"></div>
+            <button id="rotate-auth-secrets" style="margin-top: 12px;">Rotate Auth Secrets</button>
+            <div id="auth-rotate-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
         </div>
 
@@ -865,8 +859,6 @@ export class AppService {
       const setupEmail = document.getElementById('setup-email');
       const setupStatus = document.getElementById('setup-status');
       const setupButton = document.getElementById('setup-submit');
-      const authAccessInput = document.getElementById('auth-access-secret');
-      const authRefreshInput = document.getElementById('auth-refresh-secret');
       const loginPanel = document.getElementById('login-panel');
       const loginStatus = document.getElementById('login-status');
       const loginButton = document.getElementById('login-submit');
@@ -885,10 +877,10 @@ export class AppService {
       const bookdarrKey = document.getElementById('bookdarr-key');
       const bookdarrPath = document.getElementById('bookdarr-path');
       const bookdarrHttps = document.getElementById('bookdarr-https');
-      const settingsAccess = document.getElementById('settings-access-secret');
-      const settingsRefresh = document.getElementById('settings-refresh-secret');
-      const saveAuthButton = document.getElementById('save-auth-secrets');
       const authSecretStatus = document.getElementById('auth-secret-status');
+      const authSecretUpdated = document.getElementById('auth-secret-updated');
+      const rotateAuthButton = document.getElementById('rotate-auth-secrets');
+      const authRotateStatus = document.getElementById('auth-rotate-status');
       const settingsBookdarrHost = document.getElementById('settings-bookdarr-host');
       const settingsBookdarrPort = document.getElementById('settings-bookdarr-port');
       const settingsBookdarrKey = document.getElementById('settings-bookdarr-key');
@@ -1015,58 +1007,34 @@ export class AppService {
         updateUserMenu(null);
       }
 
-      let authSecretsConfigured = false;
       let setupRequired = false;
 
       function loadAuthSecretsStatus() {
         fetch('/api/settings/auth')
           .then((response) => response.json())
           .then((data) => {
-            authSecretsConfigured = Boolean(
-              data?.accessSecretConfigured && data?.refreshSecretConfigured,
+            const configured = Boolean(
+              data?.configured ??
+                (data?.accessSecretConfigured && data?.refreshSecretConfigured),
             );
             if (authSecretStatus && activePage === 'settings') {
-              authSecretStatus.textContent = authSecretsConfigured
+              authSecretStatus.textContent = configured
                 ? 'Auth secrets are configured.'
                 : 'Auth secrets are not configured.';
+            }
+            if (authSecretUpdated && activePage === 'settings') {
+              authSecretUpdated.textContent = data?.updatedAt
+                ? new Date(data.updatedAt).toLocaleString()
+                : 'Unknown';
             }
           })
           .catch(() => {
             if (authSecretStatus && activePage === 'settings') {
               authSecretStatus.textContent = 'Unable to load auth secrets.';
             }
-          });
-      }
-
-      function saveAuthSecrets(accessSecret, refreshSecret, statusEl) {
-        if (!accessSecret || !refreshSecret) {
-          statusEl.textContent = 'Both auth secrets are required.';
-          return Promise.resolve(false);
-        }
-
-        statusEl.textContent = 'Saving auth secrets...';
-        return fetch('/api/settings/auth', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...authHeaders(),
-          },
-          body: JSON.stringify({ accessSecret, refreshSecret }),
-        })
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
-            if (!ok) {
-              const message = body?.message ?? 'Unable to save auth secrets.';
-              statusEl.textContent = message;
-              return false;
+            if (authSecretUpdated && activePage === 'settings') {
+              authSecretUpdated.textContent = 'Unknown';
             }
-            authSecretsConfigured = true;
-            statusEl.textContent = 'Auth secrets saved.';
-            return true;
-          })
-          .catch(() => {
-            statusEl.textContent = 'Unable to save auth secrets.';
-            return false;
           });
       }
 
@@ -1315,54 +1283,27 @@ export class AppService {
         const username = document.getElementById('setup-username').value;
         const email = setupEmail?.value;
         const password = document.getElementById('setup-password').value;
-        const accessSecret = authAccessInput?.value;
-        const refreshSecret = authRefreshInput?.value;
-        setupStatus.textContent = 'Preparing setup...';
+        setupStatus.textContent = 'Creating user...';
 
-        const createUser = () => {
-          setupStatus.textContent = 'Creating user...';
-          fetch('/auth/setup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password }),
-          })
-            .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-            .then(({ ok, body }) => {
-              if (!ok) {
-                const message = body?.message ?? 'Setup failed.';
-                setupStatus.textContent = message;
-                return;
-              }
-              setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
-              setupPanel.style.display = 'none';
-              loginPanel.style.display = 'none';
-              setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
-            })
-            .catch(() => {
-              setupStatus.textContent = 'Setup failed.';
-            });
-        };
-
-        fetch('/api/settings/auth')
-          .then((response) => response.json())
-          .then((data) => {
-            authSecretsConfigured = Boolean(
-              data?.accessSecretConfigured && data?.refreshSecretConfigured,
-            );
-
-            if (!authSecretsConfigured) {
-              saveAuthSecrets(accessSecret, refreshSecret, setupStatus).then((saved) => {
-                if (saved) {
-                  createUser();
-                }
-              });
+        fetch('/auth/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Setup failed.';
+              setupStatus.textContent = message;
               return;
             }
-
-            createUser();
+            setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
+            setupPanel.style.display = 'none';
+            loginPanel.style.display = 'none';
+            setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
           })
           .catch(() => {
-            setupStatus.textContent = 'Unable to confirm auth secrets.';
+            setupStatus.textContent = 'Setup failed.';
           });
       });
 
@@ -1455,10 +1396,53 @@ export class AppService {
         window.location.href = '/accounts';
       });
 
-      saveAuthButton?.addEventListener('click', () => {
-        const accessSecret = settingsAccess?.value;
-        const refreshSecret = settingsRefresh?.value;
-        saveAuthSecrets(accessSecret, refreshSecret, authSecretStatus);
+      rotateAuthButton?.addEventListener('click', () => {
+        if (!state.token) {
+          if (authRotateStatus) {
+            authRotateStatus.textContent = 'Log in as an admin to rotate secrets.';
+          }
+          return;
+        }
+        const confirmed = window.confirm(
+          'Rotating auth secrets will sign out all users. Continue?',
+        );
+        if (!confirmed) {
+          return;
+        }
+        if (authRotateStatus) {
+          authRotateStatus.textContent = 'Rotating auth secrets...';
+        }
+        fetch('/api/settings/auth/rotate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to rotate auth secrets.';
+              if (authRotateStatus) {
+                authRotateStatus.textContent = message;
+              }
+              return;
+            }
+            if (authRotateStatus) {
+              authRotateStatus.textContent = 'Auth secrets rotated. Please sign in again.';
+            }
+            if (authSecretUpdated) {
+              authSecretUpdated.textContent = body?.updatedAt
+                ? new Date(body.updatedAt).toLocaleString()
+                : 'Just now';
+            }
+            setAuth(null);
+          })
+          .catch(() => {
+            if (authRotateStatus) {
+              authRotateStatus.textContent = 'Unable to rotate auth secrets.';
+            }
+          });
       });
 
       saveBookdarrButton?.addEventListener('click', () => {

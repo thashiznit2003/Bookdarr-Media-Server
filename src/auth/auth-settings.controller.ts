@@ -1,59 +1,28 @@
-import { Body, Controller, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import type { Request } from 'express';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthConfigService } from './auth-config.service';
-import { AuthService } from './auth.service';
+import { AdminGuard } from './admin.guard';
+import { AuthGuard } from './auth.guard';
 
 @Controller('api/settings/auth')
 export class AuthSettingsController {
-  constructor(
-    private readonly authConfigService: AuthConfigService,
-    private readonly authService: AuthService,
-    private readonly jwtService: JwtService,
-  ) {}
+  constructor(private readonly authConfigService: AuthConfigService) {}
 
   @Get()
   async status() {
-    const configured = await this.authConfigService.isConfigured();
+    const config = await this.authConfigService.ensureConfigured();
+    const configured = Boolean(config?.accessSecret && config?.refreshSecret);
     return {
-      accessSecretConfigured: configured,
-      refreshSecretConfigured: configured,
+      configured,
+      updatedAt: config?.updatedAt ?? null,
     };
   }
 
-  @Post()
-  async update(@Body() body: { accessSecret?: string; refreshSecret?: string }, @Req() req: Request) {
-    const secrets = await this.authService.getAuthSecrets();
-    const configured = Boolean(secrets.accessSecret && secrets.refreshSecret);
-
-    if (configured) {
-      const authHeader = req.headers.authorization ?? '';
-      const token = authHeader.replace('Bearer ', '');
-      if (!token) {
-        throw new UnauthorizedException('Authorization required.');
-      }
-
-      if (!secrets.accessSecret) {
-        throw new UnauthorizedException('JWT secret is not configured.');
-      }
-
-      const payload = await this.jwtService.verifyAsync<{ isAdmin?: boolean }>(token, {
-        secret: secrets.accessSecret,
-      });
-
-      if (!payload?.isAdmin) {
-        throw new UnauthorizedException('Admin access required.');
-      }
-    }
-
-    const config = await this.authConfigService.upsert({
-      accessSecret: body.accessSecret,
-      refreshSecret: body.refreshSecret,
-    });
-
+  @Post('rotate')
+  @UseGuards(AuthGuard, AdminGuard)
+  async rotate() {
+    const config = await this.authConfigService.rotate();
     return {
-      accessSecretConfigured: Boolean(config.accessSecret),
-      refreshSecretConfigured: Boolean(config.refreshSecret),
+      configured: Boolean(config.accessSecret && config.refreshSecret),
       updatedAt: config.updatedAt,
     };
   }
