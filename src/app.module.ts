@@ -12,10 +12,12 @@ import { PasswordResetTokenEntity } from './auth/entities/password-reset-token.e
 import { LibraryModule } from './library/library.module';
 import { BookdarrConfigEntity } from './bookdarr/bookdarr-config.entity';
 import { AuthConfigEntity } from './auth/auth-config.entity';
+import { LoggingModule } from './logging/logging.module';
 
 @Module({
   imports: [
     SettingsModule,
+    LoggingModule,
     TypeOrmModule.forRootAsync({
       imports: [SettingsModule],
       inject: [SettingsService],

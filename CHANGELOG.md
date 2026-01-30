@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.8 — 2026-01-30 21:41 -06:00
+- Added structured file logging (requests + errors) and diagnostics push logs.
+- Registered global exception logging and request logging middleware.
+- Removed the “Required (DEV)” label from the diagnostics page.
+
 ## 1.0.7 — 2026-01-30 21:37 -06:00
 - Ensure an admin user exists (promote oldest user if none).
 

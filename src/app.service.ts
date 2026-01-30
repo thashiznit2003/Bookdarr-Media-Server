@@ -694,7 +694,6 @@ export class AppService {
         <div class="page" data-page="diagnostics">
           <section class="section-title">
             <h2>Diagnostics</h2>
-            <span class="pill">Required (dev)</span>
           </section>
           <div class="panel">
             <p style="margin: 0; color: var(--muted);">

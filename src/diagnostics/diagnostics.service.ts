@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { SettingsService } from '../settings/settings.service';
 import { DiagnosticsPayload, DiagnosticsResult } from './diagnostics.types';
+import { FileLoggerService } from '../logging/file-logger.service';
 
 interface DiagnosticsConfig {
   required: boolean;
@@ -16,7 +17,10 @@ interface DiagnosticsConfig {
 
 @Injectable()
 export class DiagnosticsService {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly logger: FileLoggerService,
+  ) {}
 
   async push(payload: DiagnosticsPayload): Promise<DiagnosticsResult> {
     if (!payload || !payload.event || payload.event.trim().length === 0) {
@@ -32,6 +36,10 @@ export class DiagnosticsService {
           'Diagnostics are required but not configured.',
         );
       }
+      this.logger.warn('diagnostics_skipped', {
+        reason: 'not_configured',
+        event: payload.event,
+      });
       return { status: 'skipped', reason: 'not_configured' };
     }
 
@@ -39,12 +47,22 @@ export class DiagnosticsService {
     const path = `${diagnostics.path}/${fileName}`;
     const body = this.buildDiagnosticsBody(payload);
 
+    this.logger.info('diagnostics_push_start', {
+      event: payload.event,
+      path,
+    });
+
     await this.pushToGithub({
       repo: diagnostics.repo as string,
       token: diagnostics.token as string,
       branch: diagnostics.branch,
       path,
       body,
+    });
+
+    this.logger.info('diagnostics_push_success', {
+      event: payload.event,
+      path,
     });
 
     return { status: 'pushed', path };
@@ -119,6 +137,11 @@ export class DiagnosticsService {
 
     if (!response.ok) {
       const errorText = await response.text();
+      this.logger.error('diagnostics_push_failed', {
+        status: response.status,
+        path: params.path,
+        error: errorText,
+      });
       throw new ServiceUnavailableException(
         `Diagnostics push failed (${response.status}). ${errorText}`,
       );
