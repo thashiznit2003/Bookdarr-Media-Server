@@ -99,7 +99,8 @@ export class SettingsService {
   }
 
   private loadFromEnv(): Settings {
-    const port = this.parsePort(process.env.PORT, DEFAULT_PORT, 'PORT');
+    const port =
+      this.parsePort(process.env.PORT, DEFAULT_PORT, 'PORT') ?? DEFAULT_PORT;
     const smtpPort = this.parsePort(process.env.SMTP_PORT, undefined, 'SMTP_PORT');
     const diagnosticsRequired = this.parseBoolean(
       process.env.DIAGNOSTICS_REQUIRED,

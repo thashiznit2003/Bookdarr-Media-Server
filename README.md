@@ -63,6 +63,8 @@ sudo systemctl restart bookdarr-media-server
 - `PORT` (default 9797)
 
 GET `/settings` returns a redacted settings summary for debugging.
+GET `/settings/bookdarr` returns stored Bookdarr connection details (auth required).
+POST `/settings/bookdarr` saves Bookdarr connection details (auth required).
 POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo (requires auth if JWT secrets are set).
 GET `/library` returns the Book Pool with Open Library metadata.
 Auth endpoints (invite-only signup):
@@ -79,6 +81,7 @@ Invite codes in `INVITE_CODES` are seeded into the database on startup so they
 persist across restarts.
 
 On first run, the web UI shows a setup wizard that creates the initial user.
+After login, the wizard prompts for Bookdarr IP/port/API key to connect the Book Pool.
 
 Example flow (login + diagnostics):
 

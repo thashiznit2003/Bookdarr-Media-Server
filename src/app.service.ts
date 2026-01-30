@@ -366,6 +366,14 @@ export class AppService {
         color: var(--text);
       }
 
+      .setup-panel label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
       .setup-panel button {
         margin-top: 12px;
         padding: 10px 16px;
@@ -464,7 +472,7 @@ export class AppService {
 
         <section id="setup-panel" class="setup-panel">
           <h2>First-Run Setup</h2>
-          <p>Create the first admin account to unlock the library.</p>
+          <p>Step 1: Create the first admin account.</p>
           <div class="status-grid">
             <div>
               <span class="nav-title">Username (email)</span>
@@ -477,6 +485,50 @@ export class AppService {
           </div>
           <button id="setup-submit">Create Admin User</button>
           <div id="setup-status" style="margin-top: 10px; color: var(--muted);"></div>
+        </section>
+
+        <section id="login-panel" class="setup-panel">
+          <h2>Log in</h2>
+          <p>Sign in to connect your Bookdarr instance.</p>
+          <div class="status-grid">
+            <div>
+              <span class="nav-title">Email</span>
+              <input id="login-email" type="email" placeholder="admin@example.com" />
+            </div>
+            <div>
+              <span class="nav-title">Password</span>
+              <input id="login-password" type="password" placeholder="password" />
+            </div>
+          </div>
+          <button id="login-submit">Log in</button>
+          <div id="login-status" style="margin-top: 10px; color: var(--muted);"></div>
+        </section>
+
+        <section id="bookdarr-panel" class="setup-panel">
+          <h2>Connect Bookdarr</h2>
+          <p>Step 2: Provide the IP address, port, and API key for your Bookdarr instance.</p>
+          <div class="status-grid">
+            <div>
+              <span class="nav-title">IP address / Host</span>
+              <input id="bookdarr-host" type="text" placeholder="192.168.0.103" />
+            </div>
+            <div>
+              <span class="nav-title">Port</span>
+              <input id="bookdarr-port" type="number" placeholder="8787" />
+            </div>
+            <div>
+              <span class="nav-title">API Key</span>
+              <input id="bookdarr-key" type="password" placeholder="Bookdarr API key" />
+            </div>
+            <div>
+              <span class="nav-title">Protocol</span>
+              <label>
+                <input id="bookdarr-https" type="checkbox" /> Use HTTPS
+              </label>
+            </div>
+          </div>
+          <button id="bookdarr-submit">Save Connection</button>
+          <div id="bookdarr-status" style="margin-top: 10px; color: var(--muted);"></div>
         </section>
 
         <section class="section-title">
@@ -501,7 +553,8 @@ export class AppService {
       const state = {
         filter: 'all',
         query: '',
-        library: []
+        library: [],
+        token: null
       };
 
       const libraryGrid = document.getElementById('library-grid');
@@ -510,6 +563,30 @@ export class AppService {
       const setupPanel = document.getElementById('setup-panel');
       const setupStatus = document.getElementById('setup-status');
       const setupButton = document.getElementById('setup-submit');
+      const loginPanel = document.getElementById('login-panel');
+      const loginStatus = document.getElementById('login-status');
+      const loginButton = document.getElementById('login-submit');
+      const bookdarrPanel = document.getElementById('bookdarr-panel');
+      const bookdarrStatus = document.getElementById('bookdarr-status');
+      const bookdarrButton = document.getElementById('bookdarr-submit');
+
+      const bookdarrHost = document.getElementById('bookdarr-host');
+      const bookdarrPort = document.getElementById('bookdarr-port');
+      const bookdarrKey = document.getElementById('bookdarr-key');
+      const bookdarrHttps = document.getElementById('bookdarr-https');
+
+      function setAuth(token) {
+        state.token = token;
+        if (token) {
+          loginPanel.style.display = 'none';
+          bookdarrPanel.style.display = 'block';
+          loadBookdarrConfig();
+        }
+      }
+
+      function authHeaders() {
+        return state.token ? { Authorization: 'Bearer ' + state.token } : {};
+      }
 
       filterButtons.forEach((button) => {
         button.addEventListener('click', () => {
@@ -574,11 +651,55 @@ export class AppService {
         document.getElementById('stat-audio').textContent = audio;
       }
 
+      function loadLibrary() {
+        fetch('/library')
+          .then((response) => response.json())
+          .then((data) => {
+            state.library = Array.isArray(data) ? data : [];
+            updateStats();
+            renderLibrary();
+          })
+          .catch(() => {
+            libraryGrid.innerHTML = '<div class="empty">Unable to load Book Pool.</div>';
+          });
+      }
+
+      function loadBookdarrConfig() {
+        if (!state.token) {
+          return;
+        }
+        fetch('/settings/bookdarr', { headers: authHeaders() })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data?.apiUrl) {
+              try {
+                const url = new URL(data.apiUrl);
+                bookdarrHost.value = url.hostname;
+                bookdarrPort.value = url.port || (url.protocol === 'https:' ? '443' : '80');
+                bookdarrHttps.checked = url.protocol === 'https:';
+              } catch {
+                // ignore parse errors
+              }
+            }
+            if (data?.configured) {
+              bookdarrStatus.textContent = 'Bookdarr is connected.';
+              loadLibrary();
+            }
+          })
+          .catch(() => {
+            bookdarrStatus.textContent = 'Unable to load Bookdarr settings.';
+          });
+      }
+
       fetch('/auth/setup')
         .then((response) => response.json())
         .then((data) => {
           if (data.required) {
             setupPanel.style.display = 'block';
+            loginPanel.style.display = 'none';
+            bookdarrPanel.style.display = 'none';
+          } else {
+            loginPanel.style.display = 'block';
           }
         })
         .catch(() => {});
@@ -599,23 +720,74 @@ export class AppService {
               setupStatus.textContent = message;
               return;
             }
-            setupStatus.textContent = 'Setup complete. Refresh to continue.';
+            setupStatus.textContent = 'Admin created. Continue to connect Bookdarr.';
+            setupPanel.style.display = 'none';
+            loginPanel.style.display = 'none';
+            setAuth(body?.tokens?.accessToken);
           })
           .catch(() => {
             setupStatus.textContent = 'Setup failed.';
           });
       });
 
-      fetch('/library')
-        .then((response) => response.json())
-        .then((data) => {
-          state.library = Array.isArray(data) ? data : [];
-          updateStats();
-          renderLibrary();
+      loginButton?.addEventListener('click', () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        loginStatus.textContent = 'Signing in...';
+        fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
         })
-        .catch(() => {
-          libraryGrid.innerHTML = '<div class="empty">Unable to load Book Pool.</div>';
-        });
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Login failed.';
+              loginStatus.textContent = message;
+              return;
+            }
+            loginStatus.textContent = 'Signed in.';
+            setAuth(body?.tokens?.accessToken);
+          })
+          .catch(() => {
+            loginStatus.textContent = 'Login failed.';
+          });
+      });
+
+      bookdarrButton?.addEventListener('click', () => {
+        if (!state.token) {
+          bookdarrStatus.textContent = 'Please log in first.';
+          return;
+        }
+        const host = bookdarrHost.value;
+        const port = Number(bookdarrPort.value);
+        const apiKey = bookdarrKey.value;
+        const useHttps = bookdarrHttps.checked;
+        bookdarrStatus.textContent = 'Saving connection...';
+        fetch('/settings/bookdarr', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+          body: JSON.stringify({ host, port, apiKey, useHttps }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Save failed.';
+              bookdarrStatus.textContent = message;
+              return;
+            }
+            bookdarrStatus.textContent = 'Bookdarr connected.';
+            loadLibrary();
+          })
+          .catch(() => {
+            bookdarrStatus.textContent = 'Save failed.';
+          });
+      });
+
+      loadLibrary();
 
       fetch('/settings')
         .then((response) => response.json())

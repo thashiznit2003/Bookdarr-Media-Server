@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
@@ -13,7 +13,7 @@ import { AuthGuard } from './auth.guard';
 
 @Module({
   imports: [
-    SettingsModule,
+    forwardRef(() => SettingsModule),
     JwtModule.register({}),
     TypeOrmModule.forFeature([
       UserEntity,

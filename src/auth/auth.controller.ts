@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import {
+import type {
   LoginRequest,
   LogoutRequest,
   PasswordResetConfirmRequest,

@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
 import { randomBytes } from 'crypto';
+import type { StringValue } from 'ms';
 import { SettingsService } from '../settings/settings.service';
 import {
   AuthTokens,
@@ -247,7 +248,7 @@ export class AuthService implements OnModuleInit {
       { sub: userId, email },
       {
         secret: auth.accessSecret,
-        expiresIn: auth.accessTokenTtl,
+        expiresIn: auth.accessTokenTtl as StringValue,
       },
     );
 
@@ -255,7 +256,7 @@ export class AuthService implements OnModuleInit {
       { sub: userId, jti: refreshId },
       {
         secret: auth.refreshSecret,
-        expiresIn: auth.refreshTokenTtl,
+        expiresIn: auth.refreshTokenTtl as StringValue,
       },
     );
 

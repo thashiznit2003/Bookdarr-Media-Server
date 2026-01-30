@@ -5,7 +5,7 @@
 - [ ] Update README/HANDOFF on changes
 
 ## Core Features
-- [ ] Settings UI: Bookdarr API URL/key
+- [x] Settings UI: Bookdarr API URL/key
 - [ ] Gmail SMTP settings + test email
 - [x] Invite code system (persisted)
 - [x] Auth (JWT + refresh, persisted)

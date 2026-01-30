@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 0.0.15
+- Added Bookdarr connection wizard and persistent Bookdarr settings storage.
+
 ## 0.0.14
 - Added Ubuntu install script with systemd setup.
 

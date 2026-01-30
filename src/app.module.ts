@@ -10,6 +10,7 @@ import { UserEntity } from './auth/entities/user.entity';
 import { InviteCodeEntity } from './auth/entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './auth/entities/password-reset-token.entity';
 import { LibraryModule } from './library/library.module';
+import { BookdarrConfigEntity } from './bookdarr/bookdarr-config.entity';
 
 @Module({
   imports: [
@@ -29,7 +30,12 @@ import { LibraryModule } from './library/library.module';
             database: db.name,
             ssl: db.ssl ? { rejectUnauthorized: false } : false,
             synchronize: db.synchronize,
-            entities: [UserEntity, InviteCodeEntity, PasswordResetTokenEntity],
+            entities: [
+              UserEntity,
+              InviteCodeEntity,
+              PasswordResetTokenEntity,
+              BookdarrConfigEntity,
+            ],
           };
         }
 
@@ -37,7 +43,12 @@ import { LibraryModule } from './library/library.module';
           type: 'sqlite',
           database: db.sqlitePath,
           synchronize: db.synchronize,
-          entities: [UserEntity, InviteCodeEntity, PasswordResetTokenEntity],
+          entities: [
+            UserEntity,
+            InviteCodeEntity,
+            PasswordResetTokenEntity,
+            BookdarrConfigEntity,
+          ],
         };
       },
     }),

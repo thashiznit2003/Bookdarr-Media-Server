@@ -13,6 +13,7 @@
 - First-run setup wizard added for initial user creation (GET/POST `/auth/setup`).
 - Book Pool library endpoint added (`GET /library`) with Open Library enrichment and Plex-inspired UI.
 - Added Ubuntu install script at `scripts/install-bms.sh` (systemd + env file).
+- Bookdarr connection wizard added after login (stores Bookdarr IP/port/API key in DB).
 
 ## Decisions
 - Stack: Node.js + NestJS
