@@ -1,4 +1,4 @@
-import { Controller, Get, Head, Param, ParseIntPipe, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Head, Param, ParseIntPipe, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Readable } from 'stream';
 import { AuthGuard } from '../auth/auth.guard';
@@ -22,6 +22,12 @@ export class LibraryController {
   @UseGuards(AuthGuard)
   async getLibraryDetail(@Param('id', ParseIntPipe) id: number) {
     return this.libraryService.getLibraryDetail(id);
+  }
+
+  @Post(':id/refresh')
+  @UseGuards(AuthGuard)
+  async refreshMetadata(@Param('id', ParseIntPipe) id: number) {
+    return this.libraryService.refreshMetadata(id);
   }
 
   @Get('files/:id/stream')

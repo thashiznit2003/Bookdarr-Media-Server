@@ -1038,6 +1038,10 @@ export class AppService {
               <h2 class="detail-title" id="detail-title">Loading…</h2>
               <div class="detail-author" id="detail-author"></div>
               <div class="detail-meta" id="detail-meta"></div>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
+                <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+              </div>
               <p class="detail-description" id="detail-description"></p>
               <div class="detail-subjects" id="detail-subjects"></div>
             </div>
@@ -1137,6 +1141,8 @@ export class AppService {
       const detailSubjects = document.getElementById('detail-subjects');
       const detailAudio = document.getElementById('detail-audio');
       const detailEbook = document.getElementById('detail-ebook');
+      const detailRefresh = document.getElementById('detail-refresh');
+      const detailRefreshStatus = document.getElementById('detail-refresh-status');
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1167,6 +1173,7 @@ export class AppService {
       });
 
       detailClose?.addEventListener('click', closeBookDetail);
+      detailRefresh?.addEventListener('click', refreshBookDetail);
       detailModal?.addEventListener('click', (event) => {
         if (event.target === detailModal) {
           closeBookDetail();
@@ -1504,6 +1511,7 @@ export class AppService {
 
       function openBookDetail(bookId) {
         if (!detailModal) return;
+        detailModal.dataset.bookId = String(bookId);
         detailModal.classList.add('active');
         detailModal.setAttribute('aria-hidden', 'false');
         if (detailTitle) detailTitle.textContent = 'Loading...';
@@ -1511,6 +1519,7 @@ export class AppService {
         if (detailSubjects) detailSubjects.innerHTML = '';
         if (detailAudio) detailAudio.innerHTML = '';
         if (detailEbook) detailEbook.innerHTML = '';
+        if (detailRefreshStatus) detailRefreshStatus.textContent = '';
 
         if (!state.token) {
           if (detailDescription) {
@@ -1533,6 +1542,47 @@ export class AppService {
           .catch(() => {
             if (detailDescription) {
               detailDescription.textContent = 'Unable to load book details.';
+            }
+          });
+      }
+
+      function refreshBookDetail() {
+        if (!detailModal || !detailModal.dataset.bookId) {
+          return;
+        }
+        if (!state.token) {
+          if (detailRefreshStatus) {
+            detailRefreshStatus.textContent = 'Log in to refresh metadata.';
+          }
+          return;
+        }
+        if (detailRefreshStatus) {
+          detailRefreshStatus.textContent = 'Refreshing from Open Library...';
+        }
+        fetch('/library/' + detailModal.dataset.bookId + '/refresh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+          },
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              if (detailRefreshStatus) {
+                detailRefreshStatus.textContent =
+                  body?.message ?? 'Unable to refresh metadata.';
+              }
+              return;
+            }
+            renderBookDetail(body);
+            if (detailRefreshStatus) {
+              detailRefreshStatus.textContent = 'Metadata refreshed.';
+            }
+          })
+          .catch(() => {
+            if (detailRefreshStatus) {
+              detailRefreshStatus.textContent = 'Unable to refresh metadata.';
             }
           });
       }

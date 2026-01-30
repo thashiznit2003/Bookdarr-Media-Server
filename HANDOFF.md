@@ -19,6 +19,7 @@
 - Added file-based request/error logging and diagnostics push logging.
 - Auto-generate JWT secrets on first run and provide admin-only rotation (no UI secret inputs).
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
+- Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.
 - Versioning: UI shows `vX.Y.Z` next to BMS using package.json version; bump patch for each GitHub push/app update.
 
 ## Decisions

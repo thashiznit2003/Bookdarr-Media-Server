@@ -34,6 +34,11 @@ export class BookdarrService {
     };
   }
 
+  async getApiUrl(): Promise<string> {
+    const { apiUrl } = await this.getApiConfig();
+    return apiUrl;
+  }
+
   async getBookPool(): Promise<BookdarrBookPoolItem[]> {
     const { apiUrl, apiKey, poolPath } = await this.getApiConfig();
     const url = this.joinUrl(apiUrl, poolPath);
@@ -74,6 +79,16 @@ export class BookdarrService {
     }
 
     return (await response.json()) as BookdarrBookFilesResponse;
+  }
+
+  resolveImageUrl(apiUrl: string, path?: string): string | undefined {
+    if (!path) {
+      return undefined;
+    }
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+    return this.joinUrl(apiUrl, path);
   }
 
   async streamBookFile(

@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.11 — 2026-01-30 22:48 -06:00
+- Prefer Bookdarr cover art and metadata; only call Open Library when needed.
+- Added metadata refresh action per book to re-query Open Library and update the detail view.
+- Added Bookdarr image URL resolution for relative cover paths.
+
 ## 1.0.10 — 2026-01-30 22:36 -06:00
 - Added book detail modal with Open Library metadata, subjects, and description.
 - Added Bookdarr-backed file listing with in-browser audiobook playback and ebook open/download actions.
