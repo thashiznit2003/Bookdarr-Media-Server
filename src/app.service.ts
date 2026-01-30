@@ -628,6 +628,7 @@ export class AppService {
         padding: 0;
         align-items: stretch;
         justify-content: stretch;
+        background: #0f1115;
       }
 
       .reader-modal.active {
@@ -650,6 +651,7 @@ export class AppService {
         width: 100vw;
         height: 100vh;
         border-radius: 0;
+        border: none;
       }
 
       .reader-header {
@@ -660,6 +662,11 @@ export class AppService {
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         gap: 12px;
         padding-right: 64px;
+      }
+
+      .reader-modal.touch-fullscreen .reader-header,
+      .reader-modal.touch-fullscreen .reader-controls {
+        display: none;
       }
 
       .reader-header-left {
@@ -677,6 +684,22 @@ export class AppService {
         font-size: 0.85rem;
       }
 
+      .reader-overlay {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        pointer-events: none;
+        z-index: 6;
+      }
+
+      .reader-modal.touch-fullscreen .reader-overlay {
+        display: flex;
+      }
+
       .reader-back {
         border: none;
         background: rgba(255, 255, 255, 0.12);
@@ -685,14 +708,16 @@ export class AppService {
         border-radius: 999px;
         cursor: pointer;
         font-size: 0.85rem;
+        pointer-events: auto;
       }
 
-      .reader-modal.touch-fullscreen .reader-back {
-        display: inline-flex;
-      }
-
-      .reader-modal:not(.touch-fullscreen) .reader-back {
-        display: none;
+      .reader-progress-overlay {
+        color: #e5e9f2;
+        font-size: 0.85rem;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.45);
+        pointer-events: none;
       }
 
       .reader-controls {
@@ -727,6 +752,10 @@ export class AppService {
       .reader-modal[data-reader-mode="epub"] .reader-nav-overlay,
       .reader-modal[data-reader-mode="pdf"] .reader-nav-overlay {
         opacity: 1;
+      }
+
+      .reader-modal.touch-fullscreen .reader-nav-overlay {
+        display: none;
       }
 
       .reader-arrow {
@@ -1319,9 +1348,12 @@ export class AppService {
       <div id="reader-modal" class="reader-modal" aria-hidden="true">
         <div class="reader-card">
           <button class="reader-close" id="reader-close">✕</button>
+          <div class="reader-overlay">
+            <button class="reader-back" id="reader-back">Back</button>
+            <div class="reader-progress-overlay" id="reader-progress-overlay"></div>
+          </div>
           <div class="reader-header">
             <div class="reader-header-left">
-              <button class="reader-back" id="reader-back">Back</button>
               <div class="reader-title" id="reader-title">Reader</div>
               <div class="reader-progress" id="reader-progress"></div>
             </div>
@@ -1441,6 +1473,7 @@ export class AppService {
       const readerBack = document.getElementById('reader-back');
       const readerTitle = document.getElementById('reader-title');
       const readerProgress = document.getElementById('reader-progress');
+      const readerProgressOverlay = document.getElementById('reader-progress-overlay');
       const readerPrev = document.getElementById('reader-prev');
       const readerNext = document.getElementById('reader-next');
       const readerPrevArrow = document.getElementById('reader-prev-arrow');
@@ -1563,7 +1596,32 @@ export class AppService {
         }, { passive: true });
       }
 
+      function attachSwipeToIframe(iframe) {
+        if (!iframe) return;
+        attachSwipeTarget(iframe);
+        try {
+          const doc = iframe.contentDocument;
+          attachSwipeTarget(doc?.documentElement);
+          attachSwipeTarget(doc?.body);
+        } catch {
+          // ignore cross-origin failures
+        }
+      }
+
+      function scanReaderIframes() {
+        if (!readerView || !isTouchDevice()) return;
+        readerView.querySelectorAll('iframe').forEach(attachSwipeToIframe);
+      }
+
       attachSwipeTarget(readerView);
+      scanReaderIframes();
+
+      if (readerView && isTouchDevice()) {
+        readerMutationObserver = new MutationObserver(() => {
+          scanReaderIframes();
+        });
+        readerMutationObserver.observe(readerView, { childList: true, subtree: true });
+      }
       window.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
           closeBookDetail();
@@ -1968,6 +2026,7 @@ export class AppService {
       let epubLocationsReady = false;
       let epubLocationsGenerating = false;
       let readerBodyOverflow = null;
+      let readerMutationObserver = null;
       let readerFile = null;
       let currentDetail = null;
 
@@ -1996,6 +2055,10 @@ export class AppService {
           }
           epubObjectUrl = null;
         }
+        if (readerMutationObserver) {
+          readerMutationObserver.disconnect();
+          readerMutationObserver = null;
+        }
         epubLocationsReady = false;
         epubLocationsGenerating = false;
         pdfDoc = null;
@@ -2009,6 +2072,9 @@ export class AppService {
       function updateReaderProgress(text) {
         if (readerProgress) {
           readerProgress.textContent = text ?? '';
+        }
+        if (readerProgressOverlay) {
+          readerProgressOverlay.textContent = text ?? '';
         }
       }
 
@@ -2203,6 +2269,7 @@ export class AppService {
           document.body.style.overflow = readerBodyOverflow;
           readerBodyOverflow = null;
         }
+        updateReaderProgress('');
       }
 
       function openPdfReader(file) {
@@ -2299,16 +2366,25 @@ export class AppService {
             }
             updateEpubPageNumbers(location);
           });
-          epubRendition.on('rendered', (_section, iframe) => {
-            const doc = iframe?.contentDocument;
-            if (doc?.documentElement) {
-              doc.documentElement.style.overflow = 'hidden';
+          epubRendition.on('rendered', (_section, view) => {
+            const iframeEl = view?.iframe ?? view?.element?.querySelector?.('iframe') ?? view;
+            if (iframeEl) {
+              try {
+                const doc = iframeEl.contentDocument;
+                if (doc?.documentElement) {
+                  doc.documentElement.style.overflow = 'hidden';
+                }
+                if (doc?.body) {
+                  doc.body.style.overflow = 'hidden';
+                  doc.body.style.margin = '0';
+                }
+                attachSwipeTarget(doc?.body || doc?.documentElement);
+              } catch {
+                // ignore
+              }
+              attachSwipeToIframe(iframeEl);
             }
-            if (doc?.body) {
-              doc.body.style.overflow = 'hidden';
-              doc.body.style.margin = '0';
-            }
-            attachSwipeTarget(doc?.body || doc?.documentElement);
+            scanReaderIframes();
           });
         };
 

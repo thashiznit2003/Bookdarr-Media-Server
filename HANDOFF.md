@@ -38,6 +38,7 @@
 - EPUB reader arrows now render above reader content (overlay z-index fix).
 - EPUB reader now shows page numbers + percent in the header and persists location with touch-only page-turn animation.
 - Touch devices now use a full-screen EPUB reader with back button, no scroll, and iframe swipe handling.
+- Touch reader now hides toolbars and shows overlay back/progress controls for a cleaner full-screen view.
 
 ## Decisions
 - Stack: Node.js + NestJS

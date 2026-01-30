@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.28 — 2026-01-30 14:47 -06:00
+- Make touch EPUB reader full-screen with overlay back/progress and iframe swipe detection.
+
 ## 1.0.27 — 2026-01-30 14:42 -06:00
 - Add touch-only full-screen ebook reader with back button, swipe inside EPUB iframes, and no-scroll layout.
 
