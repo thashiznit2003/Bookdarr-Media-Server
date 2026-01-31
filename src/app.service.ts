@@ -1542,6 +1542,7 @@ export class AppService {
       const readerNext = document.getElementById('reader-next');
       const readerPrevArrow = document.getElementById('reader-prev-arrow');
       const readerNextArrow = document.getElementById('reader-next-arrow');
+      const readerNavOverlay = document.getElementById('reader-nav-overlay');
       const readerDownload = document.getElementById('reader-download');
       const readerThemeToggle = document.getElementById('reader-theme-toggle');
       const readerThemeToggleInline = document.getElementById('reader-theme-toggle-inline');
@@ -1561,6 +1562,8 @@ export class AppService {
       let currentDetail = null;
       let readerTheme = 'light';
       let readerResizeBound = false;
+      let readerUiVisible = true;
+      let readerHistoryPushed = false;
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1693,19 +1696,21 @@ export class AppService {
         }
         let startX = null;
         let startY = null;
-        target.addEventListener('touchstart', (event) => {
-          if (!event.touches || event.touches.length !== 1) return;
-          startX = event.touches[0].clientX;
-          startY = event.touches[0].clientY;
-        }, { passive: true });
-        target.addEventListener('touchend', (event) => {
-          if (startX == null || startY == null || !event.changedTouches || event.changedTouches.length !== 1) {
+        const onEnd = (endX, endY, eventTarget) => {
+          if (eventTarget && eventTarget.closest && (
+            eventTarget.closest('.reader-arrow') ||
+            eventTarget.closest('.reader-back') ||
+            eventTarget.closest('.reader-theme-toggle')
+          )) {
             startX = null;
             startY = null;
             return;
           }
-          const endX = event.changedTouches[0].clientX;
-          const endY = event.changedTouches[0].clientY;
+          if (startX == null || startY == null) {
+            startX = null;
+            startY = null;
+            return;
+          }
           const deltaX = endX - startX;
           const deltaY = endY - startY;
           startX = null;
@@ -1721,7 +1726,32 @@ export class AppService {
             return;
           }
           toggleReaderUi();
-        }, { passive: true });
+        };
+        if ('PointerEvent' in window) {
+          target.addEventListener('pointerdown', (event) => {
+            if (event.pointerType !== 'touch') return;
+            startX = event.clientX;
+            startY = event.clientY;
+          }, { passive: true });
+          target.addEventListener('pointerup', (event) => {
+            if (event.pointerType !== 'touch') return;
+            onEnd(event.clientX, event.clientY, event.target);
+          }, { passive: true });
+        } else {
+          target.addEventListener('touchstart', (event) => {
+            if (!event.touches || event.touches.length !== 1) return;
+            startX = event.touches[0].clientX;
+            startY = event.touches[0].clientY;
+          }, { passive: true });
+          target.addEventListener('touchend', (event) => {
+            if (!event.changedTouches || event.changedTouches.length !== 1) {
+              startX = null;
+              startY = null;
+              return;
+            }
+            onEnd(event.changedTouches[0].clientX, event.changedTouches[0].clientY, event.target);
+          }, { passive: true });
+        }
       }
 
       function attachSwipeToIframe(iframe) {
@@ -1743,6 +1773,7 @@ export class AppService {
 
       attachSwipeTarget(readerView);
       attachReaderGesture(readerGesture);
+      attachReaderGesture(readerNavOverlay);
       scanReaderIframes();
 
       if (readerView && isTouchDevice()) {
@@ -1754,6 +1785,11 @@ export class AppService {
       window.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
           closeBookDetail();
+          closeReader();
+        }
+      });
+      window.addEventListener('popstate', () => {
+        if (readerModal?.classList.contains('active')) {
           closeReader();
         }
       });
@@ -2274,7 +2310,9 @@ export class AppService {
       function isTouchDevice() {
         try {
           const points = navigator?.maxTouchPoints || navigator?.msMaxTouchPoints || 0;
-          return ('ontouchstart' in window) || points > 0 || window.matchMedia('(pointer: coarse)').matches;
+          const ua = navigator?.userAgent || '';
+          const isAppleTouch = /iPad|iPhone|iPod/i.test(ua) || (navigator?.platform === 'MacIntel' && points > 1);
+          return ('ontouchstart' in window) || points > 0 || isAppleTouch || window.matchMedia('(pointer: coarse)').matches;
         } catch {
           return ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
         }
@@ -2403,12 +2441,13 @@ export class AppService {
 
       function setReaderUiVisible(visible) {
         if (!readerModal) return;
+        readerUiVisible = Boolean(visible);
         readerModal.classList.toggle('reader-ui-visible', visible);
       }
 
       function toggleReaderUi() {
         if (!readerModal) return;
-        setReaderUiVisible(!readerModal.classList.contains('reader-ui-visible'));
+        setReaderUiVisible(!readerUiVisible);
       }
 
       function formatPercent(value) {
@@ -2472,7 +2511,11 @@ export class AppService {
         const percentage = formatPercent(start?.percentage ?? null);
         let pageText = null;
 
-        if (cfi && epubBook && epubBook.locations && epubLocationsReady) {
+        const displayedPage = location?.displayed?.page;
+        const displayedTotal = location?.displayed?.total;
+        if (displayedPage && displayedTotal) {
+          pageText = 'Page ' + displayedPage + ' / ' + displayedTotal;
+        } else if (cfi && epubBook && epubBook.locations && epubLocationsReady) {
           const total = getEpubLocationsTotal();
           const index = epubBook.locations.locationFromCfi(cfi);
           if (total && index != null && index >= 0) {
@@ -2562,10 +2605,10 @@ export class AppService {
         const touchFullscreen = isTouchDevice() && file.format === '.epub';
         readerModal.classList.toggle('touch-fullscreen', touchFullscreen);
         readerModal.classList.toggle('touch-enabled', isTouchDevice());
-        if (touchFullscreen) {
-          setReaderUiVisible(true);
-        } else {
-          setReaderUiVisible(true);
+        setReaderUiVisible(true);
+        if (touchFullscreen && !readerHistoryPushed) {
+          readerHistoryPushed = true;
+          history.pushState({ reader: true }, '', window.location.pathname + window.location.search);
         }
         if (touchFullscreen) {
           readerBodyOverflow = document.body.style.overflow;
@@ -2614,6 +2657,14 @@ export class AppService {
           readerBodyOverflow = null;
         }
         updateReaderProgress('');
+        if (readerHistoryPushed) {
+          readerHistoryPushed = false;
+          try {
+            history.replaceState({}, '', window.location.pathname + window.location.search);
+          } catch {
+            // ignore
+          }
+        }
       }
 
       function openPdfReader(file) {
@@ -2687,8 +2738,16 @@ export class AppService {
             width: '100%',
             height: '100%',
             spread: 'none',
-            flow: 'paginated'
+            flow: 'paginated',
+            minSpreadWidth: 999999
           });
+          if (epubRendition.spread) {
+            try {
+              epubRendition.spread('none');
+            } catch {
+              // ignore
+            }
+          }
           applyReaderTheme(readerTheme, false);
           if (!readerResizeBound) {
             readerResizeBound = true;

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.51 — 2026-01-31 13:35 -06:00
+- Improve EPUB touch gestures, fix overlay toggling, and use displayed page numbers with forced single-page spreads.
+
 ## 1.0.50 — 2026-01-31 13:22 -06:00
 - Keep the EPUB reader UI visible by default on touch devices, improve touch detection, and ensure swipe/tap handling works reliably.
 
