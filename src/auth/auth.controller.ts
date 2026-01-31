@@ -76,6 +76,12 @@ export class AuthController {
     try {
       const response = await this.authService.setupFirstUser(request);
       this.setAuthCookies(res, response.tokens);
+      if (response.tokens?.accessToken) {
+        const refresh = response.tokens.refreshToken ?? '';
+        return res.redirect(
+          `/#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(refresh)}`,
+        );
+      }
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Setup failed.';
@@ -95,6 +101,12 @@ export class AuthController {
     try {
       const response = await this.authService.login(request);
       this.setAuthCookies(res, response.tokens);
+      if (response.tokens?.accessToken) {
+        const refresh = response.tokens.refreshToken ?? '';
+        return res.redirect(
+          `/#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(refresh)}`,
+        );
+      }
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';

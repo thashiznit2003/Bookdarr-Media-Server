@@ -11,6 +11,7 @@ import { HttpExceptionFilter } from './logging/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.disable('etag');
   const logger = app.get(FileLoggerService);
   const requestLogger = new RequestLoggingMiddleware(logger);
   app.use(requestLogger.use.bind(requestLogger));

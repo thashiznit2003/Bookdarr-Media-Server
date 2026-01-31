@@ -49,6 +49,7 @@
 - Login/setup pages now submit via HTML forms to /auth/login/web and /auth/setup/web for Safari-safe cookie setting.
 - Client boot now attempts cookie-based refresh even with no localStorage, and UI no longer blocks on missing client tokens.
 - Client fetches now disable caching to avoid 304 responses without bodies (fixes Signed Out on iPad).
+- Server now injects verified auth/user bootstrap into the HTML and disables ETags to keep iPad signed in.
 
 ## Decisions
 - Stack: Node.js + NestJS

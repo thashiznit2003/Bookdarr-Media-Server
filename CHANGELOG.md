@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.39 — 2026-01-31 08:04 -06:00
+- Inject server-verified auth bootstrap into the app HTML so iPad loads signed-in state without relying on cached API calls.
+- Disable ETag responses and no-store /api/me to avoid Safari 304s that drop user data.
+
 ## 1.0.38 — 2026-01-30 21:44 -06:00
 - Disable client-side caching for auth/library fetches to prevent 304 responses that leave iPad signed out.
 

@@ -4,7 +4,17 @@ const { version: appVersion } = require('../package.json');
 
 @Injectable()
 export class AppService {
-  getIndexHtml(): string {
+  getIndexHtml(bootstrap?: {
+    token?: string | null;
+    refreshToken?: string | null;
+    user?: {
+      id?: string;
+      username?: string;
+      email?: string;
+      isAdmin?: boolean;
+    } | null;
+  }): string {
+    const boot = bootstrap ?? null;
     return `<!doctype html>
 <html lang="en">
   <head>
@@ -975,6 +985,9 @@ export class AppService {
     </style>
   </head>
   <body>
+    <script>
+      window.__BMS_BOOTSTRAP__ = ${JSON.stringify(boot)};
+    </script>
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand-row">
@@ -1380,12 +1393,13 @@ export class AppService {
     <script src="/vendor/jszip/jszip.min.js"></script>
     <script src="/vendor/epub/epub.min.js"></script>
     <script>
+      const bootstrap = window.__BMS_BOOTSTRAP__ || null;
       const state = {
         filter: 'all',
         query: '',
         library: [],
         myLibrary: [],
-        token: null,
+        token: bootstrap?.token || null,
         userId: null
       };
       let setupRequired = false;
@@ -1674,6 +1688,14 @@ export class AppService {
           if (!setupRequired && !isLoginPage) {
             window.location.href = '/login';
           }
+        }
+      }
+
+      if (bootstrap?.token) {
+        setAuth(bootstrap.token, bootstrap.refreshToken);
+        if (bootstrap.user) {
+          updateUserMenu(bootstrap.user);
+          state.userId = bootstrap.user.id ?? null;
         }
       }
 
