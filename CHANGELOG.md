@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.52 — 2026-01-31 15:17 -06:00
+- Align EPUB rendering with Bookdarr defaults, reapply reader themes per render, and fix blank-page pagination issues.
+
 ## 1.0.51 — 2026-01-31 13:35 -06:00
 - Improve EPUB touch gestures, fix overlay toggling, and use displayed page numbers with forced single-page spreads.
 

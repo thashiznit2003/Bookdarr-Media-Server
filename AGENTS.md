@@ -63,6 +63,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Reader supports a tap-to-toggle UI on touch devices plus light/dark EPUB themes and layout sizing fixes.
 - Touch reader UI now shows by default on iPad and uses more robust touch detection.
 - EPUB reader now prefers displayed page numbers and enforces single-page spreads with improved gesture handling.
+- EPUB reader now mirrors Bookdarr’s render defaults and re-applies themes per section for reliable pagination/visibility.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

@@ -704,15 +704,11 @@ export class AppService {
         justify-content: space-between;
         pointer-events: none;
         z-index: 6;
-      }
-
-      .reader-modal.touch-fullscreen .reader-overlay {
-        display: flex;
         opacity: 0;
-        pointer-events: none;
       }
 
-      .reader-modal.touch-fullscreen.reader-ui-visible .reader-overlay {
+      .reader-modal.reader-ui-visible .reader-overlay {
+        display: flex;
         opacity: 1;
         pointer-events: auto;
       }
@@ -2414,25 +2410,31 @@ export class AppService {
         updateReaderThemeButtons();
         if (epubRendition && epubRendition.themes) {
           try {
-            epubRendition.themes.register('light', {
-              body: {
-                color: '#1f2937',
-                background: '#f8f5ef',
-                padding: '16px 18px 24px',
-                'line-height': '1.6',
+            epubRendition.themes.register('bms-dark', {
+              'html, body': {
+                background: '#0f1115 !important',
+                color: '#e5e7eb !important',
               },
-              a: { color: '#0f172a' },
-            });
-            epubRendition.themes.register('dark', {
-              body: {
-                color: '#e5e7eb',
-                background: '#0f1115',
-                padding: '16px 18px 24px',
-                'line-height': '1.6',
+              'body *': {
+                color: '#e5e7eb !important',
               },
-              a: { color: '#93c5fd' },
+              a: {
+                color: '#93c5fd !important',
+              },
             });
-            epubRendition.themes.select(readerTheme);
+            epubRendition.themes.register('bms-light', {
+              'html, body': {
+                background: '#f8f5ef !important',
+                color: '#111827 !important',
+              },
+              'body *': {
+                color: '#111827 !important',
+              },
+              a: {
+                color: '#0f172a !important',
+              },
+            });
+            epubRendition.themes.select(readerTheme === 'dark' ? 'bms-dark' : 'bms-light');
           } catch {
             // ignore theme errors
           }
@@ -2737,10 +2739,14 @@ export class AppService {
           epubRendition = book.renderTo(readerView, {
             width: '100%',
             height: '100%',
-            spread: 'none',
-            flow: 'paginated',
-            minSpreadWidth: 999999
           });
+          if (epubRendition.flow) {
+            try {
+              epubRendition.flow('paginated');
+            } catch {
+              // ignore
+            }
+          }
           if (epubRendition.spread) {
             try {
               epubRendition.spread('none');
@@ -2795,21 +2801,20 @@ export class AppService {
               saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
             }
             updateEpubPageNumbers(location);
+            try {
+              epubRendition.resize();
+            } catch {
+              // ignore
+            }
           });
           epubRendition.on('rendered', (_section, view) => {
             const iframeEl = view?.iframe ?? view?.element?.querySelector?.('iframe') ?? view;
             if (iframeEl) {
               try {
                 const doc = iframeEl.contentDocument;
-                if (doc?.documentElement) {
-                  doc.documentElement.style.overflow = 'hidden';
-                  doc.documentElement.style.height = '100%';
-                }
                 if (doc?.body) {
-                  doc.body.style.overflow = 'hidden';
                   doc.body.style.margin = '0';
-                  doc.body.style.height = '100%';
-                  doc.body.style.boxSizing = 'border-box';
+                  doc.body.style.padding = '0';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {
@@ -2817,6 +2822,7 @@ export class AppService {
               }
               attachSwipeToIframe(iframeEl);
             }
+            applyReaderTheme(readerTheme, false);
             scanReaderIframes();
           });
         };
