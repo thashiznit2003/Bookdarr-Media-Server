@@ -1566,6 +1566,8 @@ export class AppService {
       let readerLastSectionIndex = null;
       let readerLastGlobalPage = null;
       let readerPageMapKey = null;
+      let readerNavDirection = null;
+      const readerPageMapVersion = 2;
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1627,6 +1629,7 @@ export class AppService {
       });
 
       const goPrev = () => {
+        readerNavDirection = 'prev';
         if (epubRendition) {
           epubRendition.prev();
         } else if (pdfDoc) {
@@ -1635,6 +1638,7 @@ export class AppService {
         }
       };
       const goNext = () => {
+        readerNavDirection = 'next';
         if (epubRendition) {
           epubRendition.next();
         } else if (pdfDoc) {
@@ -2404,6 +2408,7 @@ export class AppService {
         readerLastSectionIndex = null;
         readerLastGlobalPage = null;
         readerPageMapKey = null;
+        readerNavDirection = null;
         if (readerView) {
           readerView.innerHTML = '';
         }
@@ -2430,7 +2435,7 @@ export class AppService {
       function getReaderPageMapKey(fileId) {
         const signature = getReaderViewportSignature();
         if (!signature || !fileId) return null;
-        return 'bmsReaderPages:' + fileId + ':' + signature;
+        return 'bmsReaderPages:v' + readerPageMapVersion + ':' + fileId + ':' + signature;
       }
 
       function loadReaderPageMap(fileId) {
@@ -2440,6 +2445,9 @@ export class AppService {
         if (!raw) return;
         try {
           const parsed = JSON.parse(raw);
+          if (parsed?.version !== readerPageMapVersion) {
+            return;
+          }
           const totals = Array.isArray(parsed?.totals) ? parsed.totals : [];
           const offsets = Array.isArray(parsed?.offsets) ? parsed.offsets : [];
           readerSectionTotals = new Map(totals);
@@ -2459,6 +2467,7 @@ export class AppService {
         }
         if (!readerPageMapKey) return;
         const payload = {
+          version: readerPageMapVersion,
           totals: Array.from(readerSectionTotals.entries()),
           offsets: Array.from(readerSectionOffsets.entries()),
           lastGlobalPage: readerLastGlobalPage,
@@ -2626,6 +2635,14 @@ export class AppService {
             return { page: fallbackPage, total: null };
           }
 
+          if (readerLastGlobalPage == null) {
+            const baselineOffset = 1 - page;
+            readerSectionOffsets.set(sectionIndex, baselineOffset);
+            readerLastSectionIndex = sectionIndex;
+            readerLastGlobalPage = 1;
+            return { page: 1, total: null };
+          }
+
           if (total && total > 0) {
             readerSectionTotals.set(sectionIndex, total);
           }
@@ -2660,17 +2677,18 @@ export class AppService {
 
           let globalPage = offset + page;
           if (readerLastGlobalPage != null) {
-            if (sectionIndex === readerLastSectionIndex && globalPage < readerLastGlobalPage) {
+            if (readerNavDirection === 'next' && globalPage <= readerLastGlobalPage) {
               globalPage = readerLastGlobalPage + 1;
               readerSectionOffsets.set(sectionIndex, globalPage - page);
-            } else if (sectionIndex > readerLastSectionIndex && globalPage <= readerLastGlobalPage) {
-              globalPage = readerLastGlobalPage + 1;
+            } else if (readerNavDirection === 'prev' && globalPage >= readerLastGlobalPage) {
+              globalPage = Math.max(1, readerLastGlobalPage - 1);
               readerSectionOffsets.set(sectionIndex, globalPage - page);
             }
           }
 
           readerLastSectionIndex = sectionIndex;
           readerLastGlobalPage = globalPage;
+          readerNavDirection = null;
 
           let totalPages = null;
           const spineLength = epubBook?.spine?.items?.length ?? epubBook?.spine?.length ?? 0;
