@@ -49,6 +49,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - After login, access/refresh tokens are also passed via URL hash so Safari can bootstrap auth even if storage is blocked.
 - Auth endpoints now set cookies server-side and JWT guards accept tokens from cookies to keep iPad/Safari signed in.
 - Dedicated /login now uses form POSTs to set cookies via top-level navigation (more reliable on iPad).
+- App boot no longer requires localStorage tokens before loading the user/library; cookie auth is sufficient.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

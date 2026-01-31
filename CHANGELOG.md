@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.37 — 2026-01-30 20:53 -06:00
+- Remove auth UI gating that relied on localStorage so cookie-based sessions on iPad can load users and libraries.
+- Attempt refresh on boot even without client-side tokens to let server cookies bootstrap sessions.
+
 ## 1.0.36 — 2026-01-30 20:42 -06:00
 - Add HTML form-based login/setup flows with server-set cookies to improve iPad sign-in reliability.
 - Load current user when only cookie auth is available, even without localStorage tokens.

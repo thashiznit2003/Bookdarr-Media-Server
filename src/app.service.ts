@@ -1828,9 +1828,7 @@ export class AppService {
           loadCurrentUser();
           return;
         }
-        if (refreshToken) {
-          await refreshAuthToken();
-        }
+        await refreshAuthToken();
         if (!state.token) {
           if (isAuthenticated()) {
             loadCurrentUser();
@@ -1983,12 +1981,6 @@ export class AppService {
         if (activePage !== 'library') {
           return;
         }
-        if (!state.token) {
-          if (libraryGrid) {
-            libraryGrid.innerHTML = '<div class="empty">Log in to view your Book Pool.</div>';
-          }
-          return;
-        }
         await ensureFreshToken();
         fetchWithAuth('/library')
           .then((response) => response.json())
@@ -2006,12 +1998,6 @@ export class AppService {
 
       async function loadMyLibrary() {
         if (activePage !== 'my-library') {
-          return;
-        }
-        if (!state.token) {
-          if (myLibraryGrid) {
-            myLibraryGrid.innerHTML = '<div class="empty">Log in to view your library.</div>';
-          }
           return;
         }
         await ensureFreshToken();
@@ -2722,13 +2708,6 @@ export class AppService {
         }
         currentDetail = null;
 
-        if (!state.token) {
-          if (detailDescription) {
-            detailDescription.textContent = 'Log in to view book details.';
-          }
-          return;
-        }
-
         await ensureFreshToken();
         fetchWithAuth('/library/' + bookId)
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
@@ -2750,12 +2729,6 @@ export class AppService {
 
       async function refreshBookDetail() {
         if (!detailModal || !detailModal.dataset.bookId) {
-          return;
-        }
-        if (!state.token) {
-          if (detailRefreshStatus) {
-            detailRefreshStatus.textContent = 'Log in to refresh metadata.';
-          }
           return;
         }
         if (detailRefreshStatus) {
@@ -2793,13 +2766,6 @@ export class AppService {
         if (!detailModal || !detailModal.dataset.bookId) {
           return;
         }
-        if (!state.token) {
-          if (detailCheckoutStatus) {
-            detailCheckoutStatus.textContent = 'Log in to manage checkouts.';
-          }
-          return;
-        }
-
         const action = currentDetail?.checkedOutByMe ? 'return' : 'checkout';
         if (detailCheckoutStatus) {
           detailCheckoutStatus.textContent =
@@ -2843,10 +2809,6 @@ export class AppService {
       }
 
       function loadBookdarrConfig() {
-        if (!state.token) {
-          setBookdarrEnabled(false);
-          return;
-        }
         setBookdarrEnabled(true);
         fetchWithAuth('/settings/bookdarr')
           .then((response) => response.json())
@@ -2916,12 +2878,6 @@ export class AppService {
         if (activePage !== 'accounts') {
           return;
         }
-        if (!state.token) {
-          if (accountsStatus) {
-            accountsStatus.textContent = 'Log in as an admin to manage users.';
-          }
-          return;
-        }
         if (accountsStatus) {
           accountsStatus.textContent = 'Loading users...';
         }
@@ -2951,12 +2907,6 @@ export class AppService {
         if (activePage !== 'accounts') {
           return;
         }
-        if (!state.token) {
-          if (profileStatus) {
-            profileStatus.textContent = 'Log in to edit your profile.';
-          }
-          return;
-        }
         fetchWithAuth('/api/me')
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
@@ -2974,11 +2924,6 @@ export class AppService {
       }
 
       function loadCurrentUser() {
-        if (!state.token) {
-          updateUserMenu(null);
-          state.userId = null;
-          return;
-        }
         fetchWithAuth('/api/me')
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
@@ -3133,12 +3078,6 @@ export class AppService {
       });
 
       rotateAuthButton?.addEventListener('click', () => {
-        if (!state.token) {
-          if (authRotateStatus) {
-            authRotateStatus.textContent = 'Log in as an admin to rotate secrets.';
-          }
-          return;
-        }
         const confirmed = window.confirm(
           'Rotating auth secrets will sign out all users. Continue?',
         );
@@ -3181,10 +3120,6 @@ export class AppService {
       });
 
       saveBookdarrButton?.addEventListener('click', () => {
-        if (!state.token) {
-          settingsBookdarrStatus.textContent = 'Log in to update Bookdarr.';
-          return;
-        }
         const host = settingsBookdarrHost?.value;
         const port = Number(settingsBookdarrPort?.value);
         const apiKey = settingsBookdarrKey?.value;
@@ -3214,10 +3149,6 @@ export class AppService {
       });
 
       bookdarrButton?.addEventListener('click', () => {
-        if (!state.token) {
-          bookdarrStatus.textContent = 'Please log in first.';
-          return;
-        }
         const host = bookdarrHost.value;
         const port = Number(bookdarrPort.value);
         const apiKey = bookdarrKey.value;
@@ -3251,10 +3182,6 @@ export class AppService {
       });
 
       createUserButton?.addEventListener('click', () => {
-        if (!state.token) {
-          createUserStatus.textContent = 'Log in as an admin to create users.';
-          return;
-        }
         const username = newUserUsername?.value;
         const email = newUserEmail?.value;
         const password = newUserPassword?.value;
@@ -3287,10 +3214,6 @@ export class AppService {
       });
 
       saveProfileButton?.addEventListener('click', () => {
-        if (!state.token) {
-          profileStatus.textContent = 'Log in to edit your profile.';
-          return;
-        }
         const username = profileUsername?.value;
         const email = profileEmail?.value;
         const currentPassword = profileCurrentPassword?.value;
