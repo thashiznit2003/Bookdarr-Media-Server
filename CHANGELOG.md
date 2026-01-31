@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.40 — 2026-01-31 08:08 -06:00
+- Fix ETag disabling for Nest by targeting the underlying HTTP adapter.
+
 ## 1.0.39 — 2026-01-31 08:04 -06:00
 - Inject server-verified auth bootstrap into the app HTML so iPad loads signed-in state without relying on cached API calls.
 - Disable ETag responses and no-store /api/me to avoid Safari 304s that drop user data.
