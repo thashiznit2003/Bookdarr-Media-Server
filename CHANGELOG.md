@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.47 — 2026-01-31 09:10 -06:00
+- Hide the Bookdarr connection wizard once a Bookdarr config is detected (including env-only configs).
+
 ## 1.0.46 — 2026-01-31 08:58 -06:00
 - Fix iPad login flow by initializing reader state before touch handlers to prevent a script crash that blocked auth bootstrap.
 

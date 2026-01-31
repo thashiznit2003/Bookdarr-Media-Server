@@ -1403,6 +1403,7 @@ export class AppService {
         userId: null
       };
       let setupRequired = false;
+      let bookdarrConfigured = false;
       let tokenRefreshTimer = null;
 
       const libraryGrid = document.getElementById('library-grid');
@@ -2886,6 +2887,7 @@ export class AppService {
         fetchWithAuth('/settings/bookdarr')
           .then((response) => response.json())
           .then((data) => {
+            bookdarrConfigured = Boolean(data?.configured);
             if (data?.apiUrl) {
               try {
                 const url = new URL(data.apiUrl);
@@ -2913,12 +2915,12 @@ export class AppService {
               loadLibrary();
               loadMyLibrary();
             }
-            if (data?.configured && wizardPanel) {
-              wizardPanel.style.display = 'none';
-            }
+            updateWizardVisibility();
           })
           .catch(() => {
+            bookdarrConfigured = false;
             bookdarrStatus.textContent = 'Unable to load Bookdarr settings.';
+            updateWizardVisibility();
           });
       }
 
@@ -3014,21 +3016,32 @@ export class AppService {
           });
       }
 
+      function updateWizardVisibility() {
+        if (!wizardPanel || activePage !== 'library') {
+          return;
+        }
+        if (setupRequired) {
+          wizardPanel.style.display = 'block';
+          return;
+        }
+        if (!state.token) {
+          wizardPanel.style.display = 'none';
+          return;
+        }
+        wizardPanel.style.display = bookdarrConfigured ? 'none' : 'block';
+      }
+
       function handleSetupStatus(data) {
         setupRequired = Boolean(data?.required);
         if (data?.required) {
           setupPanel.style.display = 'block';
           bookdarrPanel.style.display = 'block';
           setBookdarrEnabled(false);
-          if (wizardPanel && activePage === 'library') {
-            wizardPanel.style.display = 'block';
-          }
+          updateWizardVisibility();
         } else {
           setupPanel.style.display = 'none';
           bookdarrPanel.style.display = 'block';
-          if (wizardPanel && activePage === 'library') {
-            wizardPanel.style.display = state.token ? 'block' : 'none';
-          }
+          updateWizardVisibility();
           if (!isAuthenticated() && !isLoginPage) {
             setAuthCookie(false);
             window.location.href = '/login';
@@ -3243,11 +3256,10 @@ export class AppService {
               return;
             }
             bookdarrStatus.textContent = 'Bookdarr connected.';
+            bookdarrConfigured = true;
             loadLibrary();
             loadMyLibrary();
-            if (wizardPanel) {
-              wizardPanel.style.display = 'none';
-            }
+            updateWizardVisibility();
           })
           .catch(() => {
             bookdarrStatus.textContent = 'Save failed.';

@@ -58,6 +58,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Client-side guard redirects to /login if the UI detects a signed-out session on any app page.
 - Auth bootstrap now writes to both window.name and the URL hash, and auth=1 bounces back to /login on failure.
 - Touch-device reader initialization must declare its observer before use to avoid a script crash that blocks iPad auth boot.
+- Bookdarr connection wizard hides automatically when Bookdarr is configured (DB or env settings).
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.
