@@ -708,6 +708,19 @@ export class AppService {
 
       .reader-modal.touch-fullscreen .reader-overlay {
         display: flex;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .reader-modal.touch-fullscreen.reader-ui-visible .reader-overlay {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .reader-overlay-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
 
       .reader-back {
@@ -762,10 +775,18 @@ export class AppService {
       .reader-modal[data-reader-mode="epub"] .reader-nav-overlay,
       .reader-modal[data-reader-mode="pdf"] .reader-nav-overlay {
         opacity: 1;
+        pointer-events: auto;
       }
 
       .reader-modal.touch-fullscreen .reader-nav-overlay {
-        display: none;
+        display: flex;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .reader-modal.touch-fullscreen.reader-ui-visible .reader-nav-overlay {
+        opacity: 1;
+        pointer-events: auto;
       }
 
       .reader-gesture {
@@ -801,6 +822,7 @@ export class AppService {
 
       .reader-view {
         flex: 1;
+        min-height: 0;
         overflow: auto;
         padding: 16px;
         position: relative;
@@ -809,11 +831,20 @@ export class AppService {
 
       .reader-modal[data-reader-mode="epub"] .reader-view {
         overflow: hidden;
+        padding: 0;
       }
 
       .reader-modal.touch-fullscreen .reader-view {
         padding: 0;
         overflow: hidden;
+      }
+
+      .reader-modal.reader-dark .reader-view {
+        background: #0f1115;
+      }
+
+      .reader-modal.reader-dark .reader-canvas {
+        filter: invert(1) hue-rotate(180deg);
       }
 
       .reader-view.page-turn-next {
@@ -1375,7 +1406,10 @@ export class AppService {
           <button class="reader-close" id="reader-close">✕</button>
           <div class="reader-overlay">
             <button class="reader-back" id="reader-back">Back</button>
-            <div class="reader-progress-overlay" id="reader-progress-overlay"></div>
+            <div class="reader-overlay-actions">
+              <button class="reader-back reader-theme-toggle" id="reader-theme-toggle">Dark mode</button>
+              <div class="reader-progress-overlay" id="reader-progress-overlay"></div>
+            </div>
           </div>
           <div class="reader-header">
             <div class="reader-header-left">
@@ -1386,6 +1420,7 @@ export class AppService {
           <div class="reader-controls">
             <button class="reader-button" id="reader-prev">Prev</button>
             <button class="reader-button" id="reader-next">Next</button>
+            <button class="reader-button" id="reader-theme-toggle-inline">Dark mode</button>
             <a class="reader-button" id="reader-download" href="#" target="_blank" rel="noreferrer">Download</a>
           </div>
           <div class="reader-nav-overlay" id="reader-nav-overlay">
@@ -1508,6 +1543,8 @@ export class AppService {
       const readerPrevArrow = document.getElementById('reader-prev-arrow');
       const readerNextArrow = document.getElementById('reader-next-arrow');
       const readerDownload = document.getElementById('reader-download');
+      const readerThemeToggle = document.getElementById('reader-theme-toggle');
+      const readerThemeToggleInline = document.getElementById('reader-theme-toggle-inline');
       const readerGesture = document.getElementById('reader-gesture');
       const readerView = document.getElementById('reader-view');
 
@@ -1522,6 +1559,8 @@ export class AppService {
       let readerMutationObserver = null;
       let readerFile = null;
       let currentDetail = null;
+      let readerTheme = 'light';
+      let readerResizeBound = false;
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1603,6 +1642,12 @@ export class AppService {
       readerNext?.addEventListener('click', goNext);
       readerPrevArrow?.addEventListener('click', goPrev);
       readerNextArrow?.addEventListener('click', goNext);
+      readerThemeToggle?.addEventListener('click', () => {
+        applyReaderTheme(readerTheme === 'dark' ? 'light' : 'dark');
+      });
+      readerThemeToggleInline?.addEventListener('click', () => {
+        applyReaderTheme(readerTheme === 'dark' ? 'light' : 'dark');
+      });
 
       const swipeTargets = new WeakSet();
       function attachSwipeTarget(target) {
@@ -1675,15 +1720,7 @@ export class AppService {
             }
             return;
           }
-          const rect = target.getBoundingClientRect();
-          const relativeX = (endX - rect.left) / rect.width;
-          if (relativeX < 0.35) {
-            animatePageTurn('prev');
-            goPrev();
-          } else if (relativeX > 0.65) {
-            animatePageTurn('next');
-            goNext();
-          }
+          toggleReaderUi();
         }, { passive: true });
       }
 
@@ -2317,6 +2354,58 @@ export class AppService {
         }
       }
 
+      function updateReaderThemeButtons() {
+        const label = readerTheme === 'dark' ? 'Light mode' : 'Dark mode';
+        if (readerThemeToggle) readerThemeToggle.textContent = label;
+        if (readerThemeToggleInline) readerThemeToggleInline.textContent = label;
+      }
+
+      function applyReaderTheme(theme, persist = true) {
+        readerTheme = theme === 'dark' ? 'dark' : 'light';
+        if (readerModal) {
+          readerModal.classList.toggle('reader-dark', readerTheme === 'dark');
+        }
+        if (persist) {
+          safeStorageSet('bmsReaderTheme', readerTheme);
+        }
+        updateReaderThemeButtons();
+        if (epubRendition && epubRendition.themes) {
+          try {
+            epubRendition.themes.register('light', {
+              body: {
+                color: '#1f2937',
+                background: '#f8f5ef',
+                padding: '16px 18px 24px',
+                'line-height': '1.6',
+              },
+              a: { color: '#0f172a' },
+            });
+            epubRendition.themes.register('dark', {
+              body: {
+                color: '#e5e7eb',
+                background: '#0f1115',
+                padding: '16px 18px 24px',
+                'line-height': '1.6',
+              },
+              a: { color: '#93c5fd' },
+            });
+            epubRendition.themes.select(readerTheme);
+          } catch {
+            // ignore theme errors
+          }
+        }
+      }
+
+      function setReaderUiVisible(visible) {
+        if (!readerModal) return;
+        readerModal.classList.toggle('reader-ui-visible', visible);
+      }
+
+      function toggleReaderUi() {
+        if (!readerModal) return;
+        setReaderUiVisible(!readerModal.classList.contains('reader-ui-visible'));
+      }
+
       function formatPercent(value) {
         if (typeof value !== 'number' || Number.isNaN(value)) {
           return null;
@@ -2469,6 +2558,11 @@ export class AppService {
         readerModal.classList.toggle('touch-fullscreen', touchFullscreen);
         readerModal.classList.toggle('touch-enabled', isTouchDevice());
         if (touchFullscreen) {
+          setReaderUiVisible(false);
+        } else {
+          setReaderUiVisible(true);
+        }
+        if (touchFullscreen) {
           readerBodyOverflow = document.body.style.overflow;
           document.body.style.overflow = 'hidden';
         }
@@ -2482,6 +2576,9 @@ export class AppService {
         resetReaderState();
         readerFile = file;
         readerView.innerHTML = '<div class="empty">Loading reader...</div>';
+        const storedTheme = safeStorageGet('bmsReaderTheme');
+        readerTheme = storedTheme === 'dark' ? 'dark' : 'light';
+        applyReaderTheme(readerTheme, false);
 
         const format = file.format;
         if (format === '.pdf') {
@@ -2504,6 +2601,7 @@ export class AppService {
         readerModal.dataset.readerMode = 'none';
         readerModal.classList.remove('touch-fullscreen');
         readerModal.classList.remove('touch-enabled');
+        readerModal.classList.remove('reader-ui-visible');
         readerModal.classList.remove('active');
         readerModal.setAttribute('aria-hidden', 'true');
         if (readerBodyOverflow != null) {
@@ -2586,6 +2684,28 @@ export class AppService {
             spread: 'none',
             flow: 'paginated'
           });
+          applyReaderTheme(readerTheme, false);
+          if (!readerResizeBound) {
+            readerResizeBound = true;
+            window.addEventListener('resize', () => {
+              if (epubRendition) {
+                try {
+                  epubRendition.resize();
+                } catch {
+                  // ignore
+                }
+              }
+            });
+            window.addEventListener('orientationchange', () => {
+              if (epubRendition) {
+                try {
+                  epubRendition.resize();
+                } catch {
+                  // ignore
+                }
+              }
+            });
+          }
 
           const displayTarget = saved?.cfi ?? undefined;
           const displayPromise = epubRendition.display(displayTarget);
@@ -2599,6 +2719,11 @@ export class AppService {
           if (displayPromise && displayPromise.then) {
             displayPromise.then(() => {
               syncEpubLocation();
+              try {
+                epubRendition.resize();
+              } catch {
+                // ignore
+              }
             });
           }
           epubRendition.on('relocated', (location) => {
@@ -2614,10 +2739,13 @@ export class AppService {
                 const doc = iframeEl.contentDocument;
                 if (doc?.documentElement) {
                   doc.documentElement.style.overflow = 'hidden';
+                  doc.documentElement.style.height = '100%';
                 }
                 if (doc?.body) {
                   doc.body.style.overflow = 'hidden';
                   doc.body.style.margin = '0';
+                  doc.body.style.height = '100%';
+                  doc.body.style.boxSizing = 'border-box';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {

@@ -60,6 +60,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Touch-device reader initialization must declare its observer before use to avoid a script crash that blocks iPad auth boot.
 - Bookdarr connection wizard hides automatically when Bookdarr is configured (DB or env settings).
 - EPUB reader uses a touch gesture overlay for reliable swipe/tap navigation on iPad.
+- Reader supports a tap-to-toggle UI on touch devices plus light/dark EPUB themes and layout sizing fixes.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

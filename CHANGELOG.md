@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.49 — 2026-01-31 09:30 -06:00
+- Add EPUB reader UI toggling, dark mode theme support, and layout fixes for touch reading.
+
 ## 1.0.48 — 2026-01-31 09:16 -06:00
 - Add a touch gesture layer for EPUB reading so swipes/taps always advance pages on iPad.
 
