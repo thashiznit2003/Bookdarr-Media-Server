@@ -51,6 +51,7 @@
 - Client fetches now disable caching to avoid 304 responses without bodies (fixes Signed Out on iPad).
 - Server now injects verified auth/user bootstrap into the HTML and disables ETags to keep iPad signed in.
 - Root route now redirects to /login unless a valid bootstrap user is present.
+- Added a window.name-based auth bootstrap for Safari/iPad when cookies are blocked.
 
 ## Decisions
 - Stack: Node.js + NestJS

@@ -53,6 +53,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Auth and library fetches use `cache: no-store` to avoid 304 responses that can leave iPad showing Signed Out.
 - Server injects a verified auth bootstrap (token + user) into the HTML so iPad doesn’t depend on cached /api/me.
 - Root route redirects to /login when no bootstrap user is present to avoid signed-out shells.
+- Login now bootstraps via `window.name` + `?auth=1` to handle iPad/Safari cookie blocking.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

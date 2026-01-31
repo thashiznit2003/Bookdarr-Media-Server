@@ -77,10 +77,16 @@ export class AuthController {
       const response = await this.authService.setupFirstUser(request);
       this.setAuthCookies(res, response.tokens);
       if (response.tokens?.accessToken) {
-        const refresh = response.tokens.refreshToken ?? '';
-        return res.redirect(
-          `/#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(refresh)}`,
-        );
+        const payload = Buffer.from(
+          JSON.stringify({
+            accessToken: response.tokens.accessToken,
+            refreshToken: response.tokens.refreshToken ?? '',
+          }),
+          'utf8',
+        ).toString('base64');
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        res.setHeader('cache-control', 'no-store');
+        return res.send(`<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1');</script></body></html>`);
       }
       return res.redirect('/');
     } catch (error) {
@@ -102,10 +108,16 @@ export class AuthController {
       const response = await this.authService.login(request);
       this.setAuthCookies(res, response.tokens);
       if (response.tokens?.accessToken) {
-        const refresh = response.tokens.refreshToken ?? '';
-        return res.redirect(
-          `/#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(refresh)}`,
-        );
+        const payload = Buffer.from(
+          JSON.stringify({
+            accessToken: response.tokens.accessToken,
+            refreshToken: response.tokens.refreshToken ?? '',
+          }),
+          'utf8',
+        ).toString('base64');
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        res.setHeader('cache-control', 'no-store');
+        return res.send(`<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1');</script></body></html>`);
       }
       return res.redirect('/');
     } catch (error) {

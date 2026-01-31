@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.42 — 2026-01-31 08:18 -06:00
+- Add a Safari-safe login bootstrap using window.name + auth=1, so iPad sessions work even if cookies are blocked.
+
 ## 1.0.41 — 2026-01-31 08:12 -06:00
 - Redirect the root route to /login when there is no valid auth bootstrap, so iPad doesn’t land on a signed-out library shell.
 

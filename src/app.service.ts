@@ -1827,6 +1827,29 @@ export class AppService {
         return { accessToken, refreshToken };
       }
 
+      function readWindowNameTokens() {
+        const raw = window.name;
+        if (!raw || !raw.startsWith('bms:')) return null;
+        try {
+          const decoded = atob(raw.slice(4));
+          const parsed = JSON.parse(decoded);
+          if (!parsed?.accessToken) return null;
+          window.name = '';
+          return parsed;
+        } catch {
+          return null;
+        }
+      }
+
+      function clearAuthParams() {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('auth')) {
+          url.searchParams.delete('auth');
+        }
+        url.hash = '';
+        history.replaceState(null, '', url.toString());
+      }
+
       function clearHashTokens() {
         if (!window.location.hash) return;
         history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -1834,6 +1857,14 @@ export class AppService {
 
       async function restoreSession() {
         if (state.token) {
+          await ensureFreshToken();
+          loadCurrentUser();
+          return;
+        }
+        const windowTokens = readWindowNameTokens();
+        if (windowTokens?.accessToken) {
+          setAuth(windowTokens.accessToken, windowTokens.refreshToken ?? undefined);
+          clearAuthParams();
           await ensureFreshToken();
           loadCurrentUser();
           return;

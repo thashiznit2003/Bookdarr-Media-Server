@@ -18,7 +18,10 @@ export class AppController {
   async getIndex(@Req() req: Request, @Res() res: Response) {
     const bootstrap = await this.buildBootstrap(req);
     if (!bootstrap?.user) {
-      return res.redirect('/login');
+      const authParam = req.query?.auth;
+      if (authParam !== '1') {
+        return res.redirect('/login');
+      }
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
