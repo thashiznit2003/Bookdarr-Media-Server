@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.50 — 2026-01-31 13:22 -06:00
+- Keep the EPUB reader UI visible by default on touch devices, improve touch detection, and ensure swipe/tap handling works reliably.
+
 ## 1.0.49 — 2026-01-31 09:30 -06:00
 - Add EPUB reader UI toggling, dark mode theme support, and layout fixes for touch reading.
 

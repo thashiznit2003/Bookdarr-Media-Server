@@ -796,7 +796,7 @@ export class AppService {
         pointer-events: none;
       }
 
-      .reader-modal.touch-enabled .reader-gesture {
+      .reader-modal.touch-fullscreen .reader-gesture {
         pointer-events: auto;
       }
 
@@ -2272,7 +2272,12 @@ export class AppService {
       }
 
       function isTouchDevice() {
-        return ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
+        try {
+          const points = navigator?.maxTouchPoints || navigator?.msMaxTouchPoints || 0;
+          return ('ontouchstart' in window) || points > 0 || window.matchMedia('(pointer: coarse)').matches;
+        } catch {
+          return ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
+        }
       }
 
       function withToken(url) {
@@ -2558,7 +2563,7 @@ export class AppService {
         readerModal.classList.toggle('touch-fullscreen', touchFullscreen);
         readerModal.classList.toggle('touch-enabled', isTouchDevice());
         if (touchFullscreen) {
-          setReaderUiVisible(false);
+          setReaderUiVisible(true);
         } else {
           setReaderUiVisible(true);
         }
