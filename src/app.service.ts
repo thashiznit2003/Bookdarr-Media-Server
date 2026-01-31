@@ -3282,4 +3282,281 @@ export class AppService {
   </body>
 </html>`;
   }
+
+  getLoginHtml(): string {
+    return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BMS Login</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1115;
+        --panel: #1b2130;
+        --text: #f6f4ef;
+        --muted: #9aa4b2;
+        --accent: #f5b942;
+        --accent-soft: rgba(245, 185, 66, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top left, #222838 0%, #0f1115 55%) fixed;
+        color: var(--text);
+        font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      .login-shell {
+        width: min(420px, 92vw);
+        background: var(--panel);
+        border-radius: 20px;
+        padding: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 18px 40px rgba(5, 8, 20, 0.4);
+      }
+
+      .login-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 12px;
+      }
+
+      .version-tag {
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .login-sub {
+        color: var(--muted);
+        margin: 0 0 20px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(10, 12, 18, 0.7);
+        color: var(--text);
+        margin-bottom: 14px;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: none;
+        background: var(--accent);
+        color: #111;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .panel {
+        margin-top: 18px;
+      }
+
+      .status {
+        margin-top: 10px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        min-height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-shell">
+      <div class="login-brand">BMS <span class="version-tag">v${appVersion}</span></div>
+      <p class="login-sub">Sign in to your Bookdarr Media Server.</p>
+
+      <div id="setup-panel" class="panel" style="display: none;">
+        <label for="setup-username">Username</label>
+        <input id="setup-username" type="text" placeholder="admin" />
+        <label for="setup-email">Email</label>
+        <input id="setup-email" type="email" placeholder="admin@example.com" />
+        <label for="setup-password">Password</label>
+        <input id="setup-password" type="password" placeholder="Create a password" />
+        <button id="setup-submit">Create Admin</button>
+      </div>
+
+      <div id="login-panel" class="panel" style="display: none;">
+        <label for="login-username">Username</label>
+        <input id="login-username" type="text" placeholder="Username" />
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" placeholder="Password" />
+        <button id="login-submit">Log in</button>
+      </div>
+
+      <div id="login-status" class="status"></div>
+    </div>
+    <script>
+      const setupPanel = document.getElementById('setup-panel');
+      const loginPanel = document.getElementById('login-panel');
+      const loginStatus = document.getElementById('login-status');
+
+      function safeStorageGet(key) {
+        try { return localStorage.getItem(key); } catch { return null; }
+      }
+      function safeStorageSet(key, value) {
+        try { localStorage.setItem(key, value); return true; } catch { return false; }
+      }
+
+      function setStatus(message) {
+        if (loginStatus) loginStatus.textContent = message || '';
+      }
+
+      async function tryRefresh(refreshToken) {
+        if (!refreshToken) return false;
+        try {
+          const response = await fetch('/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+          if (!response.ok) return false;
+          const data = await response.json();
+          if (data?.accessToken) {
+            safeStorageSet('bmsAccessToken', data.accessToken);
+            if (data.refreshToken) {
+              safeStorageSet('bmsRefreshToken', data.refreshToken);
+            }
+            window.location.href = '/';
+            return true;
+          }
+        } catch {}
+        return false;
+      }
+
+      (async () => {
+        const cachedToken = safeStorageGet('bmsAccessToken');
+        const cachedRefresh = safeStorageGet('bmsRefreshToken');
+        if (cachedToken) {
+          window.location.href = '/';
+          return;
+        }
+        if (cachedRefresh) {
+          const refreshed = await tryRefresh(cachedRefresh);
+          if (refreshed) return;
+        }
+
+        fetch('/auth/setup')
+          .then((response) => response.json())
+          .then((data) => {
+            if (data?.required) {
+              setupPanel.style.display = 'block';
+              loginPanel.style.display = 'none';
+              setStatus('Create the first admin account.');
+            } else {
+              setupPanel.style.display = 'none';
+              loginPanel.style.display = 'block';
+              setStatus('');
+            }
+          })
+          .catch(() => {
+            setupPanel.style.display = 'none';
+            loginPanel.style.display = 'block';
+          });
+      })();
+
+      document.getElementById('login-submit')?.addEventListener('click', () => {
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        setStatus('Signing in...');
+        fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              setStatus(body?.message || 'Login failed.');
+              return;
+            }
+            safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
+            if (body?.tokens?.refreshToken) {
+              safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
+            }
+            window.location.href = '/';
+          })
+          .catch(() => setStatus('Login failed.'));
+      });
+
+      document.getElementById('setup-submit')?.addEventListener('click', () => {
+        const username = document.getElementById('setup-username').value;
+        const email = document.getElementById('setup-email').value;
+        const password = document.getElementById('setup-password').value;
+        setStatus('Creating admin...');
+        fetch('/auth/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              setStatus(body?.message || 'Setup failed.');
+              return;
+            }
+            safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
+            if (body?.tokens?.refreshToken) {
+              safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
+            }
+            window.location.href = '/';
+          })
+          .catch(() => setStatus('Setup failed.'));
+      });
+
+      ['login-username', 'login-password'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            document.getElementById('login-submit')?.click();
+          }
+        });
+      });
+
+      ['setup-username', 'setup-email', 'setup-password'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            document.getElementById('setup-submit')?.click();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>`;
+  }
 }

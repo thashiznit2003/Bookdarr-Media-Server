@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.31 — 2026-01-30 19:02 -06:00
+- Add a dedicated /login page with standalone markup so signed-out users see only auth fields.
+
 ## 1.0.30 — 2026-01-30 15:06 -06:00
 - Force redirect to the login page when unauthenticated on any route.
 

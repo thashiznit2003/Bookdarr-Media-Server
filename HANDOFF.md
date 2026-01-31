@@ -41,6 +41,7 @@
 - Touch reader now hides toolbars and shows overlay back/progress controls for a cleaner full-screen view.
 - Auth storage now guards localStorage access for iOS/Safari so login doesn’t break.
 - Unauthenticated users now redirect to `/login` on any route, preventing blank library states.
+- `/login` is now a dedicated page with standalone markup (no menus/sidebars when signed out).
 
 ## Decisions
 - Stack: Node.js + NestJS

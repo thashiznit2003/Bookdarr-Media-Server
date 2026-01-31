@@ -11,7 +11,13 @@ export class AppController {
     return this.appService.getIndexHtml();
   }
 
-  @Get(['downloads', 'diagnostics', 'settings', 'accounts', 'login', 'my-library'])
+  @Get('login')
+  @Header('content-type', 'text/html; charset=utf-8')
+  getLogin(): string {
+    return this.appService.getLoginHtml();
+  }
+
+  @Get(['downloads', 'diagnostics', 'settings', 'accounts', 'my-library'])
   @Header('content-type', 'text/html; charset=utf-8')
   getPage(): string {
     return this.appService.getIndexHtml();
