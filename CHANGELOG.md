@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.58 — 2026-01-31 16:13 -06:00
+- Enforce monotonic EPUB page numbering to prevent resets or backward jumps while reading.
+
 ## 1.0.57 — 2026-01-31 16:08 -06:00
 - Persist EPUB displayed-page offsets per viewport so page numbers remain stable after reopening.
 

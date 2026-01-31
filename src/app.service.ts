@@ -2625,36 +2625,50 @@ export class AppService {
             readerLastGlobalPage = fallbackPage;
             return { page: fallbackPage, total: null };
           }
+
           if (total && total > 0) {
             readerSectionTotals.set(sectionIndex, total);
           }
+
           if (!readerSectionOffsets.has(sectionIndex)) {
-            let offset = 0;
             if (sectionIndex === 0) {
-              offset = 0;
+              readerSectionOffsets.set(sectionIndex, 0);
             } else if (
               readerSectionOffsets.has(sectionIndex - 1) &&
               readerSectionTotals.has(sectionIndex - 1)
             ) {
               const prevOffset = readerSectionOffsets.get(sectionIndex - 1) ?? 0;
               const prevTotal = readerSectionTotals.get(sectionIndex - 1) ?? 0;
-              offset = prevOffset + prevTotal;
-            } else if (readerLastGlobalPage != null) {
-              offset = Math.max(0, readerLastGlobalPage - (page - 1));
+              readerSectionOffsets.set(sectionIndex, prevOffset + prevTotal);
             }
+          }
+
+          let offset = readerSectionOffsets.get(sectionIndex);
+          if (offset == null) {
+            if (readerLastSectionIndex == null) {
+              offset = 0;
+            } else if (sectionIndex === readerLastSectionIndex) {
+              offset = (readerLastGlobalPage ?? page) - (page - 1);
+            } else if (sectionIndex > readerLastSectionIndex) {
+              offset = (readerLastGlobalPage ?? 0);
+            } else {
+              offset = 0;
+            }
+            offset = Math.max(0, offset);
             readerSectionOffsets.set(sectionIndex, offset);
           }
-          let offset = readerSectionOffsets.get(sectionIndex) ?? 0;
+
           let globalPage = offset + page;
-          if (
-            readerLastGlobalPage != null &&
-            globalPage < readerLastGlobalPage - 1 &&
-            (readerLastSectionIndex == null || sectionIndex >= readerLastSectionIndex)
-          ) {
-            offset = Math.max(0, readerLastGlobalPage - (page - 1));
-            readerSectionOffsets.set(sectionIndex, offset);
-            globalPage = offset + page;
+          if (readerLastGlobalPage != null) {
+            if (sectionIndex === readerLastSectionIndex && globalPage < readerLastGlobalPage) {
+              globalPage = readerLastGlobalPage + 1;
+              readerSectionOffsets.set(sectionIndex, globalPage - page);
+            } else if (sectionIndex > readerLastSectionIndex && globalPage <= readerLastGlobalPage) {
+              globalPage = readerLastGlobalPage + 1;
+              readerSectionOffsets.set(sectionIndex, globalPage - page);
+            }
           }
+
           readerLastSectionIndex = sectionIndex;
           readerLastGlobalPage = globalPage;
 
