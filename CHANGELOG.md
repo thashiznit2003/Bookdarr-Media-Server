@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.46 — 2026-01-31 08:58 -06:00
+- Fix iPad login flow by initializing reader state before touch handlers to prevent a script crash that blocked auth bootstrap.
+
 ## 1.0.45 — 2026-01-31 08:44 -06:00
 - Add auth bootstrap fallback to URL hash and redirect back to /login if auth=1 fails to set a session.
 

@@ -1496,6 +1496,18 @@ export class AppService {
       const readerDownload = document.getElementById('reader-download');
       const readerView = document.getElementById('reader-view');
 
+      let pdfDoc = null;
+      let pdfPage = 1;
+      let epubBook = null;
+      let epubRendition = null;
+      let epubObjectUrl = null;
+      let epubLocationsReady = false;
+      let epubLocationsGenerating = false;
+      let readerBodyOverflow = null;
+      let readerMutationObserver = null;
+      let readerFile = null;
+      let currentDetail = null;
+
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
       });
@@ -2195,18 +2207,6 @@ export class AppService {
           // ignore storage errors
         }
       }
-
-      let pdfDoc = null;
-      let pdfPage = 1;
-      let epubBook = null;
-      let epubRendition = null;
-      let epubObjectUrl = null;
-      let epubLocationsReady = false;
-      let epubLocationsGenerating = false;
-      let readerBodyOverflow = null;
-      let readerMutationObserver = null;
-      let readerFile = null;
-      let currentDetail = null;
 
       function resetReaderState() {
         if (epubRendition) {
