@@ -53,6 +53,7 @@
 - Root route now redirects to /login unless a valid bootstrap user is present.
 - Added a window.name-based auth bootstrap for Safari/iPad when cookies are blocked.
 - Login page now clears stored auth tokens/cookies on load for a fresh session every visit.
+- Added a client-side auth guard that redirects signed-out sessions back to /login immediately.
 
 ## Decisions
 - Stack: Node.js + NestJS

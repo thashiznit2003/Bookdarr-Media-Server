@@ -55,6 +55,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Root route redirects to /login when no bootstrap user is present to avoid signed-out shells.
 - Login now bootstraps via `window.name` + `?auth=1` to handle iPad/Safari cookie blocking.
 - Login page now clears stored auth tokens/cookies on load to force a fresh sign-in each time.
+- Client-side guard redirects to /login if the UI detects a signed-out session on any app page.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

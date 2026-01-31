@@ -1423,6 +1423,7 @@ export class AppService {
       const isLibraryPage = activePage === 'library' || activePage === 'my-library';
       const isMyLibraryPage = activePage === 'my-library';
       const isLoginPage = activePage === 'login';
+      const authParam = new URLSearchParams(window.location.search).get('auth');
       const libraryFilterSelect = document.getElementById('library-filter');
       const myLibraryFilterSelect = document.getElementById('my-library-filter');
 
@@ -1516,6 +1517,10 @@ export class AppService {
 
       if (wizardPanel) {
         wizardPanel.style.display = 'none';
+      }
+
+      if (!bootstrap?.user && authParam !== '1') {
+        window.location.replace('/login?reason=unauth');
       }
 
       libraryGrid?.addEventListener('click', (event) => {
@@ -1651,6 +1656,9 @@ export class AppService {
           userAvatar.textContent = '?';
           userLabel.textContent = 'Signed out';
           userMenu.style.display = 'none';
+          if (!isLoginPage) {
+            window.location.replace('/login?reason=unauth');
+          }
           return;
         }
         const letter = (user.username || user.email || 'U')[0]?.toUpperCase() ?? 'U';

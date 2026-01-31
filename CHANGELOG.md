@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.44 — 2026-01-31 08:39 -06:00
+- Add client-side auth guard to immediately redirect signed-out sessions back to /login.
+
 ## 1.0.43 — 2026-01-31 08:34 -06:00
 - Clear all stored auth tokens/cookies on the login page so each visit starts clean.
 
