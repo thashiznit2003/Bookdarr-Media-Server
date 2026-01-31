@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.56 — 2026-01-31 16:01 -06:00
+- Stabilize EPUB page numbers by resolving section indices and preventing resets when moving through the spine.
+
 ## 1.0.55 — 2026-01-31 15:56 -06:00
 - Restore swipe navigation by letting the gesture layer capture touches while preserving overlay buttons.
 

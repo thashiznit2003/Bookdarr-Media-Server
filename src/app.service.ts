@@ -1647,10 +1647,15 @@ export class AppService {
       readerPrevArrow?.addEventListener('click', goPrev);
       readerNextArrow?.addEventListener('click', goNext);
       readerThemeToggle?.addEventListener('click', () => {
+        setReaderUiVisible(true);
         applyReaderTheme(readerTheme === 'dark' ? 'light' : 'dark');
       });
       readerThemeToggleInline?.addEventListener('click', () => {
+        setReaderUiVisible(true);
         applyReaderTheme(readerTheme === 'dark' ? 'light' : 'dark');
+      });
+      readerBack?.addEventListener('click', () => {
+        setReaderUiVisible(true);
       });
 
       const swipeTargets = new WeakSet();
@@ -2532,33 +2537,72 @@ export class AppService {
         const percentage = formatPercent(start?.percentage ?? null);
         let pageText = null;
 
+        const resolveSectionIndex = () => {
+          const direct = start?.index ?? location?.index;
+          if (typeof direct === 'number') {
+            return direct;
+          }
+          const href = start?.href ?? location?.href;
+          if (href && epubBook?.spine?.get) {
+            try {
+              const item = epubBook.spine.get(href);
+              if (item && typeof item.index === 'number') {
+                return item.index;
+              }
+            } catch {
+              // ignore
+            }
+          }
+          if (href && epubBook?.spine?.items) {
+            const index = epubBook.spine.items.findIndex((item) => item?.href === href);
+            return index >= 0 ? index : null;
+          }
+          return null;
+        };
+
         const displayedInfo = (() => {
           const displayed = start?.displayed ?? location?.displayed;
           const page = displayed?.page;
           const total = displayed?.total;
-          const sectionIndex = start?.index ?? location?.index;
-          if (page == null || total == null || sectionIndex == null) {
+          if (page == null) {
             return null;
           }
-          if (total > 0) {
+          const sectionIndex = resolveSectionIndex();
+          if (sectionIndex == null) {
+            const fallbackPage = readerLastGlobalPage ?? page;
+            readerLastGlobalPage = fallbackPage;
+            return { page: fallbackPage, total: null };
+          }
+          if (total && total > 0) {
             readerSectionTotals.set(sectionIndex, total);
           }
           if (!readerSectionOffsets.has(sectionIndex)) {
+            let offset = 0;
             if (sectionIndex === 0) {
-              readerSectionOffsets.set(sectionIndex, 0);
+              offset = 0;
             } else if (
               readerSectionOffsets.has(sectionIndex - 1) &&
               readerSectionTotals.has(sectionIndex - 1)
             ) {
-              const prevOffset = readerSectionOffsets.get(sectionIndex - 1);
-              const prevTotal = readerSectionTotals.get(sectionIndex - 1);
-              readerSectionOffsets.set(sectionIndex, (prevOffset ?? 0) + (prevTotal ?? 0));
+              const prevOffset = readerSectionOffsets.get(sectionIndex - 1) ?? 0;
+              const prevTotal = readerSectionTotals.get(sectionIndex - 1) ?? 0;
+              offset = prevOffset + prevTotal;
             } else if (readerLastGlobalPage != null) {
-              readerSectionOffsets.set(sectionIndex, Math.max(0, readerLastGlobalPage - page));
+              offset = Math.max(0, readerLastGlobalPage - (page - 1));
             }
+            readerSectionOffsets.set(sectionIndex, offset);
           }
-          const offset = readerSectionOffsets.get(sectionIndex) ?? 0;
-          const globalPage = offset + page;
+          let offset = readerSectionOffsets.get(sectionIndex) ?? 0;
+          let globalPage = offset + page;
+          if (
+            readerLastGlobalPage != null &&
+            globalPage < readerLastGlobalPage - 1 &&
+            (readerLastSectionIndex == null || sectionIndex >= readerLastSectionIndex)
+          ) {
+            offset = Math.max(0, readerLastGlobalPage - (page - 1));
+            readerSectionOffsets.set(sectionIndex, offset);
+            globalPage = offset + page;
+          }
           readerLastSectionIndex = sectionIndex;
           readerLastGlobalPage = globalPage;
 
