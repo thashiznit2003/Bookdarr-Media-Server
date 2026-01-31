@@ -1681,6 +1681,10 @@ export class AppService {
         return state.token ? { Authorization: 'Bearer ' + state.token } : {};
       }
 
+      function isAuthenticated() {
+        return Boolean(state.token || readCookie('bmsAccessToken') || readCookie('bmsLoggedIn'));
+      }
+
       function parseTokenExpiry(token) {
         if (!token || !token.includes('.')) return null;
         try {
@@ -1696,14 +1700,12 @@ export class AppService {
 
       async function refreshAuthToken() {
         const refreshToken = safeStorageGet('bmsRefreshToken') ?? readCookie('bmsRefreshToken');
-        if (!refreshToken) {
-          return false;
-        }
         try {
           const response = await fetch('/auth/refresh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken }),
+            credentials: 'same-origin',
+            body: JSON.stringify(refreshToken ? { refreshToken } : {}),
           });
           if (!response.ok) {
             setAuth(null);
@@ -1755,7 +1757,11 @@ export class AppService {
           ...(options?.headers ?? {}),
           ...authHeaders(),
         };
-        const response = await fetch(url, { ...(options ?? {}), headers });
+        const response = await fetch(url, {
+          ...(options ?? {}),
+          headers,
+          credentials: options?.credentials ?? 'same-origin',
+        });
         if (response.status === 401 && retry) {
           const refreshed = await refreshAuthToken();
           if (refreshed) {
@@ -1830,8 +1836,18 @@ export class AppService {
           setAuthCookie(false);
         }
       }
-
-      restoreSession();
+      (async () => {
+        await restoreSession();
+        fetch('/auth/setup')
+          .then((response) => response.json())
+          .then(handleSetupStatus)
+          .catch(() => {
+            if (!isAuthenticated() && !isLoginPage) {
+              setAuthCookie(false);
+              window.location.href = '/login';
+            }
+          });
+      })();
 
       function loadAuthSecretsStatus() {
         fetch('/api/settings/auth')
@@ -2991,7 +3007,7 @@ export class AppService {
           if (wizardPanel && activePage === 'library') {
             wizardPanel.style.display = state.token ? 'block' : 'none';
           }
-          if (!state.token && !isLoginPage) {
+          if (!isAuthenticated() && !isLoginPage) {
             setAuthCookie(false);
             window.location.href = '/login';
           }
@@ -3004,16 +3020,6 @@ export class AppService {
         }
       }
 
-      fetch('/auth/setup')
-        .then((response) => response.json())
-        .then(handleSetupStatus)
-        .catch(() => {
-          if (!state.token && !isLoginPage) {
-            setAuthCookie(false);
-            window.location.href = '/login';
-          }
-        });
-
       loadAuthSecretsStatus();
 
       setupButton?.addEventListener('click', () => {
@@ -3025,6 +3031,7 @@ export class AppService {
         fetch('/auth/setup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({ username, email, password }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
@@ -3050,6 +3057,7 @@ export class AppService {
         fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({ username, password }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
@@ -3104,15 +3112,11 @@ export class AppService {
 
       logoutButton?.addEventListener('click', () => {
         const refreshToken = safeStorageGet('bmsRefreshToken');
-        if (!refreshToken) {
-          setAuth(null);
-          window.location.href = '/login';
-          return;
-        }
         fetch('/auth/logout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
+          credentials: 'same-origin',
+          body: JSON.stringify(refreshToken ? { refreshToken } : {}),
         })
           .finally(() => {
             setAuth(null);
@@ -3622,6 +3626,7 @@ export class AppService {
         fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({ username, password })
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
@@ -3656,6 +3661,7 @@ export class AppService {
         fetch('/auth/setup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({ username, email, password })
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))

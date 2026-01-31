@@ -22,6 +22,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           const token = request?.query?.token ?? request?.query?.accessToken;
           return typeof token === 'string' ? token : null;
         },
+        (request) => {
+          const raw = request?.headers?.cookie;
+          if (!raw) return null;
+          const token = raw
+            .split(';')
+            .map((part) => part.trim())
+            .find((part) => part.startsWith('bmsAccessToken='));
+          if (!token) return null;
+          return decodeURIComponent(token.slice('bmsAccessToken='.length));
+        },
       ]),
       ignoreExpiration: false,
       secretOrKeyProvider: async (request, rawJwtToken, done) => {
