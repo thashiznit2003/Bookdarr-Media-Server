@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.41 — 2026-01-31 08:12 -06:00
+- Redirect the root route to /login when there is no valid auth bootstrap, so iPad doesn’t land on a signed-out library shell.
+
 ## 1.0.40 — 2026-01-31 08:08 -06:00
 - Fix ETag disabling for Nest by targeting the underlying HTTP adapter.
 
