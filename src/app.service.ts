@@ -793,6 +793,10 @@ export class AppService {
       }
 
       .reader-modal.touch-fullscreen .reader-gesture {
+        pointer-events: none;
+      }
+
+      .reader-modal.touch-fullscreen.reader-ui-hidden .reader-gesture {
         pointer-events: auto;
       }
 
@@ -1400,7 +1404,7 @@ export class AppService {
       <div id="reader-modal" class="reader-modal" aria-hidden="true">
         <div class="reader-card">
           <button class="reader-close" id="reader-close">✕</button>
-          <div class="reader-overlay">
+          <div class="reader-overlay" id="reader-overlay">
             <button class="reader-back" id="reader-back">Back</button>
             <div class="reader-overlay-actions">
               <button class="reader-back reader-theme-toggle" id="reader-theme-toggle">Dark mode</button>
@@ -1542,6 +1546,7 @@ export class AppService {
       const readerDownload = document.getElementById('reader-download');
       const readerThemeToggle = document.getElementById('reader-theme-toggle');
       const readerThemeToggleInline = document.getElementById('reader-theme-toggle-inline');
+      const readerOverlay = document.getElementById('reader-overlay');
       const readerGesture = document.getElementById('reader-gesture');
       const readerView = document.getElementById('reader-view');
 
@@ -1560,6 +1565,10 @@ export class AppService {
       let readerResizeBound = false;
       let readerUiVisible = true;
       let readerHistoryPushed = false;
+      let readerSectionTotals = new Map();
+      let readerSectionOffsets = new Map();
+      let readerLastSectionIndex = null;
+      let readerLastGlobalPage = null;
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1693,11 +1702,15 @@ export class AppService {
         let startX = null;
         let startY = null;
         const onEnd = (endX, endY, eventTarget) => {
-          if (eventTarget && eventTarget.closest && (
-            eventTarget.closest('.reader-arrow') ||
-            eventTarget.closest('.reader-back') ||
-            eventTarget.closest('.reader-theme-toggle')
-          )) {
+          const overlayRect = readerOverlay?.getBoundingClientRect?.();
+          const navRect = readerNavOverlay?.getBoundingClientRect?.();
+          const withinOverlay = overlayRect
+            ? endX >= overlayRect.left && endX <= overlayRect.right && endY >= overlayRect.top && endY <= overlayRect.bottom
+            : false;
+          const withinNav = navRect
+            ? endX >= navRect.left && endX <= navRect.right && endY >= navRect.top && endY <= navRect.bottom
+            : false;
+          if (withinOverlay || withinNav) {
             startX = null;
             startY = null;
             return;
@@ -2379,6 +2392,10 @@ export class AppService {
         pdfDoc = null;
         pdfPage = 1;
         readerFile = null;
+        readerSectionTotals = new Map();
+        readerSectionOffsets = new Map();
+        readerLastSectionIndex = null;
+        readerLastGlobalPage = null;
         if (readerView) {
           readerView.innerHTML = '';
         }
@@ -2445,6 +2462,7 @@ export class AppService {
         if (!readerModal) return;
         readerUiVisible = Boolean(visible);
         readerModal.classList.toggle('reader-ui-visible', visible);
+        readerModal.classList.toggle('reader-ui-hidden', !visible);
       }
 
       function toggleReaderUi() {
@@ -2513,7 +2531,59 @@ export class AppService {
         const percentage = formatPercent(start?.percentage ?? null);
         let pageText = null;
 
-        if (cfi && epubBook && epubBook.locations && epubLocationsReady) {
+        const displayedInfo = (() => {
+          const displayed = start?.displayed ?? location?.displayed;
+          const page = displayed?.page;
+          const total = displayed?.total;
+          const sectionIndex = start?.index ?? location?.index;
+          if (page == null || total == null || sectionIndex == null) {
+            return null;
+          }
+          if (total > 0) {
+            readerSectionTotals.set(sectionIndex, total);
+          }
+          if (!readerSectionOffsets.has(sectionIndex)) {
+            if (sectionIndex === 0) {
+              readerSectionOffsets.set(sectionIndex, 0);
+            } else if (
+              readerSectionOffsets.has(sectionIndex - 1) &&
+              readerSectionTotals.has(sectionIndex - 1)
+            ) {
+              const prevOffset = readerSectionOffsets.get(sectionIndex - 1);
+              const prevTotal = readerSectionTotals.get(sectionIndex - 1);
+              readerSectionOffsets.set(sectionIndex, (prevOffset ?? 0) + (prevTotal ?? 0));
+            } else if (readerLastGlobalPage != null) {
+              readerSectionOffsets.set(sectionIndex, Math.max(0, readerLastGlobalPage - page));
+            }
+          }
+          const offset = readerSectionOffsets.get(sectionIndex) ?? 0;
+          const globalPage = offset + page;
+          readerLastSectionIndex = sectionIndex;
+          readerLastGlobalPage = globalPage;
+
+          let totalPages = null;
+          const spineLength = epubBook?.spine?.items?.length ?? epubBook?.spine?.length ?? 0;
+          if (spineLength && readerSectionTotals.size >= spineLength) {
+            let sum = 0;
+            let complete = true;
+            for (let i = 0; i < spineLength; i += 1) {
+              const sectionTotal = readerSectionTotals.get(i);
+              if (!sectionTotal) {
+                complete = false;
+                break;
+              }
+              sum += sectionTotal;
+            }
+            if (complete) {
+              totalPages = sum;
+            }
+          }
+          return { page: globalPage, total: totalPages };
+        })();
+
+        if (displayedInfo?.page) {
+          pageText = 'Page ' + displayedInfo.page + (displayedInfo.total ? ' / ' + displayedInfo.total : '');
+        } else if (cfi && epubBook && epubBook.locations && epubLocationsReady) {
           const total = getEpubLocationsTotal();
           const index = epubBook.locations.locationFromCfi(cfi);
           if (total && index != null && index >= 0) {

@@ -65,6 +65,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - EPUB reader now prefers displayed page numbers and enforces single-page spreads with improved gesture handling.
 - EPUB reader now mirrors Bookdarr’s render defaults and re-applies themes per section for reliable pagination/visibility.
 - EPUB reader page numbers now use location-based counts for stable sequential paging.
+- EPUB reader now uses per-chapter displayed page totals for sequential page numbers and improved overlay gestures.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

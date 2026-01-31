@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.54 — 2026-01-31 15:38 -06:00
+- Fix EPUB overlay interactions and compute displayed-page numbering per chapter for sequential page counts.
+
 ## 1.0.53 — 2026-01-31 15:23 -06:00
 - Fix EPUB page numbering to use location-based counts for consistent sequential paging.
 
