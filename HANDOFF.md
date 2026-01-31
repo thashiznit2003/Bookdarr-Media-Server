@@ -52,6 +52,7 @@
 - Server now injects verified auth/user bootstrap into the HTML and disables ETags to keep iPad signed in.
 - Root route now redirects to /login unless a valid bootstrap user is present.
 - Added a window.name-based auth bootstrap for Safari/iPad when cookies are blocked.
+- Login page now clears stored auth tokens/cookies on load for a fresh session every visit.
 
 ## Decisions
 - Stack: Node.js + NestJS

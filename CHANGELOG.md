@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.43 — 2026-01-31 08:34 -06:00
+- Clear all stored auth tokens/cookies on the login page so each visit starts clean.
+
 ## 1.0.42 — 2026-01-31 08:18 -06:00
 - Add a Safari-safe login bootstrap using window.name + auth=1, so iPad sessions work even if cookies are blocked.
 

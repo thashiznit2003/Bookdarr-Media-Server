@@ -3497,6 +3497,28 @@ export class AppService {
       const loginPanel = document.getElementById('login-panel');
       const loginStatus = document.getElementById('login-status');
 
+      function clearStoredAuth() {
+        try { localStorage.removeItem('bmsAccessToken'); } catch {}
+        try { localStorage.removeItem('bmsRefreshToken'); } catch {}
+        try { sessionStorage.clear(); } catch {}
+        try { window.name = ''; } catch {}
+        const cookies = ['bmsAccessToken', 'bmsRefreshToken', 'bmsLoggedIn'];
+        cookies.forEach((name) => {
+          document.cookie = name + '=; path=/; max-age=0; samesite=lax';
+        });
+        try {
+          if (window.caches && caches.keys) {
+            caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
+          }
+        } catch {}
+        fetch('/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({}),
+        }).catch(() => {});
+      }
+
       function safeStorageGet(key) {
         try { return localStorage.getItem(key); } catch { return null; }
       }
@@ -3573,6 +3595,7 @@ export class AppService {
       }
 
       (async () => {
+        clearStoredAuth();
         const cachedToken = safeStorageGet('bmsAccessToken');
         const cachedRefresh = safeStorageGet('bmsRefreshToken');
         const cookieToken = readCookie('bmsAccessToken');
