@@ -793,10 +793,6 @@ export class AppService {
       }
 
       .reader-modal.touch-fullscreen .reader-gesture {
-        pointer-events: none;
-      }
-
-      .reader-modal.touch-fullscreen.reader-ui-hidden .reader-gesture {
         pointer-events: auto;
       }
 
@@ -1703,14 +1699,19 @@ export class AppService {
         let startY = null;
         const onEnd = (endX, endY, eventTarget) => {
           const overlayRect = readerOverlay?.getBoundingClientRect?.();
-          const navRect = readerNavOverlay?.getBoundingClientRect?.();
           const withinOverlay = overlayRect
             ? endX >= overlayRect.left && endX <= overlayRect.right && endY >= overlayRect.top && endY <= overlayRect.bottom
             : false;
-          const withinNav = navRect
-            ? endX >= navRect.left && endX <= navRect.right && endY >= navRect.top && endY <= navRect.bottom
-            : false;
-          if (withinOverlay || withinNav) {
+          if (eventTarget && eventTarget.closest && (
+            eventTarget.closest('.reader-arrow') ||
+            eventTarget.closest('.reader-back') ||
+            eventTarget.closest('.reader-theme-toggle')
+          )) {
+            startX = null;
+            startY = null;
+            return;
+          }
+          if (withinOverlay) {
             startX = null;
             startY = null;
             return;

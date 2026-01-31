@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.55 — 2026-01-31 15:56 -06:00
+- Restore swipe navigation by letting the gesture layer capture touches while preserving overlay buttons.
+
 ## 1.0.54 — 2026-01-31 15:38 -06:00
 - Fix EPUB overlay interactions and compute displayed-page numbering per chapter for sequential page counts.
 
