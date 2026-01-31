@@ -1566,8 +1566,8 @@ export class AppService {
       let readerLastSectionIndex = null;
       let readerLastGlobalPage = null;
       let readerPageMapKey = null;
-      let readerNavDirection = null;
-      const readerPageMapVersion = 2;
+      let readerNavPending = 0;
+      const readerPageMapVersion = 3;
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1629,7 +1629,7 @@ export class AppService {
       });
 
       const goPrev = () => {
-        readerNavDirection = 'prev';
+        readerNavPending = Math.max(readerNavPending - 1, -10);
         if (epubRendition) {
           epubRendition.prev();
         } else if (pdfDoc) {
@@ -1638,7 +1638,7 @@ export class AppService {
         }
       };
       const goNext = () => {
-        readerNavDirection = 'next';
+        readerNavPending = Math.min(readerNavPending + 1, 10);
         if (epubRendition) {
           epubRendition.next();
         } else if (pdfDoc) {
@@ -2408,7 +2408,7 @@ export class AppService {
         readerLastSectionIndex = null;
         readerLastGlobalPage = null;
         readerPageMapKey = null;
-        readerNavDirection = null;
+        readerNavPending = 0;
         if (readerView) {
           readerView.innerHTML = '';
         }
@@ -2676,19 +2676,20 @@ export class AppService {
           }
 
           let globalPage = offset + page;
-          if (readerLastGlobalPage != null) {
-            if (readerNavDirection === 'next' && globalPage <= readerLastGlobalPage) {
+          if (readerLastGlobalPage != null && readerNavPending !== 0) {
+            if (readerNavPending > 0) {
               globalPage = readerLastGlobalPage + 1;
+              readerNavPending -= 1;
               readerSectionOffsets.set(sectionIndex, globalPage - page);
-            } else if (readerNavDirection === 'prev' && globalPage >= readerLastGlobalPage) {
+            } else if (readerNavPending < 0) {
               globalPage = Math.max(1, readerLastGlobalPage - 1);
+              readerNavPending += 1;
               readerSectionOffsets.set(sectionIndex, globalPage - page);
             }
           }
 
           readerLastSectionIndex = sectionIndex;
           readerLastGlobalPage = globalPage;
-          readerNavDirection = null;
 
           let totalPages = null;
           const spineLength = epubBook?.spine?.items?.length ?? epubBook?.spine?.length ?? 0;

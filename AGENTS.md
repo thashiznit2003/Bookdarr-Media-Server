@@ -71,6 +71,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - EPUB page offsets are now persisted per file + viewport so page numbers stay stable after reopening.
 - EPUB page numbering now enforces monotonic increases to avoid backward jumps.
 - EPUB page numbering now rebases on the first visible page and uses nav direction to avoid early jumps.
+- EPUB page numbers now follow explicit page-turn actions to prevent fast-swipe drift.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

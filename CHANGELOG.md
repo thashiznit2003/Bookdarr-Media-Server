@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.60 — 2026-01-31 17:31 -06:00
+- Tie EPUB page numbers to explicit page turns to stop fast-swiping from skewing the counter.
+
 ## 1.0.59 — 2026-01-31 16:26 -06:00
 - Rebase EPUB page numbering on the first seen page and apply navigation-aware offsets to stop initial jumps.
 
