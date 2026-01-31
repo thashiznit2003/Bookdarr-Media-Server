@@ -768,6 +768,17 @@ export class AppService {
         display: none;
       }
 
+      .reader-gesture {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+      }
+
+      .reader-modal.touch-enabled .reader-gesture {
+        pointer-events: auto;
+      }
+
       .reader-arrow {
         width: 44px;
         height: 44px;
@@ -842,6 +853,7 @@ export class AppService {
         color: var(--text);
         font-size: 1.1rem;
         cursor: pointer;
+        z-index: 7;
       }
 
       .reader-modal.touch-fullscreen .reader-close {
@@ -1380,6 +1392,7 @@ export class AppService {
             <button class="reader-arrow" id="reader-prev-arrow" aria-label="Previous page">‹</button>
             <button class="reader-arrow" id="reader-next-arrow" aria-label="Next page">›</button>
           </div>
+          <div class="reader-gesture" id="reader-gesture" aria-hidden="true"></div>
           <div class="reader-view" id="reader-view"></div>
         </div>
       </div>
@@ -1495,6 +1508,7 @@ export class AppService {
       const readerPrevArrow = document.getElementById('reader-prev-arrow');
       const readerNextArrow = document.getElementById('reader-next-arrow');
       const readerDownload = document.getElementById('reader-download');
+      const readerGesture = document.getElementById('reader-gesture');
       const readerView = document.getElementById('reader-view');
 
       let pdfDoc = null;
@@ -1628,6 +1642,51 @@ export class AppService {
         }, { passive: true });
       }
 
+      function attachReaderGesture(target) {
+        if (!target || !isTouchDevice()) {
+          return;
+        }
+        let startX = null;
+        let startY = null;
+        target.addEventListener('touchstart', (event) => {
+          if (!event.touches || event.touches.length !== 1) return;
+          startX = event.touches[0].clientX;
+          startY = event.touches[0].clientY;
+        }, { passive: true });
+        target.addEventListener('touchend', (event) => {
+          if (startX == null || startY == null || !event.changedTouches || event.changedTouches.length !== 1) {
+            startX = null;
+            startY = null;
+            return;
+          }
+          const endX = event.changedTouches[0].clientX;
+          const endY = event.changedTouches[0].clientY;
+          const deltaX = endX - startX;
+          const deltaY = endY - startY;
+          startX = null;
+          startY = null;
+          if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (deltaX < 0) {
+              animatePageTurn('next');
+              goNext();
+            } else {
+              animatePageTurn('prev');
+              goPrev();
+            }
+            return;
+          }
+          const rect = target.getBoundingClientRect();
+          const relativeX = (endX - rect.left) / rect.width;
+          if (relativeX < 0.35) {
+            animatePageTurn('prev');
+            goPrev();
+          } else if (relativeX > 0.65) {
+            animatePageTurn('next');
+            goNext();
+          }
+        }, { passive: true });
+      }
+
       function attachSwipeToIframe(iframe) {
         if (!iframe) return;
         attachSwipeTarget(iframe);
@@ -1646,6 +1705,7 @@ export class AppService {
       }
 
       attachSwipeTarget(readerView);
+      attachReaderGesture(readerGesture);
       scanReaderIframes();
 
       if (readerView && isTouchDevice()) {
@@ -2407,6 +2467,7 @@ export class AppService {
         readerModal.dataset.readerMode = file.format === '.epub' ? 'epub' : (file.format === '.pdf' ? 'pdf' : 'other');
         const touchFullscreen = isTouchDevice() && file.format === '.epub';
         readerModal.classList.toggle('touch-fullscreen', touchFullscreen);
+        readerModal.classList.toggle('touch-enabled', isTouchDevice());
         if (touchFullscreen) {
           readerBodyOverflow = document.body.style.overflow;
           document.body.style.overflow = 'hidden';
@@ -2442,6 +2503,7 @@ export class AppService {
         resetReaderState();
         readerModal.dataset.readerMode = 'none';
         readerModal.classList.remove('touch-fullscreen');
+        readerModal.classList.remove('touch-enabled');
         readerModal.classList.remove('active');
         readerModal.setAttribute('aria-hidden', 'true');
         if (readerBodyOverflow != null) {

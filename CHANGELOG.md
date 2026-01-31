@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.48 — 2026-01-31 09:16 -06:00
+- Add a touch gesture layer for EPUB reading so swipes/taps always advance pages on iPad.
+
 ## 1.0.47 — 2026-01-31 09:10 -06:00
 - Hide the Bookdarr connection wizard once a Bookdarr config is detected (including env-only configs).
 
