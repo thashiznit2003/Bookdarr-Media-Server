@@ -1,6 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
-## 1.0.32 — 2026-01-31 20:05 -06:00
+## 1.0.33 — 2026-01-30 20:09 -06:00
+- Persist auth tokens in cookies as a fallback so iPad/Safari stays signed in after login.
+
+## 1.0.32 — 2026-01-30 20:05 -06:00
 - Add login cookie + server-side redirects so iPad/Safari consistently lands on the /login page when signed out.
 
 ## 1.0.31 — 2026-01-30 19:02 -06:00

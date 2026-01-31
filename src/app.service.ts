@@ -1649,6 +1649,7 @@ export class AppService {
         state.token = token;
         if (token) {
           setAuthCookie(true);
+          setTokenCookies(token, refreshToken ?? safeStorageGet('bmsRefreshToken'));
           safeStorageSet('bmsAccessToken', token);
           if (refreshToken) {
             safeStorageSet('bmsRefreshToken', refreshToken);
@@ -1663,6 +1664,7 @@ export class AppService {
           loadCurrentUser();
         } else {
           setAuthCookie(false);
+          setTokenCookies(null, null);
           safeStorageRemove('bmsAccessToken');
           safeStorageRemove('bmsRefreshToken');
           setBookdarrEnabled(false);
@@ -1693,7 +1695,7 @@ export class AppService {
       }
 
       async function refreshAuthToken() {
-        const refreshToken = safeStorageGet('bmsRefreshToken');
+        const refreshToken = safeStorageGet('bmsRefreshToken') ?? readCookie('bmsRefreshToken');
         if (!refreshToken) {
           return false;
         }
@@ -1782,13 +1784,17 @@ export class AppService {
       async function restoreSession() {
         const cachedToken = safeStorageGet('bmsAccessToken');
         const cachedRefresh = safeStorageGet('bmsRefreshToken');
-        if (cachedToken) {
-          setAuth(cachedToken, cachedRefresh ?? undefined);
+        const cookieToken = readCookie('bmsAccessToken');
+        const cookieRefresh = readCookie('bmsRefreshToken');
+        const accessToken = cachedToken || cookieToken;
+        const refreshToken = cachedRefresh || cookieRefresh;
+        if (accessToken) {
+          setAuth(accessToken, refreshToken ?? undefined);
           await ensureFreshToken();
           loadCurrentUser();
           return;
         }
-        if (cachedRefresh) {
+        if (refreshToken) {
           await refreshAuthToken();
         }
         if (!state.token) {
@@ -2018,6 +2024,34 @@ export class AppService {
           return;
         }
         document.cookie = 'bmsLoggedIn=; path=/; max-age=0; samesite=lax';
+      }
+
+      function readCookie(name) {
+        const raw = document.cookie;
+        if (!raw) return null;
+        const parts = raw.split(';');
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (!trimmed) continue;
+          if (trimmed.startsWith(name + '=')) {
+            return decodeURIComponent(trimmed.slice(name.length + 1));
+          }
+        }
+        return null;
+      }
+
+      function setTokenCookies(accessToken, refreshToken) {
+        const maxAge = 60 * 60 * 24 * 30;
+        if (accessToken) {
+          document.cookie = 'bmsAccessToken=' + encodeURIComponent(accessToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
+        } else {
+          document.cookie = 'bmsAccessToken=; path=/; max-age=0; samesite=lax';
+        }
+        if (refreshToken) {
+          document.cookie = 'bmsRefreshToken=' + encodeURIComponent(refreshToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
+        } else {
+          document.cookie = 'bmsRefreshToken=; path=/; max-age=0; samesite=lax';
+        }
       }
 
       function isTouchDevice() {
@@ -3446,6 +3480,20 @@ export class AppService {
         try { localStorage.setItem(key, value); return true; } catch { return false; }
       }
 
+      function readCookie(name) {
+        const raw = document.cookie;
+        if (!raw) return null;
+        const parts = raw.split(';');
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (!trimmed) continue;
+          if (trimmed.startsWith(name + '=')) {
+            return decodeURIComponent(trimmed.slice(name.length + 1));
+          }
+        }
+        return null;
+      }
+
       function setAuthCookie(enabled) {
         const maxAge = 60 * 60 * 24 * 30;
         if (enabled) {
@@ -3453,6 +3501,20 @@ export class AppService {
           return;
         }
         document.cookie = 'bmsLoggedIn=; path=/; max-age=0; samesite=lax';
+      }
+
+      function setTokenCookies(accessToken, refreshToken) {
+        const maxAge = 60 * 60 * 24 * 30;
+        if (accessToken) {
+          document.cookie = 'bmsAccessToken=' + encodeURIComponent(accessToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
+        } else {
+          document.cookie = 'bmsAccessToken=; path=/; max-age=0; samesite=lax';
+        }
+        if (refreshToken) {
+          document.cookie = 'bmsRefreshToken=' + encodeURIComponent(refreshToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
+        } else {
+          document.cookie = 'bmsRefreshToken=; path=/; max-age=0; samesite=lax';
+        }
       }
 
       function setStatus(message) {
@@ -3471,6 +3533,7 @@ export class AppService {
           const data = await response.json();
           if (data?.accessToken) {
             setAuthCookie(true);
+            setTokenCookies(data.accessToken, data.refreshToken || refreshToken);
             safeStorageSet('bmsAccessToken', data.accessToken);
             if (data.refreshToken) {
               safeStorageSet('bmsRefreshToken', data.refreshToken);
@@ -3485,13 +3548,17 @@ export class AppService {
       (async () => {
         const cachedToken = safeStorageGet('bmsAccessToken');
         const cachedRefresh = safeStorageGet('bmsRefreshToken');
-        if (cachedToken) {
+        const cookieToken = readCookie('bmsAccessToken');
+        const cookieRefresh = readCookie('bmsRefreshToken');
+        const accessToken = cachedToken || cookieToken;
+        const refreshToken = cachedRefresh || cookieRefresh;
+        if (accessToken) {
           setAuthCookie(true);
           window.location.href = '/';
           return;
         }
-        if (cachedRefresh) {
-          const refreshed = await tryRefresh(cachedRefresh);
+        if (refreshToken) {
+          const refreshed = await tryRefresh(refreshToken);
           if (refreshed) return;
         }
 
@@ -3530,6 +3597,7 @@ export class AppService {
               return;
             }
             setAuthCookie(true);
+            setTokenCookies(body?.tokens?.accessToken, body?.tokens?.refreshToken);
             safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
             if (body?.tokens?.refreshToken) {
               safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
@@ -3556,6 +3624,7 @@ export class AppService {
               return;
             }
             setAuthCookie(true);
+            setTokenCookies(body?.tokens?.accessToken, body?.tokens?.refreshToken);
             safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
             if (body?.tokens?.refreshToken) {
               safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
