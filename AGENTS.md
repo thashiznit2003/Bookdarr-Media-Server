@@ -68,6 +68,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - EPUB reader now uses per-chapter displayed page totals for sequential page numbers and improved overlay gestures.
 - EPUB swipe gestures are enabled while keeping overlay buttons interactive.
 - EPUB page numbers now resolve section indices from the spine to avoid random resets.
+- EPUB page offsets are now persisted per file + viewport so page numbers stay stable after reopening.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

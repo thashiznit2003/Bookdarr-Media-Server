@@ -1565,6 +1565,7 @@ export class AppService {
       let readerSectionOffsets = new Map();
       let readerLastSectionIndex = null;
       let readerLastGlobalPage = null;
+      let readerPageMapKey = null;
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -2402,6 +2403,7 @@ export class AppService {
         readerSectionOffsets = new Map();
         readerLastSectionIndex = null;
         readerLastGlobalPage = null;
+        readerPageMapKey = null;
         if (readerView) {
           readerView.innerHTML = '';
         }
@@ -2414,6 +2416,56 @@ export class AppService {
         if (readerProgressOverlay) {
           readerProgressOverlay.textContent = text ?? '';
         }
+      }
+
+      function getReaderViewportSignature() {
+        if (!readerView) return null;
+        const width = readerView.clientWidth || 0;
+        const height = readerView.clientHeight || 0;
+        if (!width || !height) return null;
+        const ratio = Math.round((window.devicePixelRatio || 1) * 100) / 100;
+        return width + 'x' + height + '@' + ratio;
+      }
+
+      function getReaderPageMapKey(fileId) {
+        const signature = getReaderViewportSignature();
+        if (!signature || !fileId) return null;
+        return 'bmsReaderPages:' + fileId + ':' + signature;
+      }
+
+      function loadReaderPageMap(fileId) {
+        readerPageMapKey = getReaderPageMapKey(fileId);
+        if (!readerPageMapKey) return;
+        const raw = safeStorageGet(readerPageMapKey);
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          const totals = Array.isArray(parsed?.totals) ? parsed.totals : [];
+          const offsets = Array.isArray(parsed?.offsets) ? parsed.offsets : [];
+          readerSectionTotals = new Map(totals);
+          readerSectionOffsets = new Map(offsets);
+          readerLastGlobalPage = typeof parsed?.lastGlobalPage === 'number' ? parsed.lastGlobalPage : null;
+          readerLastSectionIndex = typeof parsed?.lastSectionIndex === 'number' ? parsed.lastSectionIndex : null;
+        } catch {
+          // ignore
+        }
+      }
+
+      function persistReaderPageMap() {
+        if (!readerPageMapKey) {
+          if (readerFile?.id) {
+            readerPageMapKey = getReaderPageMapKey(readerFile.id);
+          }
+        }
+        if (!readerPageMapKey) return;
+        const payload = {
+          totals: Array.from(readerSectionTotals.entries()),
+          offsets: Array.from(readerSectionOffsets.entries()),
+          lastGlobalPage: readerLastGlobalPage,
+          lastSectionIndex: readerLastSectionIndex,
+          updatedAt: Date.now(),
+        };
+        safeStorageSet(readerPageMapKey, JSON.stringify(payload));
       }
 
       function updateReaderThemeButtons() {
@@ -2644,6 +2696,7 @@ export class AppService {
           parts.push(percentage + '%');
         }
         updateReaderProgress(parts.join(' · '));
+        persistReaderPageMap();
       }
 
       function animatePageTurn(direction) {
@@ -2736,6 +2789,7 @@ export class AppService {
         updateReaderProgress('');
         resetReaderState();
         readerFile = file;
+        loadReaderPageMap(file.id);
         readerView.innerHTML = '<div class="empty">Loading reader...</div>';
         const storedTheme = safeStorageGet('bmsReaderTheme');
         readerTheme = storedTheme === 'dark' ? 'dark' : 'light';

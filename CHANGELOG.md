@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.57 — 2026-01-31 16:08 -06:00
+- Persist EPUB displayed-page offsets per viewport so page numbers remain stable after reopening.
+
 ## 1.0.56 — 2026-01-31 16:01 -06:00
 - Stabilize EPUB page numbers by resolving section indices and preventing resets when moving through the spine.
 
