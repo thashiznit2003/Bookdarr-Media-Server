@@ -2513,11 +2513,7 @@ export class AppService {
         const percentage = formatPercent(start?.percentage ?? null);
         let pageText = null;
 
-        const displayedPage = location?.displayed?.page;
-        const displayedTotal = location?.displayed?.total;
-        if (displayedPage && displayedTotal) {
-          pageText = 'Page ' + displayedPage + ' / ' + displayedTotal;
-        } else if (cfi && epubBook && epubBook.locations && epubLocationsReady) {
+        if (cfi && epubBook && epubBook.locations && epubLocationsReady) {
           const total = getEpubLocationsTotal();
           const index = epubBook.locations.locationFromCfi(cfi);
           if (total && index != null && index >= 0) {

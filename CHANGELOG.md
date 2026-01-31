@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.53 — 2026-01-31 15:23 -06:00
+- Fix EPUB page numbering to use location-based counts for consistent sequential paging.
+
 ## 1.0.52 — 2026-01-31 15:17 -06:00
 - Align EPUB rendering with Bookdarr defaults, reapply reader themes per render, and fix blank-page pagination issues.
 
