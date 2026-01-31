@@ -44,6 +44,7 @@
 - `/login` is now a dedicated page with standalone markup (no menus/sidebars when signed out).
 - Auth now sets a lightweight cookie (`bmsLoggedIn`) so server-side redirects can route iPad/Safari users to `/login` consistently.
 - Access/refresh tokens are now mirrored to cookies as a fallback when localStorage fails on iPad/Safari.
+- Login now passes tokens via URL hash so iPad/Safari can bootstrap auth even if cookies/storage are blocked.
 
 ## Decisions
 - Stack: Node.js + NestJS

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.34 — 2026-01-30 20:15 -06:00
+- Pass auth tokens via URL hash after login to ensure iPad signs in even if storage is blocked.
+
 ## 1.0.33 — 2026-01-30 20:09 -06:00
 - Persist auth tokens in cookies as a fallback so iPad/Safari stays signed in after login.
 

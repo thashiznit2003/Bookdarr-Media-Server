@@ -46,6 +46,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - EPUB reader uses full-screen touch mode with overlay back/progress and iframe swipe handling; auth storage is guarded for iOS/Safari, and unauthenticated users are redirected to a dedicated /login page with no UI chrome.
 - Auth sessions set a lightweight `bmsLoggedIn` cookie so the server can redirect signed-out devices (including iPad/Safari) to `/login` before the app shell loads.
 - Access/refresh tokens are mirrored to cookies as a fallback when Safari blocks localStorage, so signed-in state persists on iPad.
+- After login, access/refresh tokens are also passed via URL hash so Safari can bootstrap auth even if storage is blocked.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

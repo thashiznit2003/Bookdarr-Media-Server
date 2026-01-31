@@ -1781,7 +1781,35 @@ export class AppService {
       }
 
       setBookdarrEnabled(false);
+      function readHashTokens() {
+        const hash = window.location.hash;
+        if (!hash || hash.length < 2) return null;
+        const params = new URLSearchParams(hash.slice(1));
+        const accessToken = params.get('access');
+        const refreshToken = params.get('refresh');
+        if (!accessToken) return null;
+        return { accessToken, refreshToken };
+      }
+
+      function clearHashTokens() {
+        if (!window.location.hash) return;
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+
       async function restoreSession() {
+        if (state.token) {
+          await ensureFreshToken();
+          loadCurrentUser();
+          return;
+        }
+        const hashTokens = readHashTokens();
+        if (hashTokens?.accessToken) {
+          setAuth(hashTokens.accessToken, hashTokens.refreshToken ?? undefined);
+          clearHashTokens();
+          await ensureFreshToken();
+          loadCurrentUser();
+          return;
+        }
         const cachedToken = safeStorageGet('bmsAccessToken');
         const cachedRefresh = safeStorageGet('bmsRefreshToken');
         const cookieToken = readCookie('bmsAccessToken');
@@ -3538,7 +3566,10 @@ export class AppService {
             if (data.refreshToken) {
               safeStorageSet('bmsRefreshToken', data.refreshToken);
             }
-            window.location.href = '/';
+            window.location.href =
+              '/#access=' +
+              encodeURIComponent(data.accessToken) +
+              (data.refreshToken || refreshToken ? '&refresh=' + encodeURIComponent(data.refreshToken || refreshToken) : '');
             return true;
           }
         } catch {}
@@ -3554,7 +3585,10 @@ export class AppService {
         const refreshToken = cachedRefresh || cookieRefresh;
         if (accessToken) {
           setAuthCookie(true);
-          window.location.href = '/';
+          window.location.href =
+            '/#access=' +
+            encodeURIComponent(accessToken) +
+            (refreshToken ? '&refresh=' + encodeURIComponent(refreshToken) : '');
           return;
         }
         if (refreshToken) {
@@ -3602,7 +3636,14 @@ export class AppService {
             if (body?.tokens?.refreshToken) {
               safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
             }
-            window.location.href = '/';
+            if (body?.tokens?.accessToken) {
+              window.location.href =
+                '/#access=' +
+                encodeURIComponent(body.tokens.accessToken) +
+                (body.tokens.refreshToken ? '&refresh=' + encodeURIComponent(body.tokens.refreshToken) : '');
+            } else {
+              window.location.href = '/';
+            }
           })
           .catch(() => setStatus('Login failed.'));
       });
@@ -3629,7 +3670,14 @@ export class AppService {
             if (body?.tokens?.refreshToken) {
               safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
             }
-            window.location.href = '/';
+            if (body?.tokens?.accessToken) {
+              window.location.href =
+                '/#access=' +
+                encodeURIComponent(body.tokens.accessToken) +
+                (body.tokens.refreshToken ? '&refresh=' + encodeURIComponent(body.tokens.refreshToken) : '');
+            } else {
+              window.location.href = '/';
+            }
           })
           .catch(() => setStatus('Setup failed.'));
       });
