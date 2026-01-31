@@ -1648,6 +1648,7 @@ export class AppService {
       function setAuth(token, refreshToken) {
         state.token = token;
         if (token) {
+          setAuthCookie(true);
           safeStorageSet('bmsAccessToken', token);
           if (refreshToken) {
             safeStorageSet('bmsRefreshToken', refreshToken);
@@ -1661,6 +1662,7 @@ export class AppService {
           loadMyLibrary();
           loadCurrentUser();
         } else {
+          setAuthCookie(false);
           safeStorageRemove('bmsAccessToken');
           safeStorageRemove('bmsRefreshToken');
           setBookdarrEnabled(false);
@@ -1791,6 +1793,7 @@ export class AppService {
         }
         if (!state.token) {
           updateUserMenu(null);
+          setAuthCookie(false);
         }
       }
 
@@ -2006,6 +2009,15 @@ export class AppService {
         } catch {
           // ignore
         }
+      }
+
+      function setAuthCookie(enabled) {
+        const maxAge = 60 * 60 * 24 * 30;
+        if (enabled) {
+          document.cookie = 'bmsLoggedIn=1; path=/; max-age=' + maxAge + '; samesite=lax';
+          return;
+        }
+        document.cookie = 'bmsLoggedIn=; path=/; max-age=0; samesite=lax';
       }
 
       function isTouchDevice() {
@@ -2918,6 +2930,7 @@ export class AppService {
             wizardPanel.style.display = state.token ? 'block' : 'none';
           }
           if (!state.token && !isLoginPage) {
+            setAuthCookie(false);
             window.location.href = '/login';
           }
         }
@@ -2934,6 +2947,7 @@ export class AppService {
         .then(handleSetupStatus)
         .catch(() => {
           if (!state.token && !isLoginPage) {
+            setAuthCookie(false);
             window.location.href = '/login';
           }
         });
@@ -3432,6 +3446,15 @@ export class AppService {
         try { localStorage.setItem(key, value); return true; } catch { return false; }
       }
 
+      function setAuthCookie(enabled) {
+        const maxAge = 60 * 60 * 24 * 30;
+        if (enabled) {
+          document.cookie = 'bmsLoggedIn=1; path=/; max-age=' + maxAge + '; samesite=lax';
+          return;
+        }
+        document.cookie = 'bmsLoggedIn=; path=/; max-age=0; samesite=lax';
+      }
+
       function setStatus(message) {
         if (loginStatus) loginStatus.textContent = message || '';
       }
@@ -3447,6 +3470,7 @@ export class AppService {
           if (!response.ok) return false;
           const data = await response.json();
           if (data?.accessToken) {
+            setAuthCookie(true);
             safeStorageSet('bmsAccessToken', data.accessToken);
             if (data.refreshToken) {
               safeStorageSet('bmsRefreshToken', data.refreshToken);
@@ -3462,6 +3486,7 @@ export class AppService {
         const cachedToken = safeStorageGet('bmsAccessToken');
         const cachedRefresh = safeStorageGet('bmsRefreshToken');
         if (cachedToken) {
+          setAuthCookie(true);
           window.location.href = '/';
           return;
         }
@@ -3504,6 +3529,7 @@ export class AppService {
               setStatus(body?.message || 'Login failed.');
               return;
             }
+            setAuthCookie(true);
             safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
             if (body?.tokens?.refreshToken) {
               safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
@@ -3529,6 +3555,7 @@ export class AppService {
               setStatus(body?.message || 'Setup failed.');
               return;
             }
+            setAuthCookie(true);
             safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
             if (body?.tokens?.refreshToken) {
               safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);

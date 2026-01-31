@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.32 — 2026-01-31 20:05 -06:00
+- Add login cookie + server-side redirects so iPad/Safari consistently lands on the /login page when signed out.
+
 ## 1.0.31 — 2026-01-30 19:02 -06:00
 - Add a dedicated /login page with standalone markup so signed-out users see only auth fields.
 

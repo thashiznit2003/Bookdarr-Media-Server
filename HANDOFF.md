@@ -42,6 +42,7 @@
 - Auth storage now guards localStorage access for iOS/Safari so login doesn’t break.
 - Unauthenticated users now redirect to `/login` on any route, preventing blank library states.
 - `/login` is now a dedicated page with standalone markup (no menus/sidebars when signed out).
+- Auth now sets a lightweight cookie (`bmsLoggedIn`) so server-side redirects can route iPad/Safari users to `/login` consistently.
 
 ## Decisions
 - Stack: Node.js + NestJS
