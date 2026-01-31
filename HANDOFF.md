@@ -46,6 +46,7 @@
 - Access/refresh tokens are now mirrored to cookies as a fallback when localStorage fails on iPad/Safari.
 - Login now passes tokens via URL hash so iPad/Safari can bootstrap auth even if cookies/storage are blocked.
 - Auth controllers now set cookies on login/refresh/setup and JWT strategy reads access tokens from cookies for iPad reliability.
+- Login/setup pages now submit via HTML forms to /auth/login/web and /auth/setup/web for Safari-safe cookie setting.
 
 ## Decisions
 - Stack: Node.js + NestJS

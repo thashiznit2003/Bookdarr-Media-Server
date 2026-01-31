@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.36 — 2026-01-30 20:42 -06:00
+- Add HTML form-based login/setup flows with server-set cookies to improve iPad sign-in reliability.
+- Load current user when only cookie auth is available, even without localStorage tokens.
+
 ## 1.0.35 — 2026-01-30 20:28 -06:00
 - Set auth cookies server-side and accept JWTs from cookies to improve iPad/Safari sign-in reliability.
 

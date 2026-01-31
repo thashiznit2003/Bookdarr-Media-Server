@@ -71,11 +71,35 @@ export class AuthController {
     return response;
   }
 
+  @Post('setup/web')
+  async setupWeb(@Body() request: SetupRequest, @Res() res: Response) {
+    try {
+      const response = await this.authService.setupFirstUser(request);
+      this.setAuthCookies(res, response.tokens);
+      return res.redirect('/');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Setup failed.';
+      return res.redirect(`/login?setupError=${encodeURIComponent(message)}`);
+    }
+  }
+
   @Post('login')
   async login(@Body() request: LoginRequest, @Res({ passthrough: true }) res: Response) {
     const response = await this.authService.login(request);
     this.setAuthCookies(res, response.tokens);
     return response;
+  }
+
+  @Post('login/web')
+  async loginWeb(@Body() request: LoginRequest, @Res() res: Response) {
+    try {
+      const response = await this.authService.login(request);
+      this.setAuthCookies(res, response.tokens);
+      return res.redirect('/');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed.';
+      return res.redirect(`/login?error=${encodeURIComponent(message)}`);
+    }
   }
 
   @Post('refresh')

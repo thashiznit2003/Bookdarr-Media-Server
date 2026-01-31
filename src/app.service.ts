@@ -1832,6 +1832,10 @@ export class AppService {
           await refreshAuthToken();
         }
         if (!state.token) {
+          if (isAuthenticated()) {
+            loadCurrentUser();
+            return;
+          }
           updateUserMenu(null);
           setAuthCookie(false);
         }
@@ -3481,21 +3485,25 @@ export class AppService {
       <p class="login-sub">Sign in to your Bookdarr Media Server.</p>
 
       <div id="setup-panel" class="panel" style="display: none;">
-        <label for="setup-username">Username</label>
-        <input id="setup-username" type="text" placeholder="admin" />
-        <label for="setup-email">Email</label>
-        <input id="setup-email" type="email" placeholder="admin@example.com" />
-        <label for="setup-password">Password</label>
-        <input id="setup-password" type="password" placeholder="Create a password" />
-        <button id="setup-submit">Create Admin</button>
+        <form id="setup-form" method="POST" action="/auth/setup/web">
+          <label for="setup-username">Username</label>
+          <input id="setup-username" name="username" type="text" placeholder="admin" autocomplete="username" />
+          <label for="setup-email">Email</label>
+          <input id="setup-email" name="email" type="email" placeholder="admin@example.com" autocomplete="email" />
+          <label for="setup-password">Password</label>
+          <input id="setup-password" name="password" type="password" placeholder="Create a password" autocomplete="new-password" />
+          <button id="setup-submit" type="submit">Create Admin</button>
+        </form>
       </div>
 
       <div id="login-panel" class="panel" style="display: none;">
-        <label for="login-username">Username</label>
-        <input id="login-username" type="text" placeholder="Username" />
-        <label for="login-password">Password</label>
-        <input id="login-password" type="password" placeholder="Password" />
-        <button id="login-submit">Log in</button>
+        <form id="login-form" method="POST" action="/auth/login/web">
+          <label for="login-username">Username</label>
+          <input id="login-username" name="username" type="text" placeholder="Username" autocomplete="username" />
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="login-submit" type="submit">Log in</button>
+        </form>
       </div>
 
       <div id="login-status" class="status"></div>
@@ -3617,75 +3625,27 @@ export class AppService {
             setupPanel.style.display = 'none';
             loginPanel.style.display = 'block';
           });
+        const params = new URLSearchParams(window.location.search);
+        const loginError = params.get('error');
+        const setupError = params.get('setupError');
+        if (loginError) {
+          loginPanel.style.display = 'block';
+          setupPanel.style.display = 'none';
+          setStatus(loginError);
+        }
+        if (setupError) {
+          setupPanel.style.display = 'block';
+          loginPanel.style.display = 'none';
+          setStatus(setupError);
+        }
       })();
 
-      document.getElementById('login-submit')?.addEventListener('click', () => {
-        const username = document.getElementById('login-username').value;
-        const password = document.getElementById('login-password').value;
+      document.getElementById('login-form')?.addEventListener('submit', () => {
         setStatus('Signing in...');
-        fetch('/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ username, password })
-        })
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
-            if (!ok) {
-              setStatus(body?.message || 'Login failed.');
-              return;
-            }
-            setAuthCookie(true);
-            setTokenCookies(body?.tokens?.accessToken, body?.tokens?.refreshToken);
-            safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
-            if (body?.tokens?.refreshToken) {
-              safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
-            }
-            if (body?.tokens?.accessToken) {
-              window.location.href =
-                '/#access=' +
-                encodeURIComponent(body.tokens.accessToken) +
-                (body.tokens.refreshToken ? '&refresh=' + encodeURIComponent(body.tokens.refreshToken) : '');
-            } else {
-              window.location.href = '/';
-            }
-          })
-          .catch(() => setStatus('Login failed.'));
       });
 
-      document.getElementById('setup-submit')?.addEventListener('click', () => {
-        const username = document.getElementById('setup-username').value;
-        const email = document.getElementById('setup-email').value;
-        const password = document.getElementById('setup-password').value;
+      document.getElementById('setup-form')?.addEventListener('submit', () => {
         setStatus('Creating admin...');
-        fetch('/auth/setup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ username, email, password })
-        })
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
-            if (!ok) {
-              setStatus(body?.message || 'Setup failed.');
-              return;
-            }
-            setAuthCookie(true);
-            setTokenCookies(body?.tokens?.accessToken, body?.tokens?.refreshToken);
-            safeStorageSet('bmsAccessToken', body?.tokens?.accessToken || '');
-            if (body?.tokens?.refreshToken) {
-              safeStorageSet('bmsRefreshToken', body.tokens.refreshToken);
-            }
-            if (body?.tokens?.accessToken) {
-              window.location.href =
-                '/#access=' +
-                encodeURIComponent(body.tokens.accessToken) +
-                (body.tokens.refreshToken ? '&refresh=' + encodeURIComponent(body.tokens.refreshToken) : '');
-            } else {
-              window.location.href = '/';
-            }
-          })
-          .catch(() => setStatus('Setup failed.'));
       });
 
       ['login-username', 'login-password'].forEach((id) => {
