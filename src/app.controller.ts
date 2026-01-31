@@ -36,6 +36,6 @@ export class AppController {
   private hasAuthCookie(req: Request): boolean {
     const raw = req.headers?.cookie;
     if (!raw) return false;
-    return raw.split(';').some((cookie) => cookie.trim().startsWith('bmsLoggedIn=1'));
+    return raw.split(';').some((cookie) => cookie.trim().startsWith('bmsAccessToken='));
   }
 }

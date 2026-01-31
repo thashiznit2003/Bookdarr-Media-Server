@@ -48,6 +48,7 @@
 - Auth controllers now set cookies on login/refresh/setup and JWT strategy reads access tokens from cookies for iPad reliability.
 - Login/setup pages now submit via HTML forms to /auth/login/web and /auth/setup/web for Safari-safe cookie setting.
 - Client boot now attempts cookie-based refresh even with no localStorage, and UI no longer blocks on missing client tokens.
+- Client fetches now disable caching to avoid 304 responses without bodies (fixes Signed Out on iPad).
 
 ## Decisions
 - Stack: Node.js + NestJS

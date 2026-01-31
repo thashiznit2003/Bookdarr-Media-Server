@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.38 — 2026-01-30 21:44 -06:00
+- Disable client-side caching for auth/library fetches to prevent 304 responses that leave iPad signed out.
+
 ## 1.0.37 — 2026-01-30 20:53 -06:00
 - Remove auth UI gating that relied on localStorage so cookie-based sessions on iPad can load users and libraries.
 - Attempt refresh on boot even without client-side tokens to let server cookies bootstrap sessions.

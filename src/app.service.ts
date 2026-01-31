@@ -1700,15 +1700,20 @@ export class AppService {
 
       async function refreshAuthToken() {
         const refreshToken = safeStorageGet('bmsRefreshToken') ?? readCookie('bmsRefreshToken');
+        if (!refreshToken) {
+          return false;
+        }
         try {
           const response = await fetch('/auth/refresh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+            body: JSON.stringify({ refreshToken }),
           });
           if (!response.ok) {
-            setAuth(null);
+            if (state.token) {
+              setAuth(null);
+            }
             return false;
           }
           const body = await response.json();
@@ -1725,7 +1730,7 @@ export class AppService {
 
       async function ensureFreshToken() {
         if (!state.token) {
-          return refreshAuthToken();
+          return true;
         }
         const expiry = parseTokenExpiry(state.token);
         if (expiry && Date.now() > expiry - 60 * 1000) {
@@ -1761,13 +1766,16 @@ export class AppService {
           ...(options ?? {}),
           headers,
           credentials: options?.credentials ?? 'same-origin',
+          cache: options?.cache ?? 'no-store',
         });
         if (response.status === 401 && retry) {
           const refreshed = await refreshAuthToken();
           if (refreshed) {
             return fetchWithAuth(url, options, false);
           }
-          setAuth(null);
+          if (state.token) {
+            setAuth(null);
+          }
         }
         return response;
       }
@@ -1840,7 +1848,7 @@ export class AppService {
       }
       (async () => {
         await restoreSession();
-        fetch('/auth/setup')
+        fetch('/auth/setup', { cache: 'no-store' })
           .then((response) => response.json())
           .then(handleSetupStatus)
           .catch(() => {
@@ -3248,7 +3256,7 @@ export class AppService {
       loadAccounts();
       loadProfile();
 
-      fetch('/api/settings')
+      fetch('/api/settings', { cache: 'no-store' })
         .then((response) => response.json())
         .then((data) => {
           const items = [
@@ -3531,7 +3539,7 @@ export class AppService {
           if (refreshed) return;
         }
 
-        fetch('/auth/setup')
+        fetch('/auth/setup', { cache: 'no-store' })
           .then((response) => response.json())
           .then((data) => {
             if (data?.required) {
