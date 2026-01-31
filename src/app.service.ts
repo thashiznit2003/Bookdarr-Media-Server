@@ -1909,6 +1909,10 @@ export class AppService {
       }
       (async () => {
         await restoreSession();
+        if (!state.token && !bootstrap?.user && authParam === '1') {
+          window.location.replace('/login?reason=authfail');
+          return;
+        }
         fetch('/auth/setup', { cache: 'no-store' })
           .then((response) => response.json())
           .then(handleSetupStatus)

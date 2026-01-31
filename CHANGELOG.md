@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.45 — 2026-01-31 08:44 -06:00
+- Add auth bootstrap fallback to URL hash and redirect back to /login if auth=1 fails to set a session.
+
 ## 1.0.44 — 2026-01-31 08:39 -06:00
 - Add client-side auth guard to immediately redirect signed-out sessions back to /login.
 

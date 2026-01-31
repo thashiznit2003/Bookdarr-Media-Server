@@ -54,6 +54,7 @@
 - Added a window.name-based auth bootstrap for Safari/iPad when cookies are blocked.
 - Login page now clears stored auth tokens/cookies on load for a fresh session every visit.
 - Added a client-side auth guard that redirects signed-out sessions back to /login immediately.
+- Auth bootstrap now writes tokens into both window.name and the URL hash, with a fallback redirect if auth=1 fails.
 
 ## Decisions
 - Stack: Node.js + NestJS
