@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.65 — 2026-02-01 17:09 -06:00
+- Force desktop EPUB render sizing and retry display if the iframe stays empty.
+
 ## 1.0.64 — 2026-02-01 17:04 -06:00
 - Fix desktop EPUB rendering by forcing full-height iframes, hiding overlay UI outside touch mode, and adding a resize nudge.
 

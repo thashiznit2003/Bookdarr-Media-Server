@@ -876,6 +876,7 @@ export class AppService {
       .reader-modal[data-reader-mode="epub"] .reader-view {
         overflow: hidden;
         padding: 0;
+        height: 100%;
       }
 
       .reader-modal.touch-fullscreen .reader-view {
@@ -3071,9 +3072,11 @@ export class AppService {
             return;
           }
           readerView.innerHTML = '';
+          const width = readerView.clientWidth || readerView.offsetWidth;
+          const height = readerView.clientHeight || readerView.offsetHeight;
           epubRendition = book.renderTo(readerView, {
-            width: '100%',
-            height: '100%',
+            width: width || '100%',
+            height: height || '100%',
           });
           if (epubRendition.flow) {
             try {
@@ -3129,6 +3132,19 @@ export class AppService {
               } catch {
                 // ignore
               }
+              setTimeout(() => {
+                if (!readerView || !epubRendition) return;
+                const iframe = readerView.querySelector('iframe');
+                const bodyText = iframe?.contentDocument?.body?.innerText?.trim?.() ?? '';
+                if (!bodyText) {
+                  try {
+                    epubRendition.display(displayTarget);
+                    epubRendition.resize();
+                  } catch {
+                    // ignore
+                  }
+                }
+              }, 400);
             });
           }
           epubRendition.on('relocated', (location) => {

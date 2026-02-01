@@ -61,6 +61,7 @@
 - Desktop EPUB reader now falls back to the direct stream URL if blob loading fails.
 - Offline download errors are stored as text so sqlite can start cleanly.
 - Desktop EPUB rendering now forces full-height iframes and keeps overlay controls touch-only.
+- Desktop EPUB rendering now retries display if the iframe stays blank on first load.
 
 ## Decisions
 - Stack: Node.js + NestJS

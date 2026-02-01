@@ -81,3 +81,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Desktop EPUB reader now falls back to a direct stream URL if blob loading fails.
 - Offline download error fields are stored as sqlite-compatible text.
 - Desktop reader overlay UI is touch-only; epub iframes are forced to full height with a resize nudge for macOS.
+- Desktop EPUB rendering now retries display if the iframe renders blank.
