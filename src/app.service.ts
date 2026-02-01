@@ -2680,7 +2680,7 @@ export class AppService {
         const controlsHeight = controls ? controls.getBoundingClientRect().height : 0;
         const available = card.clientHeight - headerHeight - controlsHeight;
         if (available > 0) {
-          readerView.style.height = `${Math.floor(available)}px`;
+          readerView.style.height = Math.floor(available) + 'px';
         } else {
           readerView.style.height = '100%';
         }

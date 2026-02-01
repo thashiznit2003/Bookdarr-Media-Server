@@ -83,3 +83,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Desktop reader overlay UI is touch-only; epub iframes are forced to full height with a resize nudge for macOS.
 - Desktop EPUB rendering now retries display if the iframe renders blank.
 - Desktop reader layout now recalculates height on open/resize to prevent zero-height EPUB iframes.
+- Desktop reader height calculations avoid template literals so the build succeeds.
