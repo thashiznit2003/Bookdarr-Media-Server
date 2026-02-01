@@ -79,3 +79,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.
 - Downloads are surfaced only inside My Library; `/downloads` redirects to `/my-library`.
 - Desktop EPUB reader now falls back to a direct stream URL if blob loading fails.
+- Offline download error fields are stored as sqlite-compatible text.

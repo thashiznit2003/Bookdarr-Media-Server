@@ -36,7 +36,7 @@ export class OfflineDownloadEntity {
   @Column()
   filePath!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   error?: string | null;
 
   @Column({ type: 'datetime' })

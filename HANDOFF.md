@@ -59,6 +59,7 @@
 - Cached downloads are served back through `/library/files/:id/stream` when ready, and returning a book marks it as read with a resettable toggle.
 - Removed the dedicated Downloads page; /downloads now redirects to My Library.
 - Desktop EPUB reader now falls back to the direct stream URL if blob loading fails.
+- Offline download errors are stored as text so sqlite can start cleanly.
 
 ## Decisions
 - Stack: Node.js + NestJS

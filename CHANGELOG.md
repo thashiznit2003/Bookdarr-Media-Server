@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.63 — 2026-02-01 16:59 -06:00
+- Fix sqlite compatibility for offline download error storage.
+
 ## 1.0.62 — 2026-02-01 16:54 -06:00
 - Add a desktop EPUB fallback loader that mounts from the direct stream URL if blob loading fails.
 
