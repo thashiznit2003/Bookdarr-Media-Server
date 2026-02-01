@@ -14,6 +14,7 @@ import { BookdarrConfigEntity } from './bookdarr/bookdarr-config.entity';
 import { AuthConfigEntity } from './auth/auth-config.entity';
 import { LoggingModule } from './logging/logging.module';
 import { UserLibraryEntity } from './library/user-library.entity';
+import { OfflineDownloadEntity } from './library/offline-download.entity';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { UserLibraryEntity } from './library/user-library.entity';
               BookdarrConfigEntity,
               AuthConfigEntity,
               UserLibraryEntity,
+              OfflineDownloadEntity,
             ],
           };
         }
@@ -56,6 +58,7 @@ import { UserLibraryEntity } from './library/user-library.entity';
             BookdarrConfigEntity,
             AuthConfigEntity,
             UserLibraryEntity,
+            OfflineDownloadEntity,
           ],
         };
       },

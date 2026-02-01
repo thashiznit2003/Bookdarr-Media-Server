@@ -75,3 +75,7 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.
+- Checkout now queues server-side offline downloads per user (cached under `data/offline`) and My Library cards show an App Store-style progress ring until ready.
+- Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.
+- Downloads are surfaced only inside My Library; `/downloads` redirects to `/my-library`.
+- Desktop EPUB reader now falls back to a direct stream URL if blob loading fails.

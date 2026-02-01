@@ -11,10 +11,23 @@ export interface LibraryItem {
   inMyLibrary: boolean;
   checkedOutByMe?: boolean;
   checkedOutAt?: string | null;
+  readByMe?: boolean;
+  readAt?: string | null;
+  downloadStatus?: OfflineDownloadStatus | null;
   openLibrary?: {
     key?: string;
     editionKey?: string;
   };
+}
+
+export interface OfflineDownloadStatus {
+  status: 'not_started' | 'queued' | 'downloading' | 'ready' | 'failed';
+  bytesTotal: number;
+  bytesDownloaded: number;
+  progress: number;
+  fileCount: number;
+  readyCount: number;
+  failedCount: number;
 }
 
 export type LibraryMediaType = 'audiobook' | 'ebook' | 'unknown';

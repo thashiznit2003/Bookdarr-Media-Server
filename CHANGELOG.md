@@ -1,5 +1,13 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.62 — 2026-02-01 16:54 -06:00
+- Add a desktop EPUB fallback loader that mounts from the direct stream URL if blob loading fails.
+
+## 1.0.61 — 2026-01-31 18:15 -06:00
+- Queue per-user offline downloads on checkout and surface progress in My Library cards.
+- Stream cached offline files when available and mark returns as read with a resettable toggle.
+- Remove the Downloads page from navigation and redirect /downloads to My Library.
+
 ## 1.0.60 — 2026-01-31 17:31 -06:00
 - Tie EPUB page numbers to explicit page turns to stop fast-swiping from skewing the counter.
 

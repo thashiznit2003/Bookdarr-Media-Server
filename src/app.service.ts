@@ -384,6 +384,49 @@ export class AppService {
         font-weight: 600;
       }
 
+      .cover.is-downloading img {
+        filter: grayscale(1) brightness(0.65);
+      }
+
+      .cover.is-downloading .cover-fallback {
+        opacity: 0.4;
+      }
+
+      .download-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(10, 14, 20, 0.55);
+      }
+
+      .download-ring {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: conic-gradient(
+          var(--accent) calc(var(--progress, 0) * 1turn),
+          rgba(255, 255, 255, 0.12) 0
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .download-ring-inner {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: rgba(12, 14, 20, 0.82);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
       .book-title {
         font-weight: 600;
         font-size: 0.95rem;
@@ -421,6 +464,11 @@ export class AppService {
       .badge.dim {
         color: #0f172a;
         background: #cbd5f5;
+      }
+
+      .badge.read {
+        color: #0f172a;
+        background: #38bdf8;
       }
 
       .book-card {
@@ -1037,7 +1085,6 @@ export class AppService {
           <div class="nav-title">Library</div>
           <a class="nav-link" href="/" data-page-link="library">Book Pool</a>
           <a class="nav-link" href="/my-library" data-page-link="my-library">My Library</a>
-          <a class="nav-link" href="/downloads" data-page-link="downloads">Downloads</a>
           <a class="nav-link" href="/diagnostics" data-page-link="diagnostics">Diagnostics</a>
         </div>
         <div class="nav-section">
@@ -1189,18 +1236,6 @@ export class AppService {
           </section>
           <div id="my-library-grid" class="grid">
             <div class="empty">No checked out books yet.</div>
-          </div>
-        </div>
-
-        <div class="page" data-page="downloads">
-          <section class="section-title">
-            <h2>Downloads</h2>
-            <span class="pill">Coming soon</span>
-          </section>
-          <div class="panel">
-            <p style="margin: 0; color: var(--muted);">
-              Download management will appear here once Bookdarr sync is enabled.
-            </p>
           </div>
         </div>
 
@@ -1372,11 +1407,13 @@ export class AppService {
                 <h2 class="detail-title" id="detail-title">Loading…</h2>
                 <div class="detail-author" id="detail-author"></div>
               <div class="detail-meta" id="detail-meta"></div>
-              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
                 <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
-                <button id="detail-checkout" class="filter-btn">Checkout</button>
+                <button id="detail-checkout" class="filter-btn">+ My Library</button>
+                <button id="detail-read-toggle" class="filter-btn">Mark Read</button>
                 <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
                 <span id="detail-checkout-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+                <span id="detail-download-status" style="color: var(--muted); font-size: 0.85rem;"></span>
               </div>
                 <p class="detail-description" id="detail-description"></p>
                 <button class="detail-toggle" id="detail-description-toggle" style="display: none;">More...</button>
@@ -1449,6 +1486,7 @@ export class AppService {
       let setupRequired = false;
       let bookdarrConfigured = false;
       let tokenRefreshTimer = null;
+      let myLibraryRefreshTimer = null;
 
       const libraryGrid = document.getElementById('library-grid');
       const myLibraryGrid = document.getElementById('my-library-grid');
@@ -1528,6 +1566,8 @@ export class AppService {
       const detailRefreshStatus = document.getElementById('detail-refresh-status');
       const detailCheckout = document.getElementById('detail-checkout');
       const detailCheckoutStatus = document.getElementById('detail-checkout-status');
+      const detailReadToggle = document.getElementById('detail-read-toggle');
+      const detailDownloadStatus = document.getElementById('detail-download-status');
       const readerModal = document.getElementById('reader-modal');
       const readerClose = document.getElementById('reader-close');
       const readerBack = document.getElementById('reader-back');
@@ -1614,6 +1654,7 @@ export class AppService {
       detailClose?.addEventListener('click', closeBookDetail);
       detailRefresh?.addEventListener('click', refreshBookDetail);
       detailCheckout?.addEventListener('click', toggleCheckoutStatus);
+      detailReadToggle?.addEventListener('click', toggleReadStatus);
       detailDescriptionToggle?.addEventListener('click', toggleDetailDescription);
       detailModal?.addEventListener('click', (event) => {
         if (event.target === detailModal) {
@@ -2155,7 +2196,7 @@ export class AppService {
         });
       }
 
-      function renderBooks(list, grid, emptyMessage) {
+      function renderBooks(list, grid, emptyMessage, options = {}) {
         if (!grid) return;
         const filtered = applyFilters(list);
         if (!filtered.length) {
@@ -2163,15 +2204,35 @@ export class AppService {
           return;
         }
 
+        const showDownloads = options.showDownloads === true;
+
         grid.innerHTML = filtered.map((item) => {
           const coverSrc = item.coverUrl ? withToken(item.coverUrl) : null;
+          const downloadStatus = showDownloads ? item.downloadStatus : null;
+          const downloadInfo = getDownloadProgress(downloadStatus);
+          const showDownloadOverlay =
+            downloadStatus &&
+            (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading') &&
+            downloadInfo.progress < 1;
+          const progressPercent = Math.round(downloadInfo.progress * 100);
+
           const cover = coverSrc
             ? '<img src="' + coverSrc + '" alt="' + item.title + ' cover" loading="lazy" />'
             : '<div class="cover-fallback">' + item.title + '</div>';
+          const overlay = showDownloadOverlay
+            ? (
+              '<div class="download-overlay">' +
+                '<div class="download-ring" style="--progress: ' + downloadInfo.progress + '">' +
+                  '<div class="download-ring-inner">' + progressPercent + '%</div>' +
+                '</div>' +
+              '</div>'
+            )
+            : '';
 
           const ebookBadge = item.hasEbook ? '<span class="badge ok">Ebook</span>' : '<span class="badge dim">No Ebook</span>';
           const audioBadge = item.hasAudiobook ? '<span class="badge ok">Audiobook</span>' : '<span class="badge dim">No Audio</span>';
           const checkoutBadge = item.checkedOutByMe ? '<span class="badge warn">Checked Out</span>' : '';
+          const readBadge = item.readByMe ? '<span class="badge read">Read</span>' : '';
           const statusBadge = !item.checkedOutByMe && item.bookdarrStatus && item.bookdarrStatus !== 'Available'
             ? '<span class="badge warn">' + item.bookdarrStatus + '</span>'
             : !item.checkedOutByMe
@@ -2180,10 +2241,10 @@ export class AppService {
 
           return (
             '<article class="book-card" data-id="' + item.id + '">' +
-              '<div class="cover">' + cover + '</div>' +
+              '<div class="cover' + (showDownloadOverlay ? ' is-downloading' : '') + '">' + cover + overlay + '</div>' +
               '<div class="book-title">' + item.title + '</div>' +
               '<div class="book-author">' + (item.author ?? 'Unknown author') + '</div>' +
-              '<div class="badges">' + ebookBadge + audioBadge + checkoutBadge + statusBadge + '</div>' +
+              '<div class="badges">' + ebookBadge + audioBadge + checkoutBadge + readBadge + statusBadge + '</div>' +
             '</article>'
           );
         }).join('');
@@ -2194,7 +2255,7 @@ export class AppService {
       }
 
       function renderMyLibrary() {
-        renderBooks(state.myLibrary, myLibraryGrid, 'No checked out books yet.');
+        renderBooks(state.myLibrary, myLibraryGrid, 'No checked out books yet.', { showDownloads: true });
       }
 
       function renderActiveLibrary() {
@@ -2204,6 +2265,29 @@ export class AppService {
         }
         if (activePage === 'library') {
           renderLibrary();
+        }
+      }
+
+      function hasActiveDownloads(list) {
+        return list.some((item) => {
+          const status = item.downloadStatus;
+          if (!status) return false;
+          return status.status === 'queued' || status.status === 'downloading';
+        });
+      }
+
+      function scheduleMyLibraryRefresh(list) {
+        if (!isMyLibraryPage) {
+          return;
+        }
+        if (myLibraryRefreshTimer) {
+          clearInterval(myLibraryRefreshTimer);
+          myLibraryRefreshTimer = null;
+        }
+        if (hasActiveDownloads(list)) {
+          myLibraryRefreshTimer = setInterval(() => {
+            loadMyLibrary();
+          }, 2500);
         }
       }
 
@@ -2245,6 +2329,7 @@ export class AppService {
           .then((data) => {
             state.myLibrary = Array.isArray(data) ? data : [];
             renderMyLibrary();
+            scheduleMyLibraryRefresh(state.myLibrary);
           })
           .catch(() => {
             if (myLibraryGrid) {
@@ -2263,6 +2348,46 @@ export class AppService {
           index += 1;
         }
         return value.toFixed(value >= 10 ? 0 : 1) + ' ' + units[index];
+      }
+
+      function getDownloadProgress(status) {
+        if (!status) {
+          return { progress: 0, state: 'not_started', total: 0, downloaded: 0 };
+        }
+        const total = Number(status.bytesTotal || 0);
+        const downloaded = Number(status.bytesDownloaded || 0);
+        let progress = Number(status.progress || 0);
+        if (!progress && total > 0) {
+          progress = downloaded / total;
+        }
+        if (!progress && status.fileCount) {
+          progress = (status.readyCount || 0) / status.fileCount;
+        }
+        progress = Math.min(Math.max(progress, 0), 1);
+        return {
+          progress,
+          state: status.status || 'not_started',
+          total,
+          downloaded,
+        };
+      }
+
+      function formatDownloadStatus(status) {
+        if (!status || status.status === 'not_started') {
+          return '';
+        }
+        if (status.status === 'ready') {
+          return 'Downloaded for offline use.';
+        }
+        if (status.status === 'failed') {
+          return 'Download failed. Try checkout again.';
+        }
+        const { progress, total, downloaded } = getDownloadProgress(status);
+        const percent = Math.round(progress * 100);
+        if (total > 0) {
+          return 'Downloading ' + percent + '% · ' + formatBytes(downloaded) + ' / ' + formatBytes(total);
+        }
+        return status.status === 'queued' ? 'Queued for download.' : 'Downloading ' + percent + '%';
       }
 
       function safeStorageGet(key) {
@@ -3025,6 +3150,21 @@ export class AppService {
           });
         };
 
+        const openFromUrl = async (url) => {
+          try {
+            epubBook = window['ePub'](url);
+            if (epubBook?.ready) {
+              await epubBook.ready;
+            }
+            clearTimeout(timeout);
+            mountRendition(epubBook);
+            prepareEpubLocations();
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
         (async () => {
           if (epubObjectUrl) {
             try {
@@ -3037,7 +3177,11 @@ export class AppService {
 
           const response = await fetchWithAuth(file.streamUrl);
           if (!response.ok) {
-            throw new Error('Failed to load EPUB');
+            const fallbackOk = await openFromUrl(withToken(file.streamUrl));
+            if (!fallbackOk) {
+              throw new Error('Failed to load EPUB');
+            }
+            return;
           }
           const blob = await response.blob();
           epubObjectUrl = URL.createObjectURL(blob);
@@ -3048,7 +3192,11 @@ export class AppService {
           clearTimeout(timeout);
           mountRendition(epubBook);
           prepareEpubLocations();
-        })().catch(() => {
+        })().catch(async () => {
+          const fallbackOk = await openFromUrl(withToken(file.streamUrl));
+          if (fallbackOk) {
+            return;
+          }
           clearTimeout(timeout);
           if (readerView) {
             readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
@@ -3209,10 +3357,17 @@ export class AppService {
 
         if (detailCheckout) {
           detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
-          detailCheckout.textContent = data?.checkedOutByMe ? 'Return to Book Pool' : 'Checkout';
+          detailCheckout.textContent = data?.checkedOutByMe ? 'Return to Library' : '+ My Library';
+        }
+        if (detailReadToggle) {
+          detailReadToggle.style.display = state.token ? 'inline-flex' : 'none';
+          detailReadToggle.textContent = data?.readByMe ? 'Mark Unread' : 'Mark Read';
         }
         if (detailCheckoutStatus) {
           detailCheckoutStatus.textContent = '';
+        }
+        if (detailDownloadStatus) {
+          detailDownloadStatus.textContent = formatDownloadStatus(data?.downloadStatus);
         }
       }
 
@@ -3234,9 +3389,14 @@ export class AppService {
         if (detailEbook) detailEbook.innerHTML = '';
         if (detailRefreshStatus) detailRefreshStatus.textContent = '';
         if (detailCheckoutStatus) detailCheckoutStatus.textContent = '';
+        if (detailDownloadStatus) detailDownloadStatus.textContent = '';
         if (detailCheckout) {
-          detailCheckout.textContent = 'Checkout';
+          detailCheckout.textContent = '+ My Library';
           detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
+        }
+        if (detailReadToggle) {
+          detailReadToggle.textContent = 'Mark Read';
+          detailReadToggle.style.display = state.token ? 'inline-flex' : 'none';
         }
         currentDetail = null;
 
@@ -3301,7 +3461,7 @@ export class AppService {
         const action = currentDetail?.checkedOutByMe ? 'return' : 'checkout';
         if (detailCheckoutStatus) {
           detailCheckoutStatus.textContent =
-            action === 'return' ? 'Returning book...' : 'Checking out...';
+            action === 'return' ? 'Returning book...' : 'Adding to My Library...';
         }
 
         await ensureFreshToken();
@@ -3324,12 +3484,52 @@ export class AppService {
             loadLibrary();
             loadMyLibrary();
             if (detailCheckoutStatus) {
-              detailCheckoutStatus.textContent = action === 'return' ? 'Returned.' : 'Checked out.';
+              detailCheckoutStatus.textContent = action === 'return' ? 'Returned.' : 'Added to My Library.';
             }
           })
           .catch(() => {
             if (detailCheckoutStatus) {
               detailCheckoutStatus.textContent = 'Unable to update checkout status.';
+            }
+          });
+      }
+
+      async function toggleReadStatus() {
+        if (!detailModal || !detailModal.dataset.bookId) {
+          return;
+        }
+        const shouldRead = !currentDetail?.readByMe;
+        if (detailCheckoutStatus) {
+          detailCheckoutStatus.textContent = shouldRead ? 'Marking as read...' : 'Marking as unread...';
+        }
+
+        await ensureFreshToken();
+        fetchWithAuth('/library/' + detailModal.dataset.bookId + '/read', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ read: shouldRead }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              if (detailCheckoutStatus) {
+                detailCheckoutStatus.textContent =
+                  body?.message ?? 'Unable to update read status.';
+              }
+              return;
+            }
+            renderBookDetail(body);
+            loadLibrary();
+            loadMyLibrary();
+            if (detailCheckoutStatus) {
+              detailCheckoutStatus.textContent = shouldRead ? 'Marked as read.' : 'Marked as unread.';
+            }
+          })
+          .catch(() => {
+            if (detailCheckoutStatus) {
+              detailCheckoutStatus.textContent = 'Unable to update read status.';
             }
           });
       }

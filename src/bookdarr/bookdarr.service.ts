@@ -138,6 +138,7 @@ export class BookdarrService {
     bookFileId: number,
     range?: string,
     method: 'GET' | 'HEAD' = 'GET',
+    signal?: AbortSignal,
   ) {
     const { apiUrl, apiKey } = await this.getApiConfig();
     const url = this.joinUrl(apiUrl, `/api/v1/bookfile/${bookFileId}/stream`);
@@ -149,7 +150,7 @@ export class BookdarrService {
       headers.Range = range;
     }
 
-    const response = await fetch(url, { headers, method });
+    const response = await fetch(url, { headers, method, signal });
     if (!response.ok) {
       const errorText = await response.text();
       throw new ServiceUnavailableException(

@@ -55,6 +55,10 @@
 - Login page now clears stored auth tokens/cookies on load for a fresh session every visit.
 - Added a client-side auth guard that redirects signed-out sessions back to /login immediately.
 - Auth bootstrap now writes tokens into both window.name and the URL hash, with a fallback redirect if auth=1 fails.
+- Checkout now queues server-side offline downloads per user, cached under `data/offline` with progress status exposed to the UI.
+- Cached downloads are served back through `/library/files/:id/stream` when ready, and returning a book marks it as read with a resettable toggle.
+- Removed the dedicated Downloads page; /downloads now redirects to My Library.
+- Desktop EPUB reader now falls back to the direct stream URL if blob loading fails.
 
 ## Decisions
 - Stack: Node.js + NestJS

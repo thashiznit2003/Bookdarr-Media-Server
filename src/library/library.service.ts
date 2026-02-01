@@ -6,6 +6,7 @@ import { LibraryDetail, LibraryFile, LibraryItem, LibraryMediaType } from './lib
 import type { BookdarrBookFileResource } from '../bookdarr/bookdarr.types';
 import { LibraryCacheService } from './library-cache.service';
 import { UserLibraryService } from './user-library.service';
+import { OfflineDownloadService } from './offline-download.service';
 
 @Injectable()
 export class LibraryService {
@@ -14,6 +15,7 @@ export class LibraryService {
     private readonly openLibraryService: OpenLibraryService,
     private readonly libraryCacheService: LibraryCacheService,
     private readonly userLibraryService: UserLibraryService,
+    private readonly offlineDownloadService: OfflineDownloadService,
   ) {}
 
   async getLibrary(userId?: string): Promise<LibraryItem[]> {
@@ -31,12 +33,22 @@ export class LibraryService {
 
     const checkouts = await this.userLibraryService.getActiveForUser(userId);
     const checkoutMap = new Map(checkouts.map((entry) => [entry.bookId, entry]));
+    const readMap = await this.userLibraryService.getReadMap(userId);
+    const downloadMap = await this.offlineDownloadService.getStatusMap(
+      userId,
+      checkouts.map((entry) => entry.bookId),
+    );
     return filtered.map((item) => {
       const checkout = checkoutMap.get(item.id);
+      const readAt = readMap.get(item.id) ?? null;
+      const downloadStatus = downloadMap.get(item.id) ?? null;
       return {
         ...item,
         checkedOutByMe: Boolean(checkout),
         checkedOutAt: checkout?.checkedOutAt ?? null,
+        readByMe: Boolean(readAt),
+        readAt,
+        downloadStatus,
       };
     });
   }
@@ -111,6 +123,10 @@ export class LibraryService {
     const checkout = userId
       ? await this.userLibraryService.getActiveByBookId(userId, bookId)
       : null;
+    const readAt = userId ? await this.userLibraryService.getReadStatus(userId, bookId) : null;
+    const downloadStatus = userId
+      ? await this.offlineDownloadService.getStatusForBook(userId, bookId)
+      : null;
 
     return {
       id: item.bookId,
@@ -125,6 +141,9 @@ export class LibraryService {
       inMyLibrary: item.inMyLibrary,
       checkedOutByMe: Boolean(checkout),
       checkedOutAt: checkout?.checkedOutAt ?? null,
+      readByMe: Boolean(readAt),
+      readAt,
+      downloadStatus,
       releaseDate: item.book?.releaseDate,
       description: overview || details?.description,
       subjects: details?.subjects,
@@ -187,6 +206,10 @@ export class LibraryService {
     const checkout = userId
       ? await this.userLibraryService.getActiveByBookId(userId, bookId)
       : null;
+    const readAt = userId ? await this.userLibraryService.getReadStatus(userId, bookId) : null;
+    const downloadStatus = userId
+      ? await this.offlineDownloadService.getStatusForBook(userId, bookId)
+      : null;
 
     return {
       id: item.bookId,
@@ -201,6 +224,9 @@ export class LibraryService {
       inMyLibrary: item.inMyLibrary,
       checkedOutByMe: Boolean(checkout),
       checkedOutAt: checkout?.checkedOutAt ?? null,
+      readByMe: Boolean(readAt),
+      readAt,
+      downloadStatus,
       releaseDate: item.book?.releaseDate,
       description: details?.description ?? item.book?.overview,
       subjects: details?.subjects,
@@ -217,11 +243,18 @@ export class LibraryService {
       throw new NotFoundException('No media files available for this book.');
     }
     await this.userLibraryService.checkout(userId, bookId);
+    await this.offlineDownloadService.queueBook(userId, bookId);
     return this.getLibraryDetail(bookId, userId);
   }
 
   async returnBook(userId: string, bookId: number) {
     await this.userLibraryService.returnBook(userId, bookId);
+    await this.offlineDownloadService.removeBook(userId, bookId);
+    return this.getLibraryDetail(bookId, userId);
+  }
+
+  async setReadStatus(userId: string, bookId: number, read: boolean) {
+    await this.userLibraryService.setReadStatus(userId, bookId, read);
     return this.getLibraryDetail(bookId, userId);
   }
 

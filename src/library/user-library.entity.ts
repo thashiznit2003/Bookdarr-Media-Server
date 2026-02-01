@@ -17,4 +17,7 @@ export class UserLibraryEntity {
 
   @Column({ type: 'datetime', nullable: true })
   returnedAt?: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  readAt?: string | null;
 }
