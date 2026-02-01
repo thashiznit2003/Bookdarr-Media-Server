@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.64 — 2026-02-01 17:04 -06:00
+- Fix desktop EPUB rendering by forcing full-height iframes, hiding overlay UI outside touch mode, and adding a resize nudge.
+
 ## 1.0.63 — 2026-02-01 16:59 -06:00
 - Fix sqlite compatibility for offline download error storage.
 

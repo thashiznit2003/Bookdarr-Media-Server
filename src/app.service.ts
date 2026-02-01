@@ -755,7 +755,7 @@ export class AppService {
         opacity: 0;
       }
 
-      .reader-modal.reader-ui-visible .reader-overlay {
+      .reader-modal.touch-fullscreen.reader-ui-visible .reader-overlay {
         display: flex;
         opacity: 1;
         pointer-events: auto;
@@ -889,6 +889,18 @@ export class AppService {
 
       .reader-modal.reader-dark .reader-canvas {
         filter: invert(1) hue-rotate(180deg);
+      }
+
+      .reader-view iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .reader-view .epub-container,
+      .reader-view .epub-view {
+        width: 100%;
+        height: 100%;
       }
 
       .reader-view.page-turn-next {
@@ -3148,11 +3160,18 @@ export class AppService {
             applyReaderTheme(readerTheme, false);
             scanReaderIframes();
           });
+          setTimeout(() => {
+            try {
+              epubRendition.resize();
+            } catch {
+              // ignore
+            }
+          }, 120);
         };
 
         const openFromUrl = async (url) => {
           try {
-            epubBook = window['ePub'](url);
+            epubBook = window['ePub'](url, { openAs: 'epub' });
             if (epubBook?.ready) {
               await epubBook.ready;
             }

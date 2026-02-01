@@ -60,6 +60,7 @@
 - Removed the dedicated Downloads page; /downloads now redirects to My Library.
 - Desktop EPUB reader now falls back to the direct stream URL if blob loading fails.
 - Offline download errors are stored as text so sqlite can start cleanly.
+- Desktop EPUB rendering now forces full-height iframes and keeps overlay controls touch-only.
 
 ## Decisions
 - Stack: Node.js + NestJS
