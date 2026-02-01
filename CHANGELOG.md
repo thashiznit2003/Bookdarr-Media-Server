@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.66 — 2026-02-01 17:17 -06:00
+- Recompute reader layout height on open/resize so desktop EPUB iframes can render.
+
 ## 1.0.65 — 2026-02-01 17:09 -06:00
 - Force desktop EPUB render sizing and retry display if the iframe stays empty.
 

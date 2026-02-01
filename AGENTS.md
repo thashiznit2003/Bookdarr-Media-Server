@@ -82,3 +82,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Offline download error fields are stored as sqlite-compatible text.
 - Desktop reader overlay UI is touch-only; epub iframes are forced to full height with a resize nudge for macOS.
 - Desktop EPUB rendering now retries display if the iframe renders blank.
+- Desktop reader layout now recalculates height on open/resize to prevent zero-height EPUB iframes.

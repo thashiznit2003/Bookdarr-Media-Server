@@ -2670,6 +2670,22 @@ export class AppService {
         readerModal.classList.toggle('reader-ui-hidden', !visible);
       }
 
+      function updateReaderLayout() {
+        if (!readerView) return;
+        const card = readerView.closest('.reader-card');
+        if (!card) return;
+        const header = card.querySelector('.reader-header');
+        const controls = card.querySelector('.reader-controls');
+        const headerHeight = header ? header.getBoundingClientRect().height : 0;
+        const controlsHeight = controls ? controls.getBoundingClientRect().height : 0;
+        const available = card.clientHeight - headerHeight - controlsHeight;
+        if (available > 0) {
+          readerView.style.height = `${Math.floor(available)}px`;
+        } else {
+          readerView.style.height = '100%';
+        }
+      }
+
       function toggleReaderUi() {
         if (!readerModal) return;
         setReaderUiVisible(!readerUiVisible);
@@ -2943,6 +2959,7 @@ export class AppService {
         readerModal.classList.toggle('touch-fullscreen', touchFullscreen);
         readerModal.classList.toggle('touch-enabled', isTouchDevice());
         setReaderUiVisible(true);
+        updateReaderLayout();
         if (touchFullscreen && !readerHistoryPushed) {
           readerHistoryPushed = true;
           history.pushState({ reader: true }, '', window.location.pathname + window.location.search);
@@ -3061,6 +3078,7 @@ export class AppService {
 
         const saved = loadProgress('ebook-epub', file.id);
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
+        updateReaderLayout();
         const timeout = setTimeout(() => {
           if (!epubRendition && readerView) {
             readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
@@ -3096,6 +3114,7 @@ export class AppService {
           if (!readerResizeBound) {
             readerResizeBound = true;
             window.addEventListener('resize', () => {
+              updateReaderLayout();
               if (epubRendition) {
                 try {
                   epubRendition.resize();
@@ -3105,6 +3124,7 @@ export class AppService {
               }
             });
             window.addEventListener('orientationchange', () => {
+              updateReaderLayout();
               if (epubRendition) {
                 try {
                   epubRendition.resize();
