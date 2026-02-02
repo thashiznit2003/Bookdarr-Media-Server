@@ -11,6 +11,7 @@ import type {
   RefreshRequest,
   SetupRequest,
   SignupRequest,
+  TwoFactorLoginRequest,
 } from './auth.types';
 
 @Controller('auth')
@@ -34,6 +35,24 @@ export class AuthController {
       res.cookie('bmsRefreshToken', tokens.refreshToken, options);
     }
     res.cookie('bmsLoggedIn', '1', options);
+  }
+
+  private setTwoFactorCookie(res: Response, token?: string) {
+    const options = {
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      maxAge: 1000 * 60 * 5,
+      path: '/',
+    };
+    if (token) {
+      res.cookie('bmsTwoFactor', token, options);
+    } else {
+      res.clearCookie('bmsTwoFactor', { path: '/' });
+    }
+  }
+
+  private readTwoFactorCookie(req: Request) {
+    return this.readCookie(req, 'bmsTwoFactor');
   }
 
   private clearAuthCookies(res: Response) {
@@ -107,6 +126,9 @@ export class AuthController {
   @Post('login')
   async login(@Body() request: LoginRequest, @Res({ passthrough: true }) res: Response) {
     const response = await this.authService.login(request);
+    if ((response as { twoFactorRequired?: boolean })?.twoFactorRequired) {
+      return res.status(401).json(response);
+    }
     this.setAuthCookies(res, response.tokens);
     return response;
   }
@@ -115,7 +137,12 @@ export class AuthController {
   async loginWeb(@Body() request: LoginRequest, @Res() res: Response) {
     try {
       const response = await this.authService.login(request);
+      if ((response as { twoFactorRequired?: boolean; challengeToken?: string })?.twoFactorRequired) {
+        this.setTwoFactorCookie(res, (response as { challengeToken?: string }).challengeToken);
+        return res.redirect('/login?otp=1');
+      }
       this.setAuthCookies(res, response.tokens);
+      this.setTwoFactorCookie(res);
       if (response.tokens?.accessToken) {
         const payload = Buffer.from(
           JSON.stringify({
@@ -135,7 +162,50 @@ export class AuthController {
       const otpRequired =
         normalized.includes('two-factor') || normalized.includes('2fa') || normalized.includes('otp');
       const otpParam = otpRequired ? '&otp=1' : '';
+      this.setTwoFactorCookie(res);
       return res.redirect(`/login?error=${encodeURIComponent(message)}${otpParam}`);
+    }
+  }
+
+  @Post('login/2fa')
+  async loginTwoFactor(@Body() request: TwoFactorLoginRequest, @Res({ passthrough: true }) res: Response) {
+    const response = await this.authService.completeTwoFactorLogin(request);
+    this.setAuthCookies(res, response.tokens);
+    this.setTwoFactorCookie(res);
+    return response;
+  }
+
+  @Post('login/2fa/web')
+  async loginTwoFactorWeb(
+    @Body() request: TwoFactorLoginRequest,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    try {
+      const challengeToken = request.challengeToken ?? this.readTwoFactorCookie(req);
+      const response = await this.authService.completeTwoFactorLogin({
+        otp: request.otp,
+        challengeToken,
+      });
+      this.setAuthCookies(res, response.tokens);
+      this.setTwoFactorCookie(res);
+      if (response.tokens?.accessToken) {
+        const payload = Buffer.from(
+          JSON.stringify({
+            accessToken: response.tokens.accessToken,
+            refreshToken: response.tokens.refreshToken ?? '',
+          }),
+          'utf8',
+        ).toString('base64');
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        res.setHeader('cache-control', 'no-store');
+        return res.send(`<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(response.tokens.refreshToken ?? '')}');</script></body></html>`);
+      }
+      return res.redirect('/');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed.';
+      this.setTwoFactorCookie(res);
+      return res.redirect(`/login?error=${encodeURIComponent(message)}&otp=1`);
     }
   }
 

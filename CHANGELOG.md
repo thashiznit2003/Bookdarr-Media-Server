@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.102 — 2026-02-01 23:30 -06:00
+- Add a two-step 2FA login flow with a short-lived challenge token so OTP is entered separately.
+
 ## 1.0.101 — 2026-02-01 23:23 -06:00
 - Fix 2FA verification to use otplib's boolean result so existing codes validate.
 

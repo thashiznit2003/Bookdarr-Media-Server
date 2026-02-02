@@ -158,10 +158,10 @@ export class AuthService implements OnModuleInit {
     if (user.twoFactorEnabled) {
       const otp = request.otp?.trim();
       if (!otp) {
-        throw new UnauthorizedException({
-          message: 'Two-factor code required.',
+        return {
           twoFactorRequired: true,
-        });
+          challengeToken: await this.issueTwoFactorChallenge(user),
+        };
       }
       const secret = user.twoFactorSecret ?? '';
       const isValid = secret ? verify({ token: otp, secret }) : false;
@@ -171,6 +171,31 @@ export class AuthService implements OnModuleInit {
           twoFactorRequired: true,
         });
       }
+    }
+
+    const tokens = await this.issueTokens(user);
+    return { user: this.toAuthUser(user), tokens };
+  }
+
+  async completeTwoFactorLogin(input: { otp?: string; challengeToken?: string }) {
+    const otp = input.otp?.trim();
+    if (!otp) {
+      throw new BadRequestException('Two-factor code is required.');
+    }
+    const challengeToken = input.challengeToken?.trim();
+    if (!challengeToken) {
+      throw new BadRequestException('Two-factor challenge is required.');
+    }
+
+    const userId = await this.verifyTwoFactorChallenge(challengeToken);
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive || !user.twoFactorEnabled) {
+      throw new UnauthorizedException('Two-factor challenge is invalid.');
+    }
+    const secret = user.twoFactorSecret ?? '';
+    const isValid = secret ? verify({ token: otp, secret }) : false;
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid two-factor code.');
     }
 
     const tokens = await this.issueTokens(user);
@@ -472,6 +497,32 @@ export class AuthService implements OnModuleInit {
       twoFactorEnabled: Boolean(user.twoFactorEnabled),
       createdAt: user.createdAt,
     };
+  }
+
+  private async issueTwoFactorChallenge(user: UserEntity): Promise<string> {
+    const secrets = await this.authConfigService.getSecrets();
+    const secret = secrets.accessSecret?.trim();
+    if (!secret) {
+      throw new ServiceUnavailableException('Auth secrets are not configured.');
+    }
+    const jti = randomBytes(16).toString('hex');
+    return this.jwtService.signAsync(
+      { sub: user.id, jti, type: 'twoFactor' },
+      { secret, expiresIn: '5m' },
+    );
+  }
+
+  private async verifyTwoFactorChallenge(token: string): Promise<string> {
+    const secrets = await this.authConfigService.getSecrets();
+    const secret = secrets.accessSecret?.trim();
+    if (!secret) {
+      throw new ServiceUnavailableException('Auth secrets are not configured.');
+    }
+    const payload = await this.jwtService.verifyAsync(token, { secret });
+    if (!payload || payload.type !== 'twoFactor' || !payload.sub) {
+      throw new UnauthorizedException('Two-factor challenge is invalid.');
+    }
+    return payload.sub;
   }
 
   private async issueTokens(user: UserEntity): Promise<AuthTokens> {

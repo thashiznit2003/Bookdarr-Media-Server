@@ -27,6 +27,16 @@ export interface LoginRequest {
   otp?: string;
 }
 
+export interface TwoFactorChallengeResponse {
+  twoFactorRequired: boolean;
+  challengeToken: string;
+}
+
+export interface TwoFactorLoginRequest {
+  otp: string;
+  challengeToken?: string;
+}
+
 export interface RefreshRequest {
   refreshToken: string;
 }

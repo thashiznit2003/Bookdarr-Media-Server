@@ -4770,10 +4770,12 @@ export class AppService {
 
       <div id="login-panel" class="panel" style="display: none;">
         <form id="login-form" method="POST" action="/auth/login/web">
-          <label for="login-username">Username</label>
-          <input id="login-username" name="username" type="text" placeholder="Username" autocomplete="username" />
-          <label for="login-password">Password</label>
-          <input id="login-password" name="password" type="password" placeholder="Password" autocomplete="current-password" />
+          <div id="login-credentials">
+            <label for="login-username">Username</label>
+            <input id="login-username" name="username" type="text" placeholder="Username" autocomplete="username" />
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" placeholder="Password" autocomplete="current-password" />
+          </div>
           <div id="login-otp-field" style="display: none;">
             <label for="login-otp">Authenticator code</label>
             <input
@@ -4863,6 +4865,8 @@ export class AppService {
       }
 
       const loginOtpField = document.getElementById('login-otp-field');
+      const loginCredentials = document.getElementById('login-credentials');
+      const loginForm = document.getElementById('login-form');
 
       function setStatus(message) {
         if (loginStatus) loginStatus.textContent = message || '';
@@ -4871,6 +4875,12 @@ export class AppService {
       function revealOtpField() {
         if (loginOtpField) {
           loginOtpField.style.display = 'block';
+        }
+        if (loginCredentials) {
+          loginCredentials.style.display = 'none';
+        }
+        if (loginForm) {
+          loginForm.setAttribute('action', '/auth/login/2fa/web');
         }
       }
 
@@ -4954,6 +4964,7 @@ export class AppService {
         }
         if (otpRequired) {
           revealOtpField();
+          setStatus('Enter your authenticator code.');
         }
         if (setupError) {
           setupPanel.style.display = 'block';
