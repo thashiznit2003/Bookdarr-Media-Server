@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.114 — 2026-02-02 14:09 -06:00
+- Bump version and redeploy after Node/npm upgrade.
+
 ## 1.0.113 — 2026-02-02 14:04 -06:00
 - Add Readium streamer + navigator dependencies and wire a Readium (beta) EPUB reader option.
 
