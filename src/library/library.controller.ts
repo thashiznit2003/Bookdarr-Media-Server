@@ -36,6 +36,13 @@ export class LibraryController {
     return this.libraryService.getLibrary(userId);
   }
 
+  @Post('refresh')
+  @UseGuards(AuthGuard)
+  async refreshLibrary(@Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.libraryService.refreshLibrary(userId);
+  }
+
   @Get('my')
   @UseGuards(AuthGuard)
   async getMyLibrary(@Req() req: Request) {

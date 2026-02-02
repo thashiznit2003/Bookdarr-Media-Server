@@ -108,3 +108,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Bookdarr HTTPS label is forced to stay on one line next to the checkbox.
 - Bookdarr HTTPS label now sits to the left of the checkbox.
 - Bookdarr HTTPS protocol toggle now anchors the checkbox right while keeping the label to its left.
+- Library UI now includes a manual Refresh button that clears and rebuilds the Book Pool cache.

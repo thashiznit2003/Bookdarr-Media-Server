@@ -58,6 +58,36 @@ export class LibraryService {
     return library.filter((item) => item.checkedOutByMe);
   }
 
+  async refreshLibrary(userId?: string): Promise<LibraryItem[]> {
+    const configKey = await this.bookdarrService.getConfigSignature();
+    await this.libraryCacheService.clearCached();
+    const items = await this.buildLibraryItems();
+    await this.libraryCacheService.setCached(configKey, items);
+    if (!userId) {
+      return items;
+    }
+    const checkouts = await this.userLibraryService.getActiveForUser(userId);
+    const checkoutMap = new Map(checkouts.map((entry) => [entry.bookId, entry]));
+    const readMap = await this.userLibraryService.getReadMap(userId);
+    const downloadMap = await this.offlineDownloadService.getStatusMap(
+      userId,
+      checkouts.map((entry) => entry.bookId),
+    );
+    return items.map((item) => {
+      const checkout = checkoutMap.get(item.id);
+      const readAt = readMap.get(item.id) ?? null;
+      const downloadStatus = downloadMap.get(item.id) ?? null;
+      return {
+        ...item,
+        checkedOutByMe: Boolean(checkout),
+        checkedOutAt: checkout?.checkedOutAt ?? null,
+        readByMe: Boolean(readAt),
+        readAt,
+        downloadStatus,
+      };
+    });
+  }
+
   async getLibraryDetail(bookId: number, userId?: string): Promise<LibraryDetail> {
     const bookPool = await this.bookdarrService.getBookPool();
     const item = bookPool.find((entry) => entry.bookId === bookId);

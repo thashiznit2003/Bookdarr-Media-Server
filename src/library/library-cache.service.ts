@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { mkdir, readFile, writeFile, rm } from 'fs/promises';
 import { dirname, join } from 'path';
 import { LibraryItem } from './library.types';
 
@@ -52,6 +52,14 @@ export class LibraryCacheService {
       await writeFile(this.cachePath, JSON.stringify(payload, null, 2), 'utf-8');
     } catch {
       // ignore cache write failures
+    }
+  }
+
+  async clearCached(): Promise<void> {
+    try {
+      await rm(this.cachePath, { force: true });
+    } catch {
+      // ignore cache clear failures
     }
   }
 }

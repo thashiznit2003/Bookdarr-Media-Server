@@ -1262,7 +1262,10 @@ export class AppService {
           </section>
 
           <section class="section-title">
-            <h2>Library</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <h2>Library</h2>
+              <button id="refresh-library" style="padding: 8px 14px; border-radius: 999px;">Refresh</button>
+            </div>
           </section>
           <div id="library-grid" class="grid">
             <div class="empty">Loading Book Pool…</div>
@@ -1577,6 +1580,7 @@ export class AppService {
       const authParam = new URLSearchParams(window.location.search).get('auth');
       const libraryFilterSelect = document.getElementById('library-filter');
       const myLibraryFilterSelect = document.getElementById('my-library-filter');
+      const refreshLibraryButton = document.getElementById('refresh-library');
 
       const bookdarrHost = document.getElementById('bookdarr-host');
       const bookdarrPort = document.getElementById('bookdarr-port');
@@ -2272,6 +2276,23 @@ export class AppService {
       });
       if (libraryFilterSelect) libraryFilterSelect.value = state.filter;
       if (myLibraryFilterSelect) myLibraryFilterSelect.value = state.filter;
+
+      refreshLibraryButton?.addEventListener('click', () => {
+        refreshLibraryButton.disabled = true;
+        refreshLibraryButton.textContent = 'Refreshing...';
+        fetchWithAuth('/library/refresh', { method: 'POST' })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok }) => {
+            if (ok) {
+              loadLibrary();
+              loadMyLibrary();
+            }
+          })
+          .finally(() => {
+            refreshLibraryButton.textContent = 'Refresh';
+            refreshLibraryButton.disabled = false;
+          });
+      });
 
       function applyFilters(list) {
         return list.filter((item) => {

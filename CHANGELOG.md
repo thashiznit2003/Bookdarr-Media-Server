@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.89 — 2026-02-01 22:04 -06:00
+- Add a manual Book Pool refresh button that rebuilds the cached library.
+
 ## 1.0.88 — 2026-02-01 21:59 -06:00
 - Keep Bookdarr HTTPS checkbox anchored right while placing the label to its left.
 
