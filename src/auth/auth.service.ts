@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
-import * as otplib from 'otplib';
+import { generateSecret, generateURI, verify } from 'otplib';
 import { randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
 import { SettingsService } from '../settings/settings.service';
@@ -161,7 +161,7 @@ export class AuthService implements OnModuleInit {
         throw new UnauthorizedException('Two-factor code required.');
       }
       const secret = user.twoFactorSecret ?? '';
-      if (!secret || !otplib.authenticator.check(otp, secret)) {
+      if (!secret || !(await verify({ token: otp, secret })).valid) {
         throw new UnauthorizedException('Invalid two-factor code.');
       }
     }
@@ -385,12 +385,12 @@ export class AuthService implements OnModuleInit {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Unauthorized.');
     }
-    const secret = otplib.authenticator.generateSecret();
+    const secret = generateSecret();
     user.twoFactorTempSecret = secret;
     await this.users.save(user);
     const label = user.username ?? user.email;
     const issuer = 'Bookdarr Media Server';
-    const otpauthUrl = otplib.authenticator.keyuri(label, issuer, secret);
+    const otpauthUrl = generateURI({ issuer, label, secret });
     return { secret, otpauthUrl, issuer };
   }
 
@@ -403,7 +403,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Unauthorized.');
     }
     const secret = user.twoFactorTempSecret ?? '';
-    if (!secret || !otplib.authenticator.check(code, secret)) {
+    if (!secret || !(await verify({ token: code, secret })).valid) {
       throw new BadRequestException('Invalid two-factor code.');
     }
     user.twoFactorSecret = secret;
@@ -429,7 +429,7 @@ export class AuthService implements OnModuleInit {
     }
     if (input.code) {
       const secret = user.twoFactorSecret ?? '';
-      if (!secret || !otplib.authenticator.check(input.code.trim(), secret)) {
+      if (!secret || !(await verify({ token: input.code.trim(), secret })).valid) {
         throw new BadRequestException('Invalid two-factor code.');
       }
     } else if (input.currentPassword) {

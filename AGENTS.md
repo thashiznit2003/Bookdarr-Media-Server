@@ -116,3 +116,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Added welcome email on user creation, password reset flow in login UI, and TOTP-based 2FA setup with QR codes.
 - 2FA now uses otplib/authenticator import to fix build.
 - 2FA now uses otplib namespace import to fix module resolution.
+- 2FA now uses otplib functional helpers (generateSecret/generateURI/verify) for stability.

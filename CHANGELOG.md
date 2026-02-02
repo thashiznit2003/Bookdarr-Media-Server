@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.97 — 2026-02-01 22:53 -06:00
+- Use otplib functional helpers for TOTP generation/verification to fix builds.
+
 ## 1.0.96 — 2026-02-01 22:49 -06:00
 - Switch 2FA import to otplib namespace to fix module resolution.
 
