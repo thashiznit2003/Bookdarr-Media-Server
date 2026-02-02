@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.77 — 2026-02-01 21:13 -06:00
+- Add SMTP From Name support and include it in SMTP config + test email handling.
+
 ## 1.0.76 — 2026-02-01 21:08 -06:00
 - Add SMTP title status dot and live connectivity check for configured SMTP.
 

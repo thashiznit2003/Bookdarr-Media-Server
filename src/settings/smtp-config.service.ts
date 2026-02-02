@@ -9,6 +9,7 @@ export interface SmtpConfigInput {
   user?: string;
   pass?: string;
   from?: string;
+  fromName?: string;
 }
 
 @Injectable()
@@ -27,6 +28,7 @@ export class SmtpConfigService {
     const user = input.user?.trim();
     const from = input.from?.trim();
     const port = input.port;
+    const fromName = input.fromName?.trim();
 
     if (!host) {
       throw new BadRequestException('SMTP host is required.');
@@ -53,6 +55,7 @@ export class SmtpConfigService {
       user,
       pass,
       from: from && from.length > 0 ? from : null,
+      fromName: fromName && fromName.length > 0 ? fromName : null,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     });

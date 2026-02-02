@@ -1316,6 +1316,10 @@ export class AppService {
                 <input id="settings-smtp-user" type="text" placeholder="you@example.com" />
               </div>
               <div>
+                <span class="nav-title">From Name</span>
+                <input id="settings-smtp-from-name" type="text" placeholder="Bookdarr Media Server" />
+              </div>
+              <div>
                 <span class="nav-title">Password</span>
                 <input id="settings-smtp-pass" type="password" placeholder="App password" />
               </div>
@@ -1546,6 +1550,7 @@ export class AppService {
       const settingsSmtpHost = document.getElementById('settings-smtp-host');
       const settingsSmtpPort = document.getElementById('settings-smtp-port');
       const settingsSmtpUser = document.getElementById('settings-smtp-user');
+      const settingsSmtpFromName = document.getElementById('settings-smtp-from-name');
       const settingsSmtpPass = document.getElementById('settings-smtp-pass');
       const settingsSmtpFrom = document.getElementById('settings-smtp-from');
       const saveSmtpButton = document.getElementById('save-smtp');
@@ -2178,6 +2183,7 @@ export class AppService {
             if (settingsSmtpHost) settingsSmtpHost.value = data?.host ?? '';
             if (settingsSmtpPort) settingsSmtpPort.value = data?.port ?? '';
             if (settingsSmtpUser) settingsSmtpUser.value = data?.user ?? '';
+            if (settingsSmtpFromName) settingsSmtpFromName.value = data?.fromName ?? '';
             if (settingsSmtpFrom) settingsSmtpFrom.value = data?.from ?? '';
             if (settingsSmtpStatus) {
               settingsSmtpStatus.textContent = data?.configured
@@ -3974,6 +3980,7 @@ export class AppService {
         const host = settingsSmtpHost?.value?.trim();
         const port = Number(settingsSmtpPort?.value);
         const user = settingsSmtpUser?.value?.trim();
+        const fromName = settingsSmtpFromName?.value?.trim();
         const pass = settingsSmtpPass?.value;
         const from = settingsSmtpFrom?.value?.trim();
         if (settingsSmtpStatus) {
@@ -3984,7 +3991,7 @@ export class AppService {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ host, port, user, pass, from }),
+          body: JSON.stringify({ host, port, user, pass, from, fromName }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
@@ -4005,6 +4012,7 @@ export class AppService {
         const host = settingsSmtpHost?.value?.trim();
         const port = Number(settingsSmtpPort?.value);
         const user = settingsSmtpUser?.value?.trim();
+        const fromName = settingsSmtpFromName?.value?.trim();
         const pass = settingsSmtpPass?.value;
         const from = settingsSmtpFrom?.value?.trim();
         if (settingsSmtpStatus) {
@@ -4016,7 +4024,7 @@ export class AppService {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ host, port, user, pass, from }),
+          body: JSON.stringify({ host, port, user, pass, from, fromName }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {

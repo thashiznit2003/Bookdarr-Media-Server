@@ -171,6 +171,7 @@ export class SettingsService {
         user: this.readEnv('SMTP_USER'),
         pass: this.readEnv('SMTP_PASS'),
         from: this.readEnv('SMTP_FROM'),
+        fromName: this.readEnv('SMTP_FROM_NAME'),
       },
       diagnostics: {
         required: diagnosticsRequired,

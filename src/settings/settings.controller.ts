@@ -33,6 +33,7 @@ export class SettingsController {
       settings.smtp.host = smtpConfig.host;
       settings.smtp.port = smtpConfig.port;
       settings.smtp.from = smtpConfig.from ?? undefined;
+      settings.smtp.fromName = smtpConfig.fromName ?? undefined;
       settings.smtp.configured = this.smtpConfigService.isConfigured(smtpConfig);
     }
     return settings;

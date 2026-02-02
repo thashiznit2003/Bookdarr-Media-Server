@@ -29,7 +29,10 @@ export class MailerService {
       },
     });
 
-    const fromAddress = smtp.from ?? smtp.user;
+    const fromAddress = this.formatFromAddress(
+      smtp.fromName,
+      smtp.from ?? smtp.user,
+    );
     const subject = 'Bookdarr Media Server password reset';
     const text = `A password reset was requested for your Bookdarr Media Server account.
 
@@ -44,5 +47,16 @@ If you did not request this, you can ignore this email.`;
       subject,
       text,
     });
+  }
+
+  private formatFromAddress(fromName?: string | null, fromEmail?: string | null) {
+    const email = (fromEmail || '').trim();
+    if (!email) {
+      return undefined;
+    }
+    if (!fromName || fromName.trim().length === 0) {
+      return email;
+    }
+    return `${fromName.trim()} <${email}>`;
   }
 }

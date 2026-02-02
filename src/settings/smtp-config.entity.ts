@@ -20,6 +20,9 @@ export class SmtpConfigEntity {
   @Column({ type: 'text', nullable: true })
   from?: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  fromName?: string | null;
+
   @Column()
   createdAt!: string;
 

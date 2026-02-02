@@ -24,6 +24,7 @@ export class SmtpConfigController {
         port: config.port,
         user: config.user,
         from: config.from ?? undefined,
+        fromName: config.fromName ?? undefined,
       };
     }
     const settings = this.settingsService.getSettings();
@@ -35,6 +36,7 @@ export class SmtpConfigController {
       port: smtp.port,
       user: smtp.user,
       from: smtp.from,
+      fromName: smtp.fromName,
     };
   }
 
@@ -47,6 +49,7 @@ export class SmtpConfigController {
       port: config.port,
       user: config.user,
       from: config.from ?? undefined,
+      fromName: config.fromName ?? undefined,
     };
   }
 
@@ -57,6 +60,7 @@ export class SmtpConfigController {
     const user = input?.user?.trim();
     const pass = input?.pass;
     const from = input?.from?.trim();
+    const fromName = input?.fromName?.trim();
 
     const stored = await this.smtpConfigService.getConfig();
     const settings = this.settingsService.getSettings();
@@ -75,6 +79,7 @@ export class SmtpConfigController {
     const smtpUser = user || fallback.user;
     const smtpPass = pass || fallback.pass;
     const smtpFrom = from || fallback.from || smtpUser;
+    const smtpFromName = fromName || fallback.fromName;
 
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
       throw new BadRequestException('SMTP settings are incomplete.');
@@ -92,7 +97,7 @@ export class SmtpConfigController {
 
     try {
       await transport.sendMail({
-        from: smtpFrom,
+        from: this.formatFromAddress(smtpFromName, smtpFrom),
         to: smtpUser,
         subject: 'Bookdarr Media Server SMTP Test',
         text: 'This is a test email from Bookdarr Media Server.',
@@ -105,5 +110,16 @@ export class SmtpConfigController {
     }
 
     return { ok: true };
+  }
+
+  private formatFromAddress(fromName?: string | null, fromEmail?: string | null) {
+    const email = (fromEmail || '').trim();
+    if (!email) {
+      return undefined;
+    }
+    if (!fromName || fromName.trim().length === 0) {
+      return email;
+    }
+    return `${fromName.trim()} <${email}>`;
   }
 }
