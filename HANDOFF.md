@@ -77,6 +77,7 @@
 - SMTP settings can be tested via /settings/smtp/test, and the Bookdarr title dot reflects live connectivity.
 - SMTP settings now show a title status dot based on live connectivity checks.
 - SMTP now supports a From Name value that is combined with the From address when sending mail.
+- Settings types now include SMTP From Name in public/private config output.
 
 ## Decisions
 - Stack: Node.js + NestJS

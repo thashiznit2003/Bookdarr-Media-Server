@@ -75,6 +75,7 @@ export class SettingsService {
         host: this.settings.smtp.host,
         port: this.settings.smtp.port,
         from: this.settings.smtp.from,
+        fromName: this.settings.smtp.fromName,
         configured: smtpConfigured,
       },
       diagnostics: {

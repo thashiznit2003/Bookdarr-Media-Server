@@ -22,6 +22,7 @@ export interface Settings {
     user?: string;
     pass?: string;
     from?: string;
+    fromName?: string;
   };
   diagnostics: {
     required: boolean;
@@ -64,6 +65,7 @@ export interface PublicSettings {
     host?: string;
     port?: number;
     from?: string;
+    fromName?: string;
     configured: boolean;
   };
   diagnostics: {

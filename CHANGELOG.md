@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.78 — 2026-02-01 21:15 -06:00
+- Fix settings types to include SMTP From Name in public + private config.
+
 ## 1.0.77 — 2026-02-01 21:13 -06:00
 - Add SMTP From Name support and include it in SMTP config + test email handling.
 
