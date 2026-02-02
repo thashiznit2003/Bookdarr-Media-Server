@@ -100,3 +100,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Settings types now include SMTP From Name in public/private config output.
 - SMTP test fallback now carries From Name when using stored config.
 - SMTP settings fields now use a form grid to align inputs.
+- SMTP field labels are forced above inputs to match a two-row layout.

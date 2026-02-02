@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.81 — 2026-02-01 21:26 -06:00
+- Force SMTP field labels above inputs within the form grid.
+
 ## 1.0.80 — 2026-02-01 21:23 -06:00
 - Align SMTP settings fields with a dedicated form grid layout.
 

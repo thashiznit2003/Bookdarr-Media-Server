@@ -969,6 +969,11 @@ export class AppService {
         gap: 6px;
       }
 
+      .form-grid .nav-title {
+        display: block;
+        margin-bottom: 2px;
+      }
+
       .form-grid input {
         width: 100%;
         box-sizing: border-box;
