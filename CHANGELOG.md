@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.72 — 2026-02-01 20:40 -06:00
+- Export AdminGuard from AuthModule so settings guards resolve at runtime.
+
 ## 1.0.71 — 2026-02-01 20:35 -06:00
 - Fix SMTP settings controller type import to satisfy isolatedModules builds.
 

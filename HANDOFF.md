@@ -71,6 +71,7 @@
 - SMTP settings are stored in DB and used by the mailer service for password reset emails.
 - Create User panel is hidden unless the user is an admin.
 - SMTP settings controller uses a type-only import to satisfy isolatedModules builds.
+- Auth module now exports AdminGuard so settings controllers can use it without DI errors.
 
 ## Decisions
 - Stack: Node.js + NestJS

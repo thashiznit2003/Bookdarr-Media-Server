@@ -37,6 +37,6 @@ import { MeController } from './me.controller';
     AuthConfigService,
     AdminGuard,
   ],
-  exports: [AuthGuard, AuthConfigService, JwtModule],
+  exports: [AuthGuard, AuthConfigService, JwtModule, AdminGuard],
 })
 export class AuthModule {}
