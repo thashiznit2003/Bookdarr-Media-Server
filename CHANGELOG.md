@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.80 — 2026-02-01 21:23 -06:00
+- Align SMTP settings fields with a dedicated form grid layout.
+
 ## 1.0.79 — 2026-02-01 21:16 -06:00
 - Fix SMTP From Name fallback wiring for test emails.
 

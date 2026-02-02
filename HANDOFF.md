@@ -79,6 +79,7 @@
 - SMTP now supports a From Name value that is combined with the From address when sending mail.
 - Settings types now include SMTP From Name in public/private config output.
 - SMTP test fallback now carries From Name when using stored config.
+- SMTP settings fields now use a form grid to align inputs.
 
 ## Decisions
 - Stack: Node.js + NestJS

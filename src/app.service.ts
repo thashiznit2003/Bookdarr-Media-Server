@@ -963,6 +963,17 @@ export class AppService {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       }
 
+      .form-grid > div {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .form-grid input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
       .status-item span {
         display: block;
         color: var(--muted);
@@ -1263,7 +1274,7 @@ export class AppService {
               <span>Bookdarr Connection</span>
               <span id="settings-bookdarr-title-dot" class="dot warn"></span>
             </h3>
-            <div class="status-grid">
+            <div class="status-grid form-grid">
               <div>
                 <span class="nav-title">IP address / Host</span>
                 <input id="settings-bookdarr-host" type="text" placeholder="192.168.0.103" />
