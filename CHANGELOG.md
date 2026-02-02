@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.82 — 2026-02-01 21:33 -06:00
+- Make SMTP fields use the same stacked label layout as Bookdarr and disable Bookdarr port when HTTPS is checked.
+
 ## 1.0.81 — 2026-02-01 21:26 -06:00
 - Force SMTP field labels above inputs within the form grid.
 

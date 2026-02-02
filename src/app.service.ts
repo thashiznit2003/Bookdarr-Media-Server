@@ -974,9 +974,21 @@ export class AppService {
         margin-bottom: 2px;
       }
 
+      .form-grid label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text);
+      }
+
       .form-grid input {
         width: 100%;
         box-sizing: border-box;
+      }
+
+      .form-grid input:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       .status-item span {
@@ -1318,7 +1330,7 @@ export class AppService {
               <span>Email (SMTP)</span>
               <span id="settings-smtp-title-dot" class="dot warn"></span>
             </h3>
-            <div class="status-grid">
+            <div class="status-grid form-grid">
               <div>
                 <span class="nav-title">SMTP Host</span>
                 <input id="settings-smtp-host" type="text" placeholder="smtp.gmail.com" />
@@ -3745,6 +3757,8 @@ export class AppService {
             if (data?.configured) {
               testBookdarrConnection(false);
             }
+            syncBookdarrPortState(bookdarrPort, bookdarrHttps);
+            syncBookdarrPortState(settingsBookdarrPort, settingsBookdarrHttps);
           })
           .catch(() => {
             bookdarrConfigured = false;
@@ -4061,7 +4075,8 @@ export class AppService {
 
       saveBookdarrButton?.addEventListener('click', () => {
         const host = settingsBookdarrHost?.value;
-        const port = Number(settingsBookdarrPort?.value);
+        const portValue = settingsBookdarrPort?.value;
+        const port = portValue ? Number(portValue) : undefined;
         const apiKey = settingsBookdarrKey?.value;
         const useHttps = settingsBookdarrHttps?.checked;
         settingsBookdarrStatus.textContent = 'Saving...';
@@ -4177,13 +4192,43 @@ export class AppService {
           });
       }
 
+      function syncBookdarrPortState(portInput, httpsCheckbox) {
+        if (!portInput || !httpsCheckbox) {
+          return;
+        }
+        if (httpsCheckbox.checked) {
+          if (!portInput.dataset.prevValue) {
+            portInput.dataset.prevValue = portInput.value;
+          }
+          if (!portInput.value) {
+            portInput.value = '443';
+          }
+          portInput.disabled = true;
+        } else {
+          portInput.disabled = false;
+          if (portInput.dataset.prevValue) {
+            portInput.value = portInput.dataset.prevValue;
+            delete portInput.dataset.prevValue;
+          }
+        }
+      }
+
       testBookdarrButton?.addEventListener('click', () => {
         testBookdarrConnection(true);
       });
 
+      settingsBookdarrHttps?.addEventListener('change', () => {
+        syncBookdarrPortState(settingsBookdarrPort, settingsBookdarrHttps);
+      });
+
+      bookdarrHttps?.addEventListener('change', () => {
+        syncBookdarrPortState(bookdarrPort, bookdarrHttps);
+      });
+
       bookdarrButton?.addEventListener('click', () => {
         const host = bookdarrHost.value;
-        const port = Number(bookdarrPort.value);
+        const portValue = bookdarrPort?.value;
+        const port = portValue ? Number(portValue) : undefined;
         const apiKey = bookdarrKey.value;
         const poolPath = bookdarrPath?.value;
         const useHttps = bookdarrHttps.checked;
