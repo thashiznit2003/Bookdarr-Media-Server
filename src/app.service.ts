@@ -1602,6 +1602,8 @@ export class AppService {
           <div class="reader-controls">
             <button class="reader-button" id="reader-prev">Prev</button>
             <button class="reader-button" id="reader-next">Next</button>
+            <button class="reader-button" id="reader-sync">Sync</button>
+            <button class="reader-button" id="reader-reset">Restart</button>
             <button class="reader-button" id="reader-theme-toggle-inline">Dark mode</button>
             <a class="reader-button" id="reader-download" href="#" target="_blank" rel="noreferrer">Download</a>
           </div>
@@ -1765,6 +1767,8 @@ export class AppService {
       const readerProgressOverlay = document.getElementById('reader-progress-overlay');
       const readerPrev = document.getElementById('reader-prev');
       const readerNext = document.getElementById('reader-next');
+      const readerSync = document.getElementById('reader-sync');
+      const readerReset = document.getElementById('reader-reset');
       const readerPrevArrow = document.getElementById('reader-prev-arrow');
       const readerNextArrow = document.getElementById('reader-next-arrow');
       const readerNavOverlay = document.getElementById('reader-nav-overlay');
@@ -1883,6 +1887,25 @@ export class AppService {
 
       readerPrev?.addEventListener('click', goPrev);
       readerNext?.addEventListener('click', goNext);
+      readerSync?.addEventListener('click', async () => {
+        if (!readerFile) return;
+        const kind = readerFile.format === '.pdf' ? 'ebook-pdf' : 'ebook-epub';
+        await reconcileProgress(kind, readerFile.id);
+      });
+      readerReset?.addEventListener('click', () => {
+        if (!readerFile) return;
+        if (!confirm('Restart this book from the beginning?')) return;
+        const kind = readerFile.format === '.pdf' ? 'ebook-pdf' : 'ebook-epub';
+        resetProgressRemote(kind, readerFile.id);
+        if (readerFile.format === '.pdf') {
+          pdfPage = 1;
+          renderPdfPage();
+        } else if (readerFile.format === '.epub' && epubRendition) {
+          try {
+            epubRendition.display();
+          } catch {}
+        }
+      });
       readerPrevArrow?.addEventListener('click', goPrev);
       readerNextArrow?.addEventListener('click', goNext);
       readerThemeToggle?.addEventListener('click', () => {
@@ -2757,23 +2780,135 @@ export class AppService {
         return 'bms:' + kind + ':' + userKey + ':' + fileId;
       }
 
-      function loadProgress(kind, fileId) {
+      function getLocalProgress(kind, fileId) {
+        const localKey = progressKey(kind, fileId);
         try {
-          const raw = localStorage.getItem(progressKey(kind, fileId));
+          const raw = localStorage.getItem(localKey);
           return raw ? JSON.parse(raw) : null;
         } catch {
           return null;
         }
       }
 
-      function saveProgress(kind, fileId, data) {
+      async function fetchServerProgress(kind, fileId) {
         try {
-          localStorage.setItem(progressKey(kind, fileId), JSON.stringify({
-            ...data,
-            updatedAt: Date.now()
-          }));
+          const response = await fetchWithAuth('/reader/progress/' + kind + '/' + fileId);
+          const body = await response.json();
+          if (response.ok && body?.data) {
+            return { data: body.data, updatedAt: body.updatedAt };
+          }
+        } catch {
+          // ignore
+        }
+        return null;
+      }
+
+      async function loadProgress(kind, fileId) {
+        const local = getLocalProgress(kind, fileId);
+        const remote = await fetchServerProgress(kind, fileId);
+        if (remote?.data) {
+          const payload = { ...remote.data, updatedAt: remote.updatedAt };
+          localStorage.setItem(progressKey(kind, fileId), JSON.stringify(payload));
+          return payload;
+        }
+        return local;
+      }
+
+      function saveProgress(kind, fileId, data) {
+        const payload = { ...data, updatedAt: Date.now() };
+        try {
+          localStorage.setItem(progressKey(kind, fileId), JSON.stringify(payload));
         } catch {
           // ignore storage errors
+        }
+        fetchWithAuth('/reader/progress/' + kind + '/' + fileId, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ data, updatedAt: payload.updatedAt }),
+        }).catch(() => {
+          // ignore network failures
+        });
+      }
+
+      function splitProgressPayload(payload) {
+        if (!payload) {
+          return { data: null, updatedAt: 0 };
+        }
+        const data = { ...payload };
+        const updatedAt = typeof data.updatedAt === 'number' ? data.updatedAt : 0;
+        delete data.updatedAt;
+        return { data, updatedAt };
+      }
+
+      function syncProgress(kind, fileId, data, onDone) {
+        const payload = { ...data, updatedAt: Date.now() };
+        fetchWithAuth('/reader/progress/' + kind + '/' + fileId + '/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ data, updatedAt: payload.updatedAt }),
+        })
+          .then((response) => response.json())
+          .then((body) => {
+            if (body?.data && body?.updatedAt) {
+              localStorage.setItem(progressKey(kind, fileId), JSON.stringify({
+                ...body.data,
+                updatedAt: body.updatedAt,
+              }));
+              if (onDone) onDone(body);
+            } else if (onDone) {
+              onDone(null);
+            }
+          })
+          .catch(() => {
+            if (onDone) onDone(null);
+          });
+      }
+
+      function resetProgressRemote(kind, fileId) {
+        fetchWithAuth('/reader/progress/' + kind + '/' + fileId + '/reset', {
+          method: 'POST',
+        }).catch(() => {});
+        try {
+          localStorage.removeItem(progressKey(kind, fileId));
+        } catch {}
+      }
+
+      async function reconcileProgress(kind, fileId) {
+        const localRaw = getLocalProgress(kind, fileId);
+        const local = splitProgressPayload(localRaw);
+        const remote = await fetchServerProgress(kind, fileId);
+        const remoteUpdatedAt = remote?.updatedAt ?? 0;
+        if (remote?.data && remoteUpdatedAt >= (local.updatedAt || 0)) {
+          const payload = { ...remote.data, updatedAt: remoteUpdatedAt };
+          localStorage.setItem(progressKey(kind, fileId), JSON.stringify(payload));
+          applySyncedProgress(kind, remote.data);
+          return;
+        }
+        if (local.data) {
+          syncProgress(kind, fileId, local.data, (result) => {
+            if (!result?.data) return;
+            applySyncedProgress(kind, result.data);
+          });
+        }
+      }
+
+      async function loadAndApplyServerProgress(kind, fileId) {
+        try {
+          const response = await fetchWithAuth('/reader/progress/' + kind + '/' + fileId);
+          const body = await response.json();
+          if (response.ok && body?.data) {
+            localStorage.setItem(progressKey(kind, fileId), JSON.stringify({
+              ...body.data,
+              updatedAt: body.updatedAt,
+            }));
+            applySyncedProgress(kind, body.data);
+          }
+        } catch {
+          // ignore
         }
       }
 
@@ -3306,7 +3441,7 @@ export class AppService {
           pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
         }
 
-        const saved = loadProgress('ebook-pdf', file.id);
+        loadProgress('ebook-pdf', file.id).then((saved) => {
         const url = withToken(file.streamUrl);
         readerView.innerHTML = '<div class="empty">Loading PDF...</div>';
         pdfjsLib.getDocument(url).promise.then((doc) => {
@@ -3315,8 +3450,21 @@ export class AppService {
           if (pdfPage < 1) pdfPage = 1;
           if (pdfPage > pdfDoc.numPages) pdfPage = pdfDoc.numPages;
           renderPdfPage();
+          loadAndApplyServerProgress('ebook-pdf', file.id);
         }).catch(() => {
           readerView.innerHTML = '<div class="empty">Unable to load PDF.</div>';
+        });
+        }).catch(() => {
+          const url = withToken(file.streamUrl);
+          readerView.innerHTML = '<div class="empty">Loading PDF...</div>';
+          pdfjsLib.getDocument(url).promise.then((doc) => {
+            pdfDoc = doc;
+            pdfPage = 1;
+            renderPdfPage();
+            loadAndApplyServerProgress('ebook-pdf', file.id);
+          }).catch(() => {
+            readerView.innerHTML = '<div class="empty">Unable to load PDF.</div>';
+          });
         });
       }
 
@@ -3342,14 +3490,13 @@ export class AppService {
         });
       }
 
-      function openEpubReader(file) {
+      async function openEpubReader(file) {
         if (!readerView) return;
         if (!window['ePub'] || !window['JSZip']) {
           readerView.innerHTML = '<div class="empty">EPUB reader unavailable.</div>';
           return;
         }
 
-        const saved = loadProgress('ebook-epub', file.id);
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
         updateReaderLayout();
         const timeout = setTimeout(() => {
@@ -3357,6 +3504,13 @@ export class AppService {
             readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           }
         }, 8000);
+
+        let saved = null;
+        try {
+          saved = await loadProgress('ebook-epub', file.id);
+        } catch {
+          saved = null;
+        }
 
         const mountRendition = (book) => {
           if (!readerView) {
@@ -3493,7 +3647,7 @@ export class AppService {
           }
         };
 
-        (async () => {
+        try {
           if (epubObjectUrl) {
             try {
               URL.revokeObjectURL(epubObjectUrl);
@@ -3509,6 +3663,7 @@ export class AppService {
             if (!fallbackOk) {
               throw new Error('Failed to load EPUB');
             }
+            loadAndApplyServerProgress('ebook-epub', file.id);
             return;
           }
           const blob = await response.blob();
@@ -3520,16 +3675,44 @@ export class AppService {
           clearTimeout(timeout);
           mountRendition(epubBook);
           prepareEpubLocations();
-        })().catch(async () => {
+          loadAndApplyServerProgress('ebook-epub', file.id);
+        } catch {
           const fallbackOk = await openFromUrl(withToken(file.streamUrl));
           if (fallbackOk) {
+            loadAndApplyServerProgress('ebook-epub', file.id);
             return;
           }
           clearTimeout(timeout);
           if (readerView) {
             readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           }
-        });
+        }
+      }
+
+      function applySyncedProgress(kind, data) {
+        if (!readerFile || !data) {
+          return;
+        }
+        if (kind === 'ebook-pdf' && typeof data.page === 'number') {
+          pdfPage = Math.max(1, data.page);
+          if (pdfDoc && pdfPage > pdfDoc.numPages) {
+            pdfPage = pdfDoc.numPages;
+          }
+          renderPdfPage();
+        } else if (kind === 'ebook-epub' && data.cfi && epubRendition) {
+          try {
+            epubRendition.display(data.cfi);
+          } catch {
+            // ignore
+          }
+        } else if (kind === 'audio' && typeof data.time === 'number') {
+          const player = document.querySelector('.detail-player');
+          if (player) {
+            try {
+              player.currentTime = data.time;
+            } catch {}
+          }
+        }
       }
 
       function renderAudioSection(files) {
@@ -3552,10 +3735,11 @@ export class AppService {
           if (!activeFile || !player.duration || Number.isNaN(player.duration)) {
             return;
           }
-          const saved = loadProgress('audio', activeFile.id);
-          if (saved?.time) {
-            player.currentTime = Math.min(saved.time, Math.max(0, player.duration - 1));
-          }
+          loadProgress('audio', activeFile.id).then((saved) => {
+            if (saved?.time) {
+              player.currentTime = Math.min(saved.time, Math.max(0, player.duration - 1));
+            }
+          }).catch(() => {});
         };
 
         player.addEventListener('loadedmetadata', applySavedPosition);

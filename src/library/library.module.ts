@@ -12,6 +12,9 @@ import { UserLibraryEntity } from './user-library.entity';
 import { UserLibraryService } from './user-library.service';
 import { OfflineDownloadEntity } from './offline-download.entity';
 import { OfflineDownloadService } from './offline-download.service';
+import { ReaderProgressEntity } from './reader-progress.entity';
+import { ReaderProgressService } from './reader-progress.service';
+import { ReaderProgressController } from './reader-progress.controller';
 
 @Module({
   imports: [
@@ -20,9 +23,16 @@ import { OfflineDownloadService } from './offline-download.service';
     forwardRef(() => AuthModule),
     forwardRef(() => SettingsModule),
     LoggingModule,
-    TypeOrmModule.forFeature([UserLibraryEntity, OfflineDownloadEntity]),
+    TypeOrmModule.forFeature([UserLibraryEntity, OfflineDownloadEntity, ReaderProgressEntity]),
   ],
-  controllers: [LibraryController],
-  providers: [LibraryService, LibraryCacheService, UserLibraryService, OfflineDownloadService],
+  controllers: [LibraryController, ReaderProgressController],
+  providers: [
+    LibraryService,
+    LibraryCacheService,
+    UserLibraryService,
+    OfflineDownloadService,
+    ReaderProgressService,
+  ],
+  exports: [ReaderProgressService],
 })
 export class LibraryModule {}

@@ -112,6 +112,7 @@
 - Added `npm run reset-2fa` script with `RESET_2FA_ALL` / `RESET_2FA_USER` env vars for Docker-friendly resets.
 - Admin reset UI now renders without breaking the build.
 - Admin reset requests now avoid template literals inside the HTML template.
+- Reader progress is now stored per user/book in the DB (`reader_progress`), with Sync/Restart controls and `/reader/progress` endpoints.
 
 ## Decisions
 - Stack: Node.js + NestJS

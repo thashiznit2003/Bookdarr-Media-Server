@@ -16,6 +16,7 @@ import { LoggingModule } from './logging/logging.module';
 import { UserLibraryEntity } from './library/user-library.entity';
 import { OfflineDownloadEntity } from './library/offline-download.entity';
 import { SmtpConfigEntity } from './settings/smtp-config.entity';
+import { ReaderProgressEntity } from './library/reader-progress.entity';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { SmtpConfigEntity } from './settings/smtp-config.entity';
               UserLibraryEntity,
               OfflineDownloadEntity,
               SmtpConfigEntity,
+              ReaderProgressEntity,
             ],
           };
         }
@@ -62,6 +64,7 @@ import { SmtpConfigEntity } from './settings/smtp-config.entity';
             UserLibraryEntity,
             OfflineDownloadEntity,
             SmtpConfigEntity,
+            ReaderProgressEntity,
           ],
         };
       },

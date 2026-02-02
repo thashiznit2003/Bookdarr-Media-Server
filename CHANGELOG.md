@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.112 — 2026-02-02 11:28 -06:00
+- Store reader progress in the DB with server-side sync/reset endpoints and UI Sync/Restart controls.
+
 ## 1.0.111 — 2026-02-02 00:42 -06:00
 - Fix admin reset UI requests to avoid template literals that break the HTML build.
 
