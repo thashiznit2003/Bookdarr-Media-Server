@@ -104,3 +104,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - SMTP settings now use the same stacked label layout as Bookdarr, and Bookdarr HTTPS disables the port field.
 - Bookdarr HTTPS toggle now sits directly under the Protocol label.
 - SMTP status dot now uses a verify-only check so test emails send only when requested.
+- Bookdarr HTTPS checkbox is now aligned directly with its label.
