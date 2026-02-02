@@ -4774,6 +4774,17 @@ export class AppService {
           <input id="login-username" name="username" type="text" placeholder="Username" autocomplete="username" />
           <label for="login-password">Password</label>
           <input id="login-password" name="password" type="password" placeholder="Password" autocomplete="current-password" />
+          <div id="login-otp-field" style="display: none;">
+            <label for="login-otp">Authenticator code</label>
+            <input
+              id="login-otp"
+              name="otp"
+              type="text"
+              inputmode="numeric"
+              placeholder="123456"
+              autocomplete="one-time-code"
+            />
+          </div>
           <button id="login-submit" type="submit">Log in</button>
         </form>
       </div>
@@ -4851,8 +4862,16 @@ export class AppService {
         }
       }
 
+      const loginOtpField = document.getElementById('login-otp-field');
+
       function setStatus(message) {
         if (loginStatus) loginStatus.textContent = message || '';
+      }
+
+      function revealOtpField() {
+        if (loginOtpField) {
+          loginOtpField.style.display = 'block';
+        }
       }
 
       async function tryRefresh(refreshToken) {
@@ -4922,11 +4941,19 @@ export class AppService {
           });
         const params = new URLSearchParams(window.location.search);
         const loginError = params.get('error');
+        const otpRequired = params.get('otp');
         const setupError = params.get('setupError');
         if (loginError) {
           loginPanel.style.display = 'block';
           setupPanel.style.display = 'none';
           setStatus(loginError);
+          const normalized = loginError.toLowerCase();
+          if (normalized.includes('two-factor') || normalized.includes('2fa') || normalized.includes('otp')) {
+            revealOtpField();
+          }
+        }
+        if (otpRequired) {
+          revealOtpField();
         }
         if (setupError) {
           setupPanel.style.display = 'block';

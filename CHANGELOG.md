@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.99 — 2026-02-01 23:11 -06:00
+- Show the OTP input on the login page when 2FA is required and preserve it via the login redirect.
+
 ## 1.0.98 — 2026-02-01 23:03 -06:00
 - Fix login 2FA prompt by returning twoFactorRequired and revealing the OTP field on 401s.
 

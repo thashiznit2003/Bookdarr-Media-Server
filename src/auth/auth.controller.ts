@@ -131,7 +131,11 @@ export class AuthController {
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
-      return res.redirect(`/login?error=${encodeURIComponent(message)}`);
+      const normalized = message.toLowerCase();
+      const otpRequired =
+        normalized.includes('two-factor') || normalized.includes('2fa') || normalized.includes('otp');
+      const otpParam = otpRequired ? '&otp=1' : '';
+      return res.redirect(`/login?error=${encodeURIComponent(message)}${otpParam}`);
     }
   }
 
