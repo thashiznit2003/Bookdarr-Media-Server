@@ -792,6 +792,8 @@ export class AppService {
         gap: 8px;
         padding: 12px 20px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        position: relative;
+        z-index: 7;
       }
 
       .reader-button {

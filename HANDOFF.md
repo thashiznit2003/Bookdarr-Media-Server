@@ -64,6 +64,7 @@
 - Desktop EPUB rendering now retries display if the iframe stays blank on first load.
 - Reader layout height is recalculated on open/resize so desktop EPUB content can render.
 - Desktop reader height calculations now avoid template literals to keep the build green.
+- Reader control bar now sits above iframe content so desktop buttons remain clickable.
 
 ## Decisions
 - Stack: Node.js + NestJS

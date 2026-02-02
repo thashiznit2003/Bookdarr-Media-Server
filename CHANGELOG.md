@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.68 — 2026-02-01 20:04 -06:00
+- Raise reader control bar stacking order so desktop buttons stay clickable.
+
 ## 1.0.67 — 2026-02-01 17:18 -06:00
 - Fix desktop reader height calculation build error.
 
