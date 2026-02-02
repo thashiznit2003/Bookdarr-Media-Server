@@ -981,7 +981,11 @@ export class AppService {
         color: var(--text);
       }
 
-      .form-grid input {
+      .form-grid input[type="text"],
+      .form-grid input[type="number"],
+      .form-grid input[type="password"],
+      .form-grid input[type="email"],
+      .form-grid input[type="search"] {
         width: 100%;
         box-sizing: border-box;
       }
@@ -994,6 +998,12 @@ export class AppService {
       .protocol-toggle {
         display: flex;
         justify-content: flex-start;
+        align-items: flex-start;
+      }
+
+      .protocol-toggle input[type="checkbox"] {
+        width: auto;
+        margin: 0;
       }
 
       .protocol-toggle label {

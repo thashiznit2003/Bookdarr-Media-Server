@@ -92,6 +92,7 @@
 - Bookdarr connection tests now reject non-local hosts to prevent SSRF.
 - Bookdarr HTTPS field now uses a "Use HTTPS" label with the checkbox directly below.
 - Bookdarr HTTPS checkbox is now left-aligned under its label.
+- Form-grid input sizing now excludes checkboxes so the HTTPS toggle aligns correctly.
 
 ## Decisions
 - Stack: Node.js + NestJS

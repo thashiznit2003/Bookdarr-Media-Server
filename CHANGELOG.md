@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.93 — 2026-02-01 22:23 -06:00
+- Fix checkbox alignment by scoping form-grid input widths to text fields only.
+
 ## 1.0.92 — 2026-02-01 22:18 -06:00
 - Left-align the Bookdarr HTTPS checkbox under its label.
 
