@@ -991,6 +991,18 @@ export class AppService {
         cursor: not-allowed;
       }
 
+      .protocol-toggle {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .protocol-toggle label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+
       .status-item span {
         display: block;
         color: var(--muted);
@@ -1236,9 +1248,12 @@ export class AppService {
                 </div>
                 <div>
                   <span class="nav-title">Protocol</span>
-                  <label>
-                    <input id="bookdarr-https" type="checkbox" /> Use HTTPS
-                  </label>
+                  <div class="protocol-toggle">
+                    <label>
+                      <span style="color: var(--text); font-size: 0.9rem;">Use HTTPS</span>
+                      <input id="bookdarr-https" type="checkbox" />
+                    </label>
+                  </div>
                 </div>
               </div>
               <button id="bookdarr-submit">Save Connection</button>
@@ -1306,10 +1321,12 @@ export class AppService {
               </div>
               <div>
                 <span class="nav-title">Protocol</span>
-                <label style="display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
-                  <span style="color: var(--text); font-size: 0.9rem;">Use HTTPS</span>
-                  <input id="settings-bookdarr-https" type="checkbox" />
-                </label>
+                <div class="protocol-toggle">
+                  <label>
+                    <span style="color: var(--text); font-size: 0.9rem;">Use HTTPS</span>
+                    <input id="settings-bookdarr-https" type="checkbox" />
+                  </label>
+                </div>
               </div>
             </div>
             <div class="status-item" style="margin-top: 12px;">

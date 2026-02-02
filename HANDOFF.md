@@ -87,6 +87,7 @@
 - Bookdarr HTTPS checkbox is now aligned directly with its label.
 - Bookdarr HTTPS label is forced to stay on one line next to the checkbox.
 - Bookdarr HTTPS label now sits to the left of the checkbox.
+- Bookdarr HTTPS protocol toggle now anchors the checkbox right while keeping the label to its left.
 
 ## Decisions
 - Stack: Node.js + NestJS

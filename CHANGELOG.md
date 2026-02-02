@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.88 — 2026-02-01 21:59 -06:00
+- Keep Bookdarr HTTPS checkbox anchored right while placing the label to its left.
+
 ## 1.0.87 — 2026-02-01 21:52 -06:00
 - Place the Bookdarr HTTPS label to the left of the checkbox.
 
