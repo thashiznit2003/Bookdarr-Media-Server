@@ -70,6 +70,7 @@
 - Settings now show editable Bookdarr + SMTP panels only; diagnostics UI and auth secret controls are hidden.
 - SMTP settings are stored in DB and used by the mailer service for password reset emails.
 - Create User panel is hidden unless the user is an admin.
+- SMTP settings controller uses a type-only import to satisfy isolatedModules builds.
 
 ## Decisions
 - Stack: Node.js + NestJS

@@ -2,7 +2,8 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { SettingsService } from './settings.service';
-import { SmtpConfigService, SmtpConfigInput } from './smtp-config.service';
+import { SmtpConfigService } from './smtp-config.service';
+import type { SmtpConfigInput } from './smtp-config.service';
 
 @Controller('settings/smtp')
 @UseGuards(AuthGuard, AdminGuard)

@@ -89,4 +89,5 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - My Library download progress overlays update in-place to avoid cover flicker.
 - Settings now focus on editable panels (Bookdarr + SMTP); diagnostics UI and auth secret controls are hidden.
 - SMTP config is stored in DB via /settings/smtp and used for password reset emails.
+- SMTP settings controller uses a type-only import to satisfy isolatedModules builds.
 - Create User panel is visible only to admins.

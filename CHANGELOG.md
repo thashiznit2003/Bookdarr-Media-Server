@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.71 — 2026-02-01 20:35 -06:00
+- Fix SMTP settings controller type import to satisfy isolatedModules builds.
+
 ## 1.0.70 — 2026-02-01 20:32 -06:00
 - Simplify Settings to editable panels, add SMTP configuration UI + API, and remove diagnostics UI.
 - Restrict Create User panel to admins and hide auth secret controls.
