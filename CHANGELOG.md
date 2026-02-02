@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.108 — 2026-02-02 00:13 -06:00
+- Preserve the 2FA challenge token via a readable cookie fallback on the OTP step.
+
 ## 1.0.107 — 2026-02-02 00:07 -06:00
 - Persist the 2FA challenge token through the OTP step to avoid missing-token logins.
 

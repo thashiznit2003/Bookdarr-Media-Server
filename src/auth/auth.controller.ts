@@ -39,7 +39,7 @@ export class AuthController {
 
   private setTwoFactorCookie(res: Response, token?: string) {
     const options = {
-      httpOnly: true,
+      httpOnly: false,
       sameSite: 'lax' as const,
       maxAge: 1000 * 60 * 5,
       path: '/',

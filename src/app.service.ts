@@ -4980,6 +4980,7 @@ export class AppService {
         const loginError = params.get('error');
         const otpRequired = params.get('otp');
         const challengeToken = params.get('challenge');
+        const challengeCookie = readCookie('bmsTwoFactor');
         const setupError = params.get('setupError');
         if (loginError) {
           loginPanel.style.display = 'block';
@@ -4994,8 +4995,8 @@ export class AppService {
           revealOtpField();
           setStatus('Enter your authenticator code.');
         }
-        if (challengeToken && loginChallenge) {
-          loginChallenge.value = challengeToken;
+        if (loginChallenge) {
+          loginChallenge.value = challengeToken || challengeCookie || '';
         }
         if (setupError) {
           setupPanel.style.display = 'block';
