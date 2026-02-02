@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
-import { authenticator } from 'otplib';
+import { authenticator } from 'otplib/authenticator';
 import { randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
 import { SettingsService } from '../settings/settings.service';
