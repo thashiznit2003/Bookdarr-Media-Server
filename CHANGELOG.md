@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.111 — 2026-02-02 00:42 -06:00
+- Fix admin reset UI requests to avoid template literals that break the HTML build.
+
 ## 1.0.110 — 2026-02-02 00:38 -06:00
 - Fix admin reset UI rendering so the build succeeds.
 

@@ -4589,7 +4589,7 @@ export class AppService {
           return;
         }
         if (adminActionsStatus) adminActionsStatus.textContent = 'Resetting 2FA...';
-        fetchWithAuth(`/api/users/${adminUserSelect.value}/reset-2fa`, { method: 'POST' })
+        fetchWithAuth('/api/users/' + adminUserSelect.value + '/reset-2fa', { method: 'POST' })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
@@ -4616,7 +4616,7 @@ export class AppService {
           return;
         }
         if (adminActionsStatus) adminActionsStatus.textContent = 'Resetting password...';
-        fetchWithAuth(`/api/users/${adminUserSelect.value}/reset-password`, {
+        fetchWithAuth('/api/users/' + adminUserSelect.value + '/reset-password', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

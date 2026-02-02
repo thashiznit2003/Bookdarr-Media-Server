@@ -111,6 +111,7 @@
 - Admins can reset 2FA or passwords for non-admin users from Accounts.
 - Added `npm run reset-2fa` script with `RESET_2FA_ALL` / `RESET_2FA_USER` env vars for Docker-friendly resets.
 - Admin reset UI now renders without breaking the build.
+- Admin reset requests now avoid template literals inside the HTML template.
 
 ## Decisions
 - Stack: Node.js + NestJS
