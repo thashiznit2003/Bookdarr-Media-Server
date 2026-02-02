@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.92 — 2026-02-01 22:18 -06:00
+- Left-align the Bookdarr HTTPS checkbox under its label.
+
 ## 1.0.91 — 2026-02-01 22:14 -06:00
 - Rename Protocol to Use HTTPS and stack the checkbox beneath the label.
 

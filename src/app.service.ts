@@ -993,7 +993,7 @@ export class AppService {
 
       .protocol-toggle {
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
       }
 
       .protocol-toggle label {
@@ -1248,7 +1248,7 @@ export class AppService {
                 </div>
                 <div>
                   <span class="nav-title">Use HTTPS</span>
-                  <div class="protocol-toggle" style="justify-content: flex-start;">
+                  <div class="protocol-toggle">
                     <input id="bookdarr-https" type="checkbox" />
                   </div>
                 </div>
@@ -1321,7 +1321,7 @@ export class AppService {
               </div>
               <div>
                 <span class="nav-title">Use HTTPS</span>
-                <div class="protocol-toggle" style="justify-content: flex-start;">
+                <div class="protocol-toggle">
                   <input id="settings-bookdarr-https" type="checkbox" />
                 </div>
               </div>
