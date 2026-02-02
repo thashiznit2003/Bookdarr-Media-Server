@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
@@ -18,8 +18,11 @@ export class AdminGuard implements CanActivate {
     }
 
     const user = await this.users.findOne({ where: { id: userId } });
-    if (!user || !user.isActive || !user.isAdmin) {
-      throw new UnauthorizedException('Admin access required.');
+    if (!user || !user.isActive) {
+      throw new ForbiddenException('Admin access required.');
+    }
+    if (!user.isAdmin) {
+      throw new ForbiddenException('Admin access required.');
     }
 
     return true;

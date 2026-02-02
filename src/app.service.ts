@@ -1612,7 +1612,8 @@ export class AppService {
         library: [],
         myLibrary: [],
         token: bootstrap?.token || null,
-        userId: null
+        userId: null,
+        isAdmin: false
       };
       let setupRequired = false;
       let bookdarrConfigured = false;
@@ -2030,6 +2031,7 @@ export class AppService {
           userAvatar.textContent = '?';
           userLabel.textContent = 'Signed out';
           userMenu.style.display = 'none';
+          state.isAdmin = false;
           if (createUserPanel) {
             createUserPanel.style.display = 'none';
           }
@@ -2042,6 +2044,7 @@ export class AppService {
         userAvatar.textContent = letter;
         userLabel.textContent = user.username || user.email;
         userMenu.style.display = 'block';
+        state.isAdmin = Boolean(user.isAdmin);
         if (createUserPanel) {
           createUserPanel.style.display = user.isAdmin ? 'block' : 'none';
         }
@@ -3914,6 +3917,15 @@ export class AppService {
 
       function loadAccounts() {
         if (activePage !== 'accounts') {
+          return;
+        }
+        if (!state.isAdmin) {
+          if (accountsStatus) {
+            accountsStatus.textContent = 'Admin access required to view all users.';
+          }
+          if (accountsList) {
+            accountsList.innerHTML = '';
+          }
           return;
         }
         if (accountsStatus) {
