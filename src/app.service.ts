@@ -1306,9 +1306,10 @@ export class AppService {
               </div>
               <div>
                 <span class="nav-title">Protocol</span>
-                <label>
-                  <input id="settings-bookdarr-https" type="checkbox" /> Use HTTPS
-                </label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--text); font-size: 0.9rem;">Use HTTPS</span>
+                  <input id="settings-bookdarr-https" type="checkbox" />
+                </div>
               </div>
             </div>
             <div class="status-item" style="margin-top: 12px;">

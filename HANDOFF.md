@@ -82,6 +82,7 @@
 - SMTP settings fields now use a form grid to align inputs.
 - SMTP field labels are forced above inputs to match a two-row layout.
 - SMTP settings now use the same stacked label layout as Bookdarr, and Bookdarr HTTPS disables the port field.
+- Bookdarr HTTPS toggle now sits directly under the Protocol label.
 
 ## Decisions
 - Stack: Node.js + NestJS
