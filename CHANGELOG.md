@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.106 — 2026-02-02 00:03 -06:00
+- Fix OTP validation so only the correct user's 2FA codes are accepted.
+
 ## 1.0.105 — 2026-02-01 23:56 -06:00
 - Keep non-admins on Accounts page by returning 403 for admin endpoints and skipping user lists.
 

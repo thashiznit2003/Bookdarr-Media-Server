@@ -104,6 +104,7 @@
 - Login page now surfaces errors in red beneath the Log in button.
 - Dependency overrides now upgrade node-gyp, test-exclude, and xmldom to avoid deprecated transitive packages.
 - Non-admin users no longer get logged out when visiting Accounts; admin endpoints return 403 and user lists are skipped.
+- OTP validation now checks the otplib result correctly so codes are user-specific.
 
 ## Decisions
 - Stack: Node.js + NestJS

@@ -164,7 +164,7 @@ export class AuthService implements OnModuleInit {
         };
       }
       const secret = user.twoFactorSecret ?? '';
-      const isValid = secret ? verify({ token: otp, secret }) : false;
+      const isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
       if (!isValid) {
         throw new UnauthorizedException({
           message: 'Invalid two-factor code.',
@@ -193,7 +193,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
     const secret = user.twoFactorSecret ?? '';
-    const isValid = secret ? verify({ token: otp, secret }) : false;
+    const isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
     if (!isValid) {
       throw new UnauthorizedException('Invalid two-factor code.');
     }
@@ -435,7 +435,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Unauthorized.');
     }
     const secret = user.twoFactorTempSecret ?? '';
-    const isValid = secret ? verify({ token: code, secret }) : false;
+    const isValid = secret ? this.isValidOtp(verify({ token: code, secret })) : false;
     if (!isValid) {
       throw new BadRequestException('Invalid two-factor code.');
     }
@@ -462,7 +462,7 @@ export class AuthService implements OnModuleInit {
     }
     if (input.code) {
       const secret = user.twoFactorSecret ?? '';
-      const isValid = secret ? verify({ token: input.code.trim(), secret }) : false;
+      const isValid = secret ? this.isValidOtp(verify({ token: input.code.trim(), secret })) : false;
       if (!isValid) {
         throw new BadRequestException('Invalid two-factor code.');
       }
@@ -523,6 +523,17 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
     return payload.sub;
+  }
+
+  private isValidOtp(result: unknown): boolean {
+    if (typeof result === 'boolean') {
+      return result;
+    }
+    if (result && typeof result === 'object') {
+      const maybe = result as { valid?: boolean };
+      return Boolean(maybe.valid);
+    }
+    return false;
   }
 
   private async issueTokens(user: UserEntity): Promise<AuthTokens> {
