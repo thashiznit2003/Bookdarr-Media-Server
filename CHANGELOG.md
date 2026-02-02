@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.100 — 2026-02-01 23:20 -06:00
+- Document the SSH host alias and deploy command in AGENTS/HANDOFF.
+
 ## 1.0.99 — 2026-02-01 23:11 -06:00
 - Show the OTP input on the login page when 2FA is required and preserve it via the login redirect.
 

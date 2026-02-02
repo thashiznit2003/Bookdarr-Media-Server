@@ -119,3 +119,4 @@
 - BMS must never expose Bookdarr API key.
 - BMS should not modify Bookdarr data (read‑only).
 - Version bump rule: one GitHub push = increment patch (x.x.n+1) in `package.json` and `CHANGELOG.md`.
+- VM deploy uses the SSH host alias and key: `ssh bms-vm "git -C /opt/bookdarr-media-server pull --ff-only; npm --prefix /opt/bookdarr-media-server ci; npm --prefix /opt/bookdarr-media-server run build; sudo systemctl restart bookdarr-media-server"`
