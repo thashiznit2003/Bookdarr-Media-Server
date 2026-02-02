@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.86 — 2026-02-01 21:47 -06:00
+- Keep the Bookdarr HTTPS label on a single line next to its checkbox.
+
 ## 1.0.85 — 2026-02-01 21:44 -06:00
 - Move Bookdarr HTTPS checkbox next to its label for tighter alignment.
 

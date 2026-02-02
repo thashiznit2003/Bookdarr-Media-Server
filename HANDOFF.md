@@ -85,6 +85,7 @@
 - Bookdarr HTTPS toggle now sits directly under the Protocol label.
 - SMTP status dot now uses a verify-only check so test emails send only when requested.
 - Bookdarr HTTPS checkbox is now aligned directly with its label.
+- Bookdarr HTTPS label is forced to stay on one line next to the checkbox.
 
 ## Decisions
 - Stack: Node.js + NestJS
