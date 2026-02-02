@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.104 — 2026-02-01 23:41 -06:00
+- Refresh transitive dependencies to remove deprecated build tooling packages and update xmldom.
+
 ## 1.0.103 — 2026-02-01 23:36 -06:00
 - Show login errors in red beneath the Log in button on the login page.
 
