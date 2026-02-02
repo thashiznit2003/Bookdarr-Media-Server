@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.96 — 2026-02-01 22:49 -06:00
+- Switch 2FA import to otplib namespace to fix module resolution.
+
 ## 1.0.95 — 2026-02-01 22:46 -06:00
 - Fix otplib import path for 2FA builds.
 
