@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.74 — 2026-02-01 20:49 -06:00
+- Remove Book Pool Path from Settings and add Bookdarr connection test endpoint + UI indicator.
+
 ## 1.0.73 — 2026-02-01 20:42 -06:00
 - Ensure SettingsModule has UserEntity repository available for AdminGuard.
 

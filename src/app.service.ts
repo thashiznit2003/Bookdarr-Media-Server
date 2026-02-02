@@ -1274,17 +1274,23 @@ export class AppService {
                 <input id="settings-bookdarr-key" type="password" placeholder="Bookdarr API key" />
               </div>
               <div>
-                <span class="nav-title">Book Pool Path</span>
-                <input id="settings-bookdarr-path" type="text" placeholder="/api/v1/user/library/pool" />
-              </div>
-              <div>
                 <span class="nav-title">Protocol</span>
                 <label>
                   <input id="settings-bookdarr-https" type="checkbox" /> Use HTTPS
                 </label>
               </div>
             </div>
-            <button id="save-bookdarr" style="margin-top: 12px;">Save Bookdarr Settings</button>
+            <div class="status-item" style="margin-top: 12px;">
+              <span>Connection Status</span>
+              <div class="status-value">
+                <div id="settings-bookdarr-dot" class="dot warn"></div>
+                <strong id="settings-bookdarr-indicator">Not tested</strong>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button id="save-bookdarr">Save Bookdarr Settings</button>
+              <button id="test-bookdarr">Test Connection</button>
+            </div>
             <div id="settings-bookdarr-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
 
@@ -1521,10 +1527,12 @@ export class AppService {
       const settingsBookdarrHost = document.getElementById('settings-bookdarr-host');
       const settingsBookdarrPort = document.getElementById('settings-bookdarr-port');
       const settingsBookdarrKey = document.getElementById('settings-bookdarr-key');
-      const settingsBookdarrPath = document.getElementById('settings-bookdarr-path');
       const settingsBookdarrHttps = document.getElementById('settings-bookdarr-https');
       const saveBookdarrButton = document.getElementById('save-bookdarr');
+      const testBookdarrButton = document.getElementById('test-bookdarr');
       const settingsBookdarrStatus = document.getElementById('settings-bookdarr-status');
+      const settingsBookdarrIndicator = document.getElementById('settings-bookdarr-indicator');
+      const settingsBookdarrDot = document.getElementById('settings-bookdarr-dot');
       const settingsSmtpHost = document.getElementById('settings-smtp-host');
       const settingsSmtpPort = document.getElementById('settings-smtp-port');
       const settingsSmtpUser = document.getElementById('settings-smtp-user');
@@ -3660,6 +3668,12 @@ export class AppService {
           .then((response) => response.json())
           .then((data) => {
             bookdarrConfigured = Boolean(data?.configured);
+            if (settingsBookdarrIndicator) {
+              settingsBookdarrIndicator.textContent = data?.configured ? 'Configured' : 'Not configured';
+            }
+            if (settingsBookdarrDot) {
+              settingsBookdarrDot.className = 'dot ' + (data?.configured ? 'ok' : 'warn');
+            }
             if (data?.apiUrl) {
               try {
                 const url = new URL(data.apiUrl);
@@ -3678,9 +3692,6 @@ export class AppService {
             }
             if (bookdarrPath && !bookdarrPath.value) {
               bookdarrPath.value = '/api/v1/user/library/pool';
-            }
-            if (settingsBookdarrPath) {
-              settingsBookdarrPath.value = data?.poolPath ?? '/api/v1/user/library/pool';
             }
             if (data?.configured) {
               bookdarrStatus.textContent = 'Bookdarr is connected.';
@@ -3970,7 +3981,6 @@ export class AppService {
         const host = settingsBookdarrHost?.value;
         const port = Number(settingsBookdarrPort?.value);
         const apiKey = settingsBookdarrKey?.value;
-        const poolPath = settingsBookdarrPath?.value;
         const useHttps = settingsBookdarrHttps?.checked;
         settingsBookdarrStatus.textContent = 'Saving...';
         fetchWithAuth('/settings/bookdarr', {
@@ -3978,7 +3988,7 @@ export class AppService {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ host, port, apiKey, poolPath, useHttps }),
+          body: JSON.stringify({ host, port, apiKey, useHttps }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
@@ -3992,6 +4002,46 @@ export class AppService {
           })
           .catch(() => {
             settingsBookdarrStatus.textContent = 'Save failed.';
+          });
+      });
+
+      function setBookdarrIndicator(state, message) {
+        if (settingsBookdarrIndicator) {
+          settingsBookdarrIndicator.textContent = message;
+        }
+        if (settingsBookdarrDot) {
+          settingsBookdarrDot.className = 'dot ' + state;
+        }
+      }
+
+      testBookdarrButton?.addEventListener('click', () => {
+        const host = settingsBookdarrHost?.value;
+        const port = Number(settingsBookdarrPort?.value);
+        const apiKey = settingsBookdarrKey?.value;
+        const useHttps = settingsBookdarrHttps?.checked;
+        settingsBookdarrStatus.textContent = 'Testing connection...';
+        setBookdarrIndicator('warn', 'Testing...');
+        fetchWithAuth('/settings/bookdarr/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ host, port, apiKey, useHttps }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok || !body?.ok) {
+              const message = body?.message ?? 'Connection failed.';
+              settingsBookdarrStatus.textContent = message;
+              setBookdarrIndicator('warn', 'Failed');
+              return;
+            }
+            settingsBookdarrStatus.textContent = 'Connection successful.';
+            setBookdarrIndicator('ok', 'Connected');
+          })
+          .catch(() => {
+            settingsBookdarrStatus.textContent = 'Connection failed.';
+            setBookdarrIndicator('warn', 'Failed');
           });
       });
 

@@ -1,14 +1,16 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { BookdarrConfigService } from './bookdarr-config.service';
 import type { BookdarrConfigInput } from './bookdarr-config.service';
 import { SettingsService } from '../settings/settings.service';
+import { BookdarrService } from './bookdarr.service';
 
 @Controller('settings/bookdarr')
 export class BookdarrConfigController {
   constructor(
     private readonly bookdarrConfigService: BookdarrConfigService,
     private readonly settingsService: SettingsService,
+    private readonly bookdarrService: BookdarrService,
   ) {}
 
   @Get()
@@ -35,5 +37,56 @@ export class BookdarrConfigController {
       apiUrl: config.apiUrl,
       poolPath: config.poolPath ?? undefined,
     };
+  }
+
+  @Post('test')
+  @UseGuards(AuthGuard)
+  async testConfig(@Body() input?: BookdarrConfigInput) {
+    let apiUrl: string | undefined;
+    let apiKey: string | undefined;
+
+    if (input?.host || input?.port || input?.apiKey) {
+      const host = input.host?.trim();
+      const port = input.port;
+      const key = input.apiKey?.trim();
+      if (!host || !key) {
+        throw new BadRequestException('Host and API key are required to test.');
+      }
+      const protocol = input.useHttps ? 'https' : 'http';
+      apiUrl = `${protocol}://${host}${port ? `:${port}` : ''}`;
+      apiKey = key;
+    } else {
+      const config = await this.bookdarrService.getApiConfig();
+      apiUrl = config.apiUrl;
+      apiKey = config.apiKey;
+    }
+
+    const testUrl = this.joinUrl(apiUrl, '/api/v1/system/status');
+    const response = await fetch(testUrl, {
+      headers: {
+        'X-Api-Key': apiKey,
+        'User-Agent': 'bookdarr-media-server',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        ok: false,
+        status: response.status,
+        message: errorText || 'Unable to reach Bookdarr.',
+      };
+    }
+
+    return {
+      ok: true,
+      status: response.status,
+    };
+  }
+
+  private joinUrl(base: string, path: string): string {
+    const trimmedBase = base.replace(/\/$/, '');
+    const trimmedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${trimmedBase}${trimmedPath}`;
   }
 }
