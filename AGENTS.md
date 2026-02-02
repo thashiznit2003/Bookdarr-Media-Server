@@ -78,6 +78,7 @@ Use the configured SSH host + key:
 - EPUB page numbering now rebases on the first visible page and uses nav direction to avoid early jumps.
 - EPUB page numbers now follow explicit page-turn actions to prevent fast-swipe drift.
 - Reader progress is stored in DB via /reader/progress; Sync reconciles latest progress and Restart clears it.
+- Readium (beta) is wired via r2-streamer-js + @readium/navigator/@readium/shared; EPUB details include a Readium button.
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.

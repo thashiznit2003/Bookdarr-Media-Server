@@ -3,7 +3,10 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import * as express from 'express';
 import { NestFactory } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
+import { Server as ReadiumServer } from 'r2-streamer-js';
 import { AppModule } from './app.module';
+import { AuthConfigService } from './auth/auth-config.service';
 import { SettingsService } from './settings/settings.service';
 import { FileLoggerService } from './logging/file-logger.service';
 import { RequestLoggingMiddleware } from './logging/request-logging.middleware';
@@ -32,8 +35,66 @@ async function bootstrap() {
   if (existsSync(pdfPath)) {
     app.use('/vendor/pdfjs', express.static(pdfPath));
   }
-
   const settings = app.get(SettingsService);
+  const readiumNavPath = join(process.cwd(), 'node_modules', '@readium', 'navigator', 'dist');
+  if (existsSync(readiumNavPath)) {
+    app.use('/vendor/readium-navigator', express.static(readiumNavPath));
+  }
+  const readiumSharedPath = join(process.cwd(), 'node_modules', '@readium', 'shared', 'dist');
+  if (existsSync(readiumSharedPath)) {
+    app.use('/vendor/readium-shared', express.static(readiumSharedPath));
+  }
+
+  const readiumServer = new ReadiumServer({
+    disableReaders: true,
+    disableOPDS: true,
+    disableRemotePubUrl: false,
+  });
+  const readiumExpress = (readiumServer as any).expressApp as express.Express;
+  const authConfig = app.get(AuthConfigService);
+  const jwtService = app.get(JwtService);
+  readiumExpress.use((req, res, next) => {
+    void (async () => {
+      const auth = settings.getSettings().auth;
+      const secrets = await authConfig.getSecrets();
+      const secret = secrets.accessSecret ?? auth.accessSecret;
+      if (!secret) {
+        next();
+        return;
+      }
+      const header = req.headers.authorization;
+      let token =
+        typeof header === 'string' && header.toLowerCase().startsWith('bearer ')
+          ? header.slice(7)
+          : null;
+      if (!token) {
+        const queryToken = req.query?.token ?? req.query?.accessToken;
+        token = typeof queryToken === 'string' ? queryToken : null;
+      }
+      if (!token && typeof req.headers.cookie === 'string') {
+        const cookieToken = req.headers.cookie
+          .split(';')
+          .map((part) => part.trim())
+          .find((part) => part.startsWith('bmsAccessToken='));
+        if (cookieToken) {
+          token = decodeURIComponent(cookieToken.slice('bmsAccessToken='.length));
+        }
+      }
+      if (!token) {
+        res.status(401).send('Unauthorized');
+        return;
+      }
+      try {
+        await jwtService.verifyAsync(token, { secret });
+        next();
+      } catch {
+        res.status(401).send('Unauthorized');
+      }
+    })().catch(() => {
+      res.status(500).send('Internal Server Error');
+    });
+  });
+  app.use('/readium', readiumExpress);
   await app.listen(settings.getSettings().port);
 }
 bootstrap();

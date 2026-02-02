@@ -899,6 +899,17 @@ export class AppService {
         height: 100%;
         border: none;
       }
+      .readium-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+      .readium-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
 
       .reader-view .epub-container,
       .reader-view .epub-view {
@@ -1622,6 +1633,12 @@ export class AppService {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
       window.pdfjsLib = pdfjsLib;
     </script>
+    <script type="module">
+      import * as ReadiumNavigator from '/vendor/readium-navigator/index.js';
+      import * as ReadiumShared from '/vendor/readium-shared/index.js';
+      window.ReadiumNavigator = ReadiumNavigator;
+      window.ReadiumShared = ReadiumShared;
+    </script>
     <script src="/vendor/jszip/jszip.min.js"></script>
     <script src="/vendor/epub/epub.min.js"></script>
     <script>
@@ -1784,6 +1801,9 @@ export class AppService {
       let epubBook = null;
       let epubRendition = null;
       let epubObjectUrl = null;
+      let readiumNavigator = null;
+      let readiumPublication = null;
+      let readiumManifestUrl = null;
       let epubLocationsReady = false;
       let epubLocationsGenerating = false;
       let readerBodyOverflow = null;
@@ -1800,6 +1820,7 @@ export class AppService {
       let readerLastGlobalPage = null;
       let readerPageMapKey = null;
       let readerNavPending = 0;
+      let readerEngine = 'epubjs';
       const readerPageMapVersion = 3;
 
       if (createUserPanel) {
@@ -1867,8 +1888,10 @@ export class AppService {
       });
 
       const goPrev = () => {
-        readerNavPending = Math.max(readerNavPending - 1, -10);
-        if (epubRendition) {
+        if (readiumNavigator) {
+          readiumNavigator.goBackward(false, () => {});
+        } else if (epubRendition) {
+          readerNavPending = Math.max(readerNavPending - 1, -10);
           epubRendition.prev();
         } else if (pdfDoc) {
           pdfPage = Math.max(1, pdfPage - 1);
@@ -1876,8 +1899,10 @@ export class AppService {
         }
       };
       const goNext = () => {
-        readerNavPending = Math.min(readerNavPending + 1, 10);
-        if (epubRendition) {
+        if (readiumNavigator) {
+          readiumNavigator.goForward(false, () => {});
+        } else if (epubRendition) {
+          readerNavPending = Math.min(readerNavPending + 1, 10);
           epubRendition.next();
         } else if (pdfDoc) {
           pdfPage = Math.min(pdfDoc.numPages, pdfPage + 1);
@@ -1900,10 +1925,15 @@ export class AppService {
         if (readerFile.format === '.pdf') {
           pdfPage = 1;
           renderPdfPage();
-        } else if (readerFile.format === '.epub' && epubRendition) {
-          try {
-            epubRendition.display();
-          } catch {}
+        } else if (readerFile.format === '.epub') {
+          if (readiumNavigator && readiumPublication?.readingOrder?.length) {
+            const firstLink = readiumPublication.readingOrder[0];
+            readiumNavigator.goLink(firstLink, false, () => {});
+          } else if (epubRendition) {
+            try {
+              epubRendition.display();
+            } catch {}
+          }
         }
       });
       readerPrevArrow?.addEventListener('click', goPrev);
@@ -2775,6 +2805,39 @@ export class AppService {
         return url + joiner + 'token=' + encodeURIComponent(state.token);
       }
 
+      function toAbsoluteUrl(url) {
+        if (!url) return url;
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return window.location.origin + url;
+      }
+
+      function toBase64(input) {
+        try {
+          return btoa(unescape(encodeURIComponent(input)));
+        } catch {
+          return btoa(input);
+        }
+      }
+
+      function getReadiumManifestUrl(file) {
+        const streamUrl = toAbsoluteUrl(withToken(file.streamUrl));
+        const encoded = encodeURIComponent(toBase64(streamUrl));
+        return '/readium/pub/' + encoded + '/manifest.json';
+      }
+
+      async function readiumFetch(url, options = {}) {
+        const headers = { ...(options.headers || {}) };
+        if (state.token && !headers['Authorization']) {
+          headers['Authorization'] = 'Bearer ' + state.token;
+        }
+        return fetch(url, {
+          ...options,
+          headers,
+          credentials: 'include',
+          cache: 'no-store',
+        });
+      }
+
       function progressKey(kind, fileId) {
         const userKey = state.userId ?? 'anon';
         return 'bms:' + kind + ':' + userKey + ':' + fileId;
@@ -2927,8 +2990,21 @@ export class AppService {
             // ignore
           }
         }
+        if (readiumNavigator) {
+          try {
+            const result = readiumNavigator.destroy();
+            if (result?.catch) {
+              result.catch(() => {});
+            }
+          } catch {
+            // ignore
+          }
+        }
         epubBook = null;
         epubRendition = null;
+        readiumNavigator = null;
+        readiumPublication = null;
+        readiumManifestUrl = null;
         if (epubObjectUrl) {
           try {
             URL.revokeObjectURL(epubObjectUrl);
@@ -2952,6 +3028,7 @@ export class AppService {
         readerLastGlobalPage = null;
         readerPageMapKey = null;
         readerNavPending = 0;
+        readerEngine = 'epubjs';
         if (readerView) {
           readerView.innerHTML = '';
         }
@@ -3066,6 +3143,30 @@ export class AppService {
             // ignore theme errors
           }
         }
+        applyReadiumTheme();
+      }
+
+      function applyReadiumTheme() {
+        if (!readerView || !readiumNavigator) return;
+        const css =
+          readerTheme === 'dark'
+            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;}'
+            : 'html,body{background:#f8f5ef !important;color:#111827 !important;} body *{color:#111827 !important;} a{color:#0f172a !important;}';
+        readerView.querySelectorAll('iframe').forEach((iframe) => {
+          try {
+            const doc = iframe.contentDocument;
+            if (!doc) return;
+            let style = doc.getElementById('bms-readium-theme');
+            if (!style) {
+              style = doc.createElement('style');
+              style.id = 'bms-readium-theme';
+              (doc.head || doc.documentElement).appendChild(style);
+            }
+            style.textContent = css;
+          } catch {
+            // ignore cross-origin
+          }
+        });
       }
 
       function setReaderUiVisible(visible) {
@@ -3355,14 +3456,18 @@ export class AppService {
         detailDescriptionToggle.textContent = 'More...';
       }
 
-      async function openReader(file, title) {
+      async function openReader(file, title, engine) {
         if (!readerModal || !readerView) {
           return;
         }
         await ensureFreshToken();
+        readerEngine = engine || 'epubjs';
         readerModal.classList.add('active');
         readerModal.setAttribute('aria-hidden', 'false');
-        readerModal.dataset.readerMode = file.format === '.epub' ? 'epub' : (file.format === '.pdf' ? 'pdf' : 'other');
+        readerModal.dataset.readerMode =
+          file.format === '.epub'
+            ? (readerEngine === 'readium' ? 'readium' : 'epub')
+            : (file.format === '.pdf' ? 'pdf' : 'other');
         const touchFullscreen = isTouchDevice() && file.format === '.epub';
         readerModal.classList.toggle('touch-fullscreen', touchFullscreen);
         readerModal.classList.toggle('touch-enabled', isTouchDevice());
@@ -3397,7 +3502,15 @@ export class AppService {
           return;
         }
         if (format === '.epub') {
-          openEpubReader(file);
+          if (readerEngine === 'readium') {
+            openReadiumReader(file).then((ok) => {
+              if (!ok) {
+                openEpubReader(file);
+              }
+            });
+          } else {
+            openEpubReader(file);
+          }
           return;
         }
 
@@ -3466,6 +3579,189 @@ export class AppService {
             readerView.innerHTML = '<div class="empty">Unable to load PDF.</div>';
           });
         });
+      }
+
+      function updateReadiumProgress(locator) {
+        if (!locator) return;
+        const progression =
+          typeof locator.locations?.totalProgression === 'number'
+            ? locator.locations.totalProgression
+            : locator.locations?.progression;
+        if (typeof progression === 'number') {
+          const percent = Math.round(progression * 100);
+          updateReaderProgress('Location ' + percent + '%');
+        }
+      }
+
+      function createReadiumFetcher(baseUrl, links) {
+        const ReadiumShared = window.ReadiumShared;
+        if (!ReadiumShared) {
+          return null;
+        }
+        class BmsResource extends ReadiumShared.Resource {
+          constructor(url, link) {
+            super();
+            this.url = url;
+            this._link = link;
+          }
+          async link() {
+            return this._link;
+          }
+          async length() {
+            try {
+              const response = await readiumFetch(this.url, { method: 'HEAD' });
+              if (!response.ok) return undefined;
+              const len = response.headers.get('Content-Length');
+              return len ? Number(len) : undefined;
+            } catch {
+              return undefined;
+            }
+          }
+          async read(range) {
+            try {
+              const headers = {};
+              if (range) {
+                headers['Range'] = 'bytes=' + range.start + '-' + range.endInclusive;
+              }
+              const response = await readiumFetch(this.url, { headers });
+              if (!response.ok) return undefined;
+              const buffer = await response.arrayBuffer();
+              return new Uint8Array(buffer);
+            } catch {
+              return undefined;
+            }
+          }
+          close() {}
+        }
+        class BmsFetcher {
+          constructor(baseUrl, links) {
+            this.baseUrl = baseUrl;
+            this._links = links || [];
+          }
+          links() {
+            return this._links;
+          }
+          get(link) {
+            const href = link?.href || '';
+            const resolved = href.startsWith('http://') || href.startsWith('https://')
+              ? href
+              : new URL(href, this.baseUrl).toString();
+            return new BmsResource(resolved, link);
+          }
+          close() {}
+        }
+        return new BmsFetcher(baseUrl, links);
+      }
+
+      async function openReadiumReader(file) {
+        if (!readerView) return false;
+        const ReadiumNavigator = window.ReadiumNavigator;
+        const ReadiumShared = window.ReadiumShared;
+        if (!ReadiumNavigator || !ReadiumShared) {
+          return false;
+        }
+
+        readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
+        updateReaderLayout();
+        readiumManifestUrl = getReadiumManifestUrl(file);
+        let manifestJson = null;
+        try {
+          const response = await readiumFetch(readiumManifestUrl);
+          if (!response.ok) {
+            throw new Error('Failed to load Readium manifest');
+          }
+          manifestJson = await response.json();
+        } catch {
+          readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
+          return false;
+        }
+
+        const manifest = ReadiumShared.Manifest.deserialize(manifestJson);
+        if (!manifest) {
+          readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
+          return false;
+        }
+        manifest.setSelfLink(readiumManifestUrl);
+
+        const allLinks = [];
+        const seen = new Set();
+        const pushLink = (link) => {
+          if (!link || !link.href) return;
+          if (seen.has(link.href)) return;
+          seen.add(link.href);
+          allLinks.push(link);
+        };
+        (manifest.links || []).forEach(pushLink);
+        (manifest.readingOrder || []).forEach(pushLink);
+        (manifest.resources || []).forEach(pushLink);
+
+        const fetcher = createReadiumFetcher(manifest.baseURL, allLinks);
+        if (!fetcher) {
+          readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
+          return false;
+        }
+        readiumPublication = new ReadiumShared.Publication({ manifest, fetcher });
+
+        readerView.innerHTML = '';
+        const container = document.createElement('div');
+        container.className = 'readium-container';
+        readerView.appendChild(container);
+
+        let initialLocator = undefined;
+        try {
+          const saved = await loadProgress('ebook-epub', file.id);
+          if (saved?.locator) {
+            initialLocator = saved.locator;
+          }
+        } catch {
+          initialLocator = undefined;
+        }
+
+        const listeners = {
+          frameLoaded: () => {
+            applyReadiumTheme();
+          },
+          positionChanged: (locator) => {
+            if (locator) {
+              saveProgress('ebook-epub', file.id, { locator });
+              updateReadiumProgress(locator);
+            }
+          },
+          tap: () => {
+            toggleReaderUi();
+            return true;
+          },
+          click: () => false,
+          zoom: () => {},
+          scroll: () => {},
+          customEvent: () => {},
+          handleLocator: () => false,
+          textSelected: () => {},
+        };
+
+        readiumNavigator = new ReadiumNavigator.WebPubNavigator(
+          container,
+          readiumPublication,
+          listeners,
+          initialLocator,
+          {
+            preferences: new ReadiumNavigator.WebPubPreferences({}),
+            defaults: new ReadiumNavigator.WebPubDefaults({
+              iOSPatch: true,
+              iPadOSPatch: true,
+            }),
+          },
+        );
+
+        try {
+          await readiumNavigator.load();
+          applyReadiumTheme();
+        } catch {
+          readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
+          return false;
+        }
+
+        return true;
       }
 
       function renderPdfPage() {
@@ -3699,11 +3995,19 @@ export class AppService {
             pdfPage = pdfDoc.numPages;
           }
           renderPdfPage();
-        } else if (kind === 'ebook-epub' && data.cfi && epubRendition) {
-          try {
-            epubRendition.display(data.cfi);
-          } catch {
-            // ignore
+        } else if (kind === 'ebook-epub') {
+          if (data.locator && readiumNavigator) {
+            try {
+              readiumNavigator.go(data.locator, false, () => {});
+            } catch {
+              // ignore
+            }
+          } else if (data.cfi && epubRendition) {
+            try {
+              epubRendition.display(data.cfi);
+            } catch {
+              // ignore
+            }
           }
         } else if (kind === 'audio' && typeof data.time === 'number') {
           const player = document.querySelector('.detail-player');
@@ -3806,9 +4110,17 @@ export class AppService {
             const readButton = document.createElement('button');
             readButton.textContent = 'Read';
             readButton.addEventListener('click', () => {
-              openReader(file, detailTitle?.textContent);
+              openReader(file, detailTitle?.textContent, 'epubjs');
             });
             actions.appendChild(readButton);
+            if (file.format === '.epub') {
+              const readiumButton = document.createElement('button');
+              readiumButton.textContent = 'Readium';
+              readiumButton.addEventListener('click', () => {
+                openReader(file, detailTitle?.textContent, 'readium');
+              });
+              actions.appendChild(readiumButton);
+            }
           }
 
           const link = document.createElement('a');
