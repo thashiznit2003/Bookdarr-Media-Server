@@ -99,6 +99,7 @@
 - 2FA now uses otplib namespace import to fix module resolution.
 - 2FA now uses otplib functional helpers (generateSecret/generateURI/verify) for stability.
 - Login now exposes twoFactorRequired and reveals OTP input on 401 for 2FA users.
+- 2FA verification now uses the otplib boolean result so existing codes validate.
 
 ## Decisions
 - Stack: Node.js + NestJS

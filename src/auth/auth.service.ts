@@ -164,7 +164,8 @@ export class AuthService implements OnModuleInit {
         });
       }
       const secret = user.twoFactorSecret ?? '';
-      if (!secret || !(await verify({ token: otp, secret })).valid) {
+      const isValid = secret ? verify({ token: otp, secret }) : false;
+      if (!isValid) {
         throw new UnauthorizedException({
           message: 'Invalid two-factor code.',
           twoFactorRequired: true,
@@ -409,7 +410,8 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Unauthorized.');
     }
     const secret = user.twoFactorTempSecret ?? '';
-    if (!secret || !(await verify({ token: code, secret })).valid) {
+    const isValid = secret ? verify({ token: code, secret }) : false;
+    if (!isValid) {
       throw new BadRequestException('Invalid two-factor code.');
     }
     user.twoFactorSecret = secret;
@@ -435,7 +437,8 @@ export class AuthService implements OnModuleInit {
     }
     if (input.code) {
       const secret = user.twoFactorSecret ?? '';
-      if (!secret || !(await verify({ token: input.code.trim(), secret })).valid) {
+      const isValid = secret ? verify({ token: input.code.trim(), secret }) : false;
+      if (!isValid) {
         throw new BadRequestException('Invalid two-factor code.');
       }
     } else if (input.currentPassword) {
