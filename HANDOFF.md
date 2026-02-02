@@ -110,6 +110,7 @@
 - 2FA secrets are now encrypted at rest (AES-256-GCM using the auth access secret).
 - Admins can reset 2FA or passwords for non-admin users from Accounts.
 - Added `npm run reset-2fa` script with `RESET_2FA_ALL` / `RESET_2FA_USER` env vars for Docker-friendly resets.
+- Admin reset UI now renders without breaking the build.
 
 ## Decisions
 - Stack: Node.js + NestJS

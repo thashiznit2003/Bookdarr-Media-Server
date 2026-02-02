@@ -3954,7 +3954,9 @@ export class AppService {
         }
         adminUserSelect.innerHTML = users
           .filter((user) => !user.isAdmin)
-          .map((user) => `<option value="${user.id}">${user.username || user.email}</option>`)
+          .map((user) =>
+            '<option value="' + user.id + '">' + (user.username || user.email) + '</option>',
+          )
           .join('');
       }
 

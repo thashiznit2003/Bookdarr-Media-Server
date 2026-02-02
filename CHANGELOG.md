@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.110 — 2026-02-02 00:38 -06:00
+- Fix admin reset UI rendering so the build succeeds.
+
 ## 1.0.109 — 2026-02-02 00:35 -06:00
 - Encrypt stored 2FA secrets, add admin reset actions, and ship a reset-2fa command for env-driven resets.
 
