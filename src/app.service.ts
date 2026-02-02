@@ -4802,6 +4802,7 @@ export class AppService {
               placeholder="123456"
               autocomplete="one-time-code"
             />
+            <input id="login-challenge" name="challengeToken" type="hidden" />
           </div>
           <button id="login-submit" type="submit">Log in</button>
         </form>
@@ -4885,6 +4886,7 @@ export class AppService {
       const loginOtpField = document.getElementById('login-otp-field');
       const loginCredentials = document.getElementById('login-credentials');
       const loginForm = document.getElementById('login-form');
+      const loginChallenge = document.getElementById('login-challenge');
 
       function setStatus(message, isError = false) {
         if (loginStatus) {
@@ -4977,6 +4979,7 @@ export class AppService {
         const params = new URLSearchParams(window.location.search);
         const loginError = params.get('error');
         const otpRequired = params.get('otp');
+        const challengeToken = params.get('challenge');
         const setupError = params.get('setupError');
         if (loginError) {
           loginPanel.style.display = 'block';
@@ -4990,6 +4993,9 @@ export class AppService {
         if (otpRequired) {
           revealOtpField();
           setStatus('Enter your authenticator code.');
+        }
+        if (challengeToken && loginChallenge) {
+          loginChallenge.value = challengeToken;
         }
         if (setupError) {
           setupPanel.style.display = 'block';

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.107 — 2026-02-02 00:07 -06:00
+- Persist the 2FA challenge token through the OTP step to avoid missing-token logins.
+
 ## 1.0.106 — 2026-02-02 00:03 -06:00
 - Fix OTP validation so only the correct user's 2FA codes are accepted.
 

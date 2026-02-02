@@ -138,8 +138,10 @@ export class AuthController {
     try {
       const response = await this.authService.login(request);
       if ((response as { twoFactorRequired?: boolean; challengeToken?: string })?.twoFactorRequired) {
-        this.setTwoFactorCookie(res, (response as { challengeToken?: string }).challengeToken);
-        return res.redirect('/login?otp=1');
+        const challengeToken = (response as { challengeToken?: string }).challengeToken;
+        this.setTwoFactorCookie(res, challengeToken);
+        const challengeParam = challengeToken ? `&challenge=${encodeURIComponent(challengeToken)}` : '';
+        return res.redirect(`/login?otp=1${challengeParam}`);
       }
       this.setAuthCookies(res, response.tokens);
       this.setTwoFactorCookie(res);
