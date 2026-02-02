@@ -14,6 +14,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 - Gmail SMTP password reset (app password)
 - Rate limiting on auth endpoints
 - Strong password hashing (Argon2id preferred)
+- 2FA secrets are encrypted at rest using the auth access secret.
 
 ## Constraints
 - Read‑only access to Bookdarr data
@@ -41,6 +42,8 @@ Each GitHub push increments the patch version (x.x.n+1) and adds a changelog ent
 After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the latest build.
 Use the configured SSH host + key:
 - `ssh bms-vm "git -C /opt/bookdarr-media-server pull --ff-only; npm --prefix /opt/bookdarr-media-server ci; npm --prefix /opt/bookdarr-media-server run build; sudo systemctl restart bookdarr-media-server"`
+2FA reset command (for Docker/env usage):
+- `RESET_2FA_ALL=true npm run reset-2fa` or `RESET_2FA_USER=user1,user2 npm run reset-2fa`
 
 ## UI Notes
 - Book detail modal shows a 100-word description preview with a More/Less toggle; modal content can scroll.

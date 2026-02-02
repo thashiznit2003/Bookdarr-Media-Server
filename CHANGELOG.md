@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.109 — 2026-02-02 00:35 -06:00
+- Encrypt stored 2FA secrets, add admin reset actions, and ship a reset-2fa command for env-driven resets.
+
 ## 1.0.108 — 2026-02-02 00:13 -06:00
 - Preserve the 2FA challenge token via a readable cookie fallback on the OTP step.
 

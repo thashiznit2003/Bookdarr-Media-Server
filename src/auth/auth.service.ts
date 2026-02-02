@@ -8,7 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
 import { generateSecret, generateURI, verify } from 'otplib';
-import { randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
 import { SettingsService } from '../settings/settings.service';
 import {
@@ -163,7 +163,7 @@ export class AuthService implements OnModuleInit {
           challengeToken: await this.issueTwoFactorChallenge(user),
         };
       }
-      const secret = user.twoFactorSecret ?? '';
+      const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
       const isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
       if (!isValid) {
         throw new UnauthorizedException({
@@ -171,6 +171,7 @@ export class AuthService implements OnModuleInit {
           twoFactorRequired: true,
         });
       }
+      await this.maybeUpgradeTwoFactorSecret(user, secret);
     }
 
     const tokens = await this.issueTokens(user);
@@ -192,11 +193,12 @@ export class AuthService implements OnModuleInit {
     if (!user || !user.isActive || !user.twoFactorEnabled) {
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
-    const secret = user.twoFactorSecret ?? '';
+    const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
     const isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
     if (!isValid) {
       throw new UnauthorizedException('Invalid two-factor code.');
     }
+    await this.maybeUpgradeTwoFactorSecret(user, secret);
 
     const tokens = await this.issueTokens(user);
     return { user: this.toAuthUser(user), tokens };
@@ -418,7 +420,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Unauthorized.');
     }
     const secret = generateSecret();
-    user.twoFactorTempSecret = secret;
+    user.twoFactorTempSecret = await this.encryptTwoFactorSecret(secret);
     await this.users.save(user);
     const label = user.username ?? user.email;
     const issuer = 'Bookdarr Media Server';
@@ -434,12 +436,12 @@ export class AuthService implements OnModuleInit {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Unauthorized.');
     }
-    const secret = user.twoFactorTempSecret ?? '';
+    const secret = await this.resolveTwoFactorSecret(user.twoFactorTempSecret);
     const isValid = secret ? this.isValidOtp(verify({ token: code, secret })) : false;
     if (!isValid) {
       throw new BadRequestException('Invalid two-factor code.');
     }
-    user.twoFactorSecret = secret;
+    user.twoFactorSecret = await this.encryptTwoFactorSecret(secret);
     user.twoFactorTempSecret = null;
     user.twoFactorEnabled = true;
     await this.users.save(user);
@@ -461,7 +463,7 @@ export class AuthService implements OnModuleInit {
       return { enabled: false };
     }
     if (input.code) {
-      const secret = user.twoFactorSecret ?? '';
+      const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
       const isValid = secret ? this.isValidOtp(verify({ token: input.code.trim(), secret })) : false;
       if (!isValid) {
         throw new BadRequestException('Invalid two-factor code.');
@@ -480,6 +482,41 @@ export class AuthService implements OnModuleInit {
     user.twoFactorTempSecret = null;
     await this.users.save(user);
     return { enabled: false };
+  }
+
+  async adminResetTwoFactor(userId: string) {
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new BadRequestException('User not found.');
+    }
+    if (user.isAdmin) {
+      throw new BadRequestException('Admin 2FA cannot be reset here.');
+    }
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = null;
+    user.twoFactorTempSecret = null;
+    await this.users.save(user);
+    return { status: 'ok' };
+  }
+
+  async adminResetPassword(userId: string, newPassword: string) {
+    if (!newPassword || newPassword.trim().length === 0) {
+      throw new BadRequestException('New password is required.');
+    }
+    this.assertPassword(newPassword);
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new BadRequestException('User not found.');
+    }
+    if (user.isAdmin) {
+      throw new BadRequestException('Admin password cannot be reset here.');
+    }
+    user.passwordHash = await argon2.hash(newPassword, {
+      type: argon2.argon2id,
+    });
+    user.refreshTokenId = undefined;
+    await this.users.save(user);
+    return { status: 'ok' };
   }
 
   async isSetupRequired(): Promise<boolean> {
@@ -534,6 +571,55 @@ export class AuthService implements OnModuleInit {
       return Boolean(maybe.valid);
     }
     return false;
+  }
+
+  private async resolveTwoFactorSecret(stored?: string | null): Promise<string> {
+    if (!stored) return '';
+    if (!stored.startsWith('enc:v1:')) {
+      return stored;
+    }
+    return this.decryptTwoFactorSecret(stored);
+  }
+
+  private async getTwoFactorKey(): Promise<Buffer> {
+    const secrets = await this.authConfigService.getSecrets();
+    const base = secrets.accessSecret?.trim();
+    if (!base) {
+      throw new ServiceUnavailableException('Auth secrets are not configured.');
+    }
+    return createHash('sha256').update(base, 'utf8').digest();
+  }
+
+  private async encryptTwoFactorSecret(secret: string): Promise<string> {
+    const key = await this.getTwoFactorKey();
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    const ciphertext = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return `enc:v1:${iv.toString('hex')}:${tag.toString('hex')}:${ciphertext.toString('hex')}`;
+  }
+
+  private async decryptTwoFactorSecret(payload: string): Promise<string> {
+    const parts = payload.split(':');
+    if (parts.length !== 5) {
+      return '';
+    }
+    const iv = Buffer.from(parts[2], 'hex');
+    const tag = Buffer.from(parts[3], 'hex');
+    const data = Buffer.from(parts[4], 'hex');
+    const key = await this.getTwoFactorKey();
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    const plaintext = Buffer.concat([decipher.update(data), decipher.final()]);
+    return plaintext.toString('utf8');
+  }
+
+  private async maybeUpgradeTwoFactorSecret(user: UserEntity, secret: string) {
+    if (!user.twoFactorSecret || user.twoFactorSecret.startsWith('enc:v1:')) {
+      return;
+    }
+    user.twoFactorSecret = await this.encryptTwoFactorSecret(secret);
+    await this.users.save(user);
   }
 
   private async issueTokens(user: UserEntity): Promise<AuthTokens> {

@@ -107,6 +107,9 @@
 - OTP validation now checks the otplib result correctly so codes are user-specific.
 - 2FA login now passes the challenge token via URL/hidden field to avoid missing-token errors.
 - 2FA challenge token is now stored in a readable cookie as a fallback for the OTP form.
+- 2FA secrets are now encrypted at rest (AES-256-GCM using the auth access secret).
+- Admins can reset 2FA or passwords for non-admin users from Accounts.
+- Added `npm run reset-2fa` script with `RESET_2FA_ALL` / `RESET_2FA_USER` env vars for Docker-friendly resets.
 
 ## Decisions
 - Stack: Node.js + NestJS

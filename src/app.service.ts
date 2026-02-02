@@ -1400,6 +1400,24 @@ export class AppService {
             </div>
             <div id="accounts-list" class="status-grid"></div>
           </div>
+          <div class="panel" id="admin-actions-panel" style="margin-top: 20px;">
+            <h3 style="margin-top: 0;">Admin Actions</h3>
+            <div class="status-grid">
+              <div>
+                <span class="nav-title">User</span>
+                <select id="admin-user-select" style="width: 100%; padding: 10px 12px; border-radius: 10px; background: rgba(10, 12, 18, 0.7); color: var(--text); border: 1px solid rgba(255, 255, 255, 0.1);"></select>
+              </div>
+              <div>
+                <span class="nav-title">New Password</span>
+                <input id="admin-reset-password" type="password" placeholder="temporary password" />
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button id="admin-reset-2fa">Reset 2FA</button>
+              <button id="admin-reset-password-btn">Reset Password</button>
+            </div>
+            <div id="admin-actions-status" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
           <div class="panel" id="create-user-panel" style="margin-top: 20px;">
             <h3 style="margin-top: 0;">Create User</h3>
             <div class="status-grid">
@@ -1613,7 +1631,8 @@ export class AppService {
         myLibrary: [],
         token: bootstrap?.token || null,
         userId: null,
-        isAdmin: false
+        isAdmin: false,
+        users: []
       };
       let setupRequired = false;
       let bookdarrConfigured = false;
@@ -1670,6 +1689,12 @@ export class AppService {
       const settingsSmtpTitleDot = document.getElementById('settings-smtp-title-dot');
       const accountsList = document.getElementById('accounts-list');
       const accountsStatus = document.getElementById('accounts-status');
+      const adminActionsPanel = document.getElementById('admin-actions-panel');
+      const adminUserSelect = document.getElementById('admin-user-select');
+      const adminResetPasswordInput = document.getElementById('admin-reset-password');
+      const adminResetTwoFactorButton = document.getElementById('admin-reset-2fa');
+      const adminResetPasswordButton = document.getElementById('admin-reset-password-btn');
+      const adminActionsStatus = document.getElementById('admin-actions-status');
       const createUserButton = document.getElementById('create-user');
       const createUserStatus = document.getElementById('create-user-status');
       const newUserUsername = document.getElementById('new-user-username');
@@ -2035,6 +2060,9 @@ export class AppService {
           if (createUserPanel) {
             createUserPanel.style.display = 'none';
           }
+          if (adminActionsPanel) {
+            adminActionsPanel.style.display = 'none';
+          }
           if (!isLoginPage) {
             window.location.replace('/login?reason=unauth');
           }
@@ -2047,6 +2075,9 @@ export class AppService {
         state.isAdmin = Boolean(user.isAdmin);
         if (createUserPanel) {
           createUserPanel.style.display = user.isAdmin ? 'block' : 'none';
+        }
+        if (adminActionsPanel) {
+          adminActionsPanel.style.display = user.isAdmin ? 'block' : 'none';
         }
       }
 
@@ -3894,6 +3925,8 @@ export class AppService {
         if (!accountsList) {
           return;
         }
+        state.users = Array.isArray(users) ? users : [];
+        populateAdminSelect(state.users);
         if (!users.length) {
           accountsList.innerHTML = '<div class="empty">No users found.</div>';
           return;
@@ -3912,6 +3945,16 @@ export class AppService {
               '</div>'
             );
           })
+          .join('');
+      }
+
+      function populateAdminSelect(users) {
+        if (!adminUserSelect) {
+          return;
+        }
+        adminUserSelect.innerHTML = users
+          .filter((user) => !user.isAdmin)
+          .map((user) => `<option value="${user.id}">${user.username || user.email}</option>`)
           .join('');
       }
 
@@ -4535,6 +4578,61 @@ export class AppService {
           })
           .catch(() => {
             createUserStatus.textContent = 'Unable to create user.';
+          });
+      });
+
+      adminResetTwoFactorButton?.addEventListener('click', () => {
+        if (!adminUserSelect?.value) {
+          if (adminActionsStatus) adminActionsStatus.textContent = 'Select a user first.';
+          return;
+        }
+        if (adminActionsStatus) adminActionsStatus.textContent = 'Resetting 2FA...';
+        fetchWithAuth(`/api/users/${adminUserSelect.value}/reset-2fa`, { method: 'POST' })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to reset 2FA.';
+              if (adminActionsStatus) adminActionsStatus.textContent = message;
+              return;
+            }
+            if (adminActionsStatus) adminActionsStatus.textContent = '2FA reset for selected user.';
+            loadAccounts();
+          })
+          .catch(() => {
+            if (adminActionsStatus) adminActionsStatus.textContent = 'Unable to reset 2FA.';
+          });
+      });
+
+      adminResetPasswordButton?.addEventListener('click', () => {
+        if (!adminUserSelect?.value) {
+          if (adminActionsStatus) adminActionsStatus.textContent = 'Select a user first.';
+          return;
+        }
+        const newPassword = adminResetPasswordInput?.value;
+        if (!newPassword) {
+          if (adminActionsStatus) adminActionsStatus.textContent = 'Enter a new password.';
+          return;
+        }
+        if (adminActionsStatus) adminActionsStatus.textContent = 'Resetting password...';
+        fetchWithAuth(`/api/users/${adminUserSelect.value}/reset-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ newPassword }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to reset password.';
+              if (adminActionsStatus) adminActionsStatus.textContent = message;
+              return;
+            }
+            if (adminActionsStatus) adminActionsStatus.textContent = 'Password reset for selected user.';
+            if (adminResetPasswordInput) adminResetPasswordInput.value = '';
+          })
+          .catch(() => {
+            if (adminActionsStatus) adminActionsStatus.textContent = 'Unable to reset password.';
           });
       });
 

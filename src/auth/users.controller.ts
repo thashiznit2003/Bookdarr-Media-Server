@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthGuard } from './auth.guard';
 import { AdminGuard } from './admin.guard';
@@ -27,5 +27,15 @@ export class UsersController {
     @Body() body: { username: string; email: string; password: string; isAdmin?: boolean },
   ) {
     return this.authService.createUser({ ...body, baseUrl: this.getBaseUrl(req) });
+  }
+
+  @Post(':id/reset-2fa')
+  resetTwoFactor(@Param('id') id: string) {
+    return this.authService.adminResetTwoFactor(id);
+  }
+
+  @Post(':id/reset-password')
+  resetPassword(@Param('id') id: string, @Body() body: { newPassword: string }) {
+    return this.authService.adminResetPassword(id, body?.newPassword ?? '');
   }
 }
