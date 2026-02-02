@@ -2265,6 +2265,51 @@ export class AppService {
         }).join('');
       }
 
+      function updateDownloadOverlays(list, grid) {
+        if (!grid) return;
+        const cards = grid.querySelectorAll('.book-card');
+        if (!cards.length) return;
+        const cardMap = new Map();
+        cards.forEach((card) => {
+          const id = card.dataset.id;
+          if (id) {
+            cardMap.set(id, card);
+          }
+        });
+        list.forEach((item) => {
+          const card = cardMap.get(String(item.id));
+          if (!card) return;
+          const cover = card.querySelector('.cover');
+          if (!cover) return;
+          const downloadInfo = getDownloadProgress(item.downloadStatus);
+          const showDownloadOverlay =
+            item.downloadStatus &&
+            (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading') &&
+            downloadInfo.progress < 1;
+          let overlay = cover.querySelector('.download-overlay');
+          if (showDownloadOverlay) {
+            const progressPercent = Math.round(downloadInfo.progress * 100);
+            if (!overlay) {
+              overlay = document.createElement('div');
+              overlay.className = 'download-overlay';
+              overlay.innerHTML =
+                '<div class="download-ring" style="--progress: 0">' +
+                  '<div class="download-ring-inner">0%</div>' +
+                '</div>';
+              cover.appendChild(overlay);
+            }
+            const ring = overlay.querySelector('.download-ring');
+            if (ring) ring.style.setProperty('--progress', String(downloadInfo.progress));
+            const inner = overlay.querySelector('.download-ring-inner');
+            if (inner) inner.textContent = progressPercent + '%';
+            cover.classList.add('is-downloading');
+          } else {
+            if (overlay) overlay.remove();
+            cover.classList.remove('is-downloading');
+          }
+        });
+      }
+
       function renderLibrary() {
         renderBooks(state.library, libraryGrid, 'No books match this view.');
       }
@@ -2342,8 +2387,20 @@ export class AppService {
         fetchWithAuth('/library/my')
           .then((response) => response.json())
           .then((data) => {
-            state.myLibrary = Array.isArray(data) ? data : [];
-            renderMyLibrary();
+            const next = Array.isArray(data) ? data : [];
+            const existingCards = myLibraryGrid?.querySelectorAll('.book-card') ?? [];
+            const sameCount = existingCards.length === next.length;
+            let sameIds = sameCount;
+            if (sameCount) {
+              const ids = new Set(Array.from(existingCards).map((card) => card.dataset.id));
+              sameIds = next.every((item) => ids.has(String(item.id)));
+            }
+            state.myLibrary = next;
+            if (sameIds) {
+              updateDownloadOverlays(state.myLibrary, myLibraryGrid);
+            } else {
+              renderMyLibrary();
+            }
             scheduleMyLibraryRefresh(state.myLibrary);
           })
           .catch(() => {
@@ -2890,6 +2947,9 @@ export class AppService {
 
       function animatePageTurn(direction) {
         if (!readerView) return;
+        if (isTouchDevice()) {
+          return;
+        }
         readerView.classList.remove('page-turn-next', 'page-turn-prev');
         void readerView.offsetWidth;
         readerView.classList.add(direction === 'next' ? 'page-turn-next' : 'page-turn-prev');

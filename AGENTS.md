@@ -85,3 +85,5 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Desktop reader layout now recalculates height on open/resize to prevent zero-height EPUB iframes.
 - Desktop reader height calculations avoid template literals so the build succeeds.
 - Reader control bar now sits above iframe content so desktop buttons remain clickable.
+- Touch swipe page turns no longer animate to prevent flicker.
+- My Library download progress overlays update in-place to avoid cover flicker.

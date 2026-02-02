@@ -65,6 +65,8 @@
 - Reader layout height is recalculated on open/resize so desktop EPUB content can render.
 - Desktop reader height calculations now avoid template literals to keep the build green.
 - Reader control bar now sits above iframe content so desktop buttons remain clickable.
+- Touch swipe page turns no longer animate to prevent flicker.
+- My Library download progress overlays update in-place to avoid cover flicker.
 
 ## Decisions
 - Stack: Node.js + NestJS

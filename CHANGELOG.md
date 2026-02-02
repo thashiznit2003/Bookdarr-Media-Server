@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.69 — 2026-02-01 20:12 -06:00
+- Disable page-turn animation on touch devices to prevent flicker during swipes.
+- Update My Library download progress overlays in-place to stop cover flicker.
+
 ## 1.0.68 — 2026-02-01 20:04 -06:00
 - Raise reader control bar stacking order so desktop buttons stay clickable.
 
