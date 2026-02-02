@@ -78,6 +78,7 @@
 - SMTP settings now show a title status dot based on live connectivity checks.
 - SMTP now supports a From Name value that is combined with the From address when sending mail.
 - Settings types now include SMTP From Name in public/private config output.
+- SMTP test fallback now carries From Name when using stored config.
 
 ## Decisions
 - Stack: Node.js + NestJS

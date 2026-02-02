@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.79 — 2026-02-01 21:16 -06:00
+- Fix SMTP From Name fallback wiring for test emails.
+
 ## 1.0.78 — 2026-02-01 21:15 -06:00
 - Fix settings types to include SMTP From Name in public + private config.
 

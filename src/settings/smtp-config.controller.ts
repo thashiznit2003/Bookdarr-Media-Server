@@ -71,6 +71,7 @@ export class SmtpConfigController {
           user: stored.user,
           pass: stored.pass,
           from: stored.from,
+          fromName: stored.fromName,
         }
       : settings.smtp;
 
