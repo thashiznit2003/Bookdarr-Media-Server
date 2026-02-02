@@ -101,6 +101,7 @@
 - Login now exposes twoFactorRequired and reveals OTP input on 401 for 2FA users.
 - 2FA verification now uses the otplib boolean result so existing codes validate.
 - 2FA login now uses a short-lived challenge token and a dedicated OTP step (no retyping username/password).
+- Login page now surfaces errors in red beneath the Log in button.
 
 ## Decisions
 - Stack: Node.js + NestJS

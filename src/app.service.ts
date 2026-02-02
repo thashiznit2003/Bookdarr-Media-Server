@@ -4749,6 +4749,10 @@ export class AppService {
         color: var(--muted);
         min-height: 20px;
       }
+
+      .status.error {
+        color: #ff6b6b;
+      }
     </style>
   </head>
   <body>
@@ -4789,14 +4793,16 @@ export class AppService {
           </div>
           <button id="login-submit" type="submit">Log in</button>
         </form>
+        <div id="login-status" class="status"></div>
       </div>
 
-      <div id="login-status" class="status"></div>
+      <div id="login-status-global" class="status"></div>
     </div>
     <script>
       const setupPanel = document.getElementById('setup-panel');
       const loginPanel = document.getElementById('login-panel');
       const loginStatus = document.getElementById('login-status');
+      const loginStatusGlobal = document.getElementById('login-status-global');
 
       function clearStoredAuth() {
         try { localStorage.removeItem('bmsAccessToken'); } catch {}
@@ -4868,8 +4874,15 @@ export class AppService {
       const loginCredentials = document.getElementById('login-credentials');
       const loginForm = document.getElementById('login-form');
 
-      function setStatus(message) {
-        if (loginStatus) loginStatus.textContent = message || '';
+      function setStatus(message, isError = false) {
+        if (loginStatus) {
+          loginStatus.textContent = message || '';
+          loginStatus.classList.toggle('error', isError);
+        }
+        if (loginStatusGlobal) {
+          loginStatusGlobal.textContent = message || '';
+          loginStatusGlobal.classList.toggle('error', isError);
+        }
       }
 
       function revealOtpField() {
@@ -4956,7 +4969,7 @@ export class AppService {
         if (loginError) {
           loginPanel.style.display = 'block';
           setupPanel.style.display = 'none';
-          setStatus(loginError);
+          setStatus(loginError, true);
           const normalized = loginError.toLowerCase();
           if (normalized.includes('two-factor') || normalized.includes('2fa') || normalized.includes('otp')) {
             revealOtpField();
@@ -4969,7 +4982,7 @@ export class AppService {
         if (setupError) {
           setupPanel.style.display = 'block';
           loginPanel.style.display = 'none';
-          setStatus(setupError);
+          setStatus(setupError, true);
         }
       })();
 

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.103 — 2026-02-01 23:36 -06:00
+- Show login errors in red beneath the Log in button on the login page.
+
 ## 1.0.102 — 2026-02-01 23:30 -06:00
 - Add a two-step 2FA login flow with a short-lived challenge token so OTP is entered separately.
 
