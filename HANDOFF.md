@@ -67,6 +67,9 @@
 - Reader control bar now sits above iframe content so desktop buttons remain clickable.
 - Touch swipe page turns no longer animate to prevent flicker.
 - My Library download progress overlays update in-place to avoid cover flicker.
+- Settings now show editable Bookdarr + SMTP panels only; diagnostics UI and auth secret controls are hidden.
+- SMTP settings are stored in DB and used by the mailer service for password reset emails.
+- Create User panel is hidden unless the user is an admin.
 
 ## Decisions
 - Stack: Node.js + NestJS

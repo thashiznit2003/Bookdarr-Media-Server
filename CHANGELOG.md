@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.70 — 2026-02-01 20:32 -06:00
+- Simplify Settings to editable panels, add SMTP configuration UI + API, and remove diagnostics UI.
+- Restrict Create User panel to admins and hide auth secret controls.
+
 ## 1.0.69 — 2026-02-01 20:12 -06:00
 - Disable page-turn animation on touch devices to prevent flicker during swipes.
 - Update My Library download progress overlays in-place to stop cover flicker.

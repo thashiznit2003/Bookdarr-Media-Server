@@ -87,3 +87,6 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Reader control bar now sits above iframe content so desktop buttons remain clickable.
 - Touch swipe page turns no longer animate to prevent flicker.
 - My Library download progress overlays update in-place to avoid cover flicker.
+- Settings now focus on editable panels (Bookdarr + SMTP); diagnostics UI and auth secret controls are hidden.
+- SMTP config is stored in DB via /settings/smtp and used for password reset emails.
+- Create User panel is visible only to admins.

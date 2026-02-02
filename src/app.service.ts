@@ -1100,7 +1100,6 @@ export class AppService {
           <div class="nav-title">Library</div>
           <a class="nav-link" href="/" data-page-link="library">Book Pool</a>
           <a class="nav-link" href="/my-library" data-page-link="my-library">My Library</a>
-          <a class="nav-link" href="/diagnostics" data-page-link="diagnostics">Diagnostics</a>
         </div>
         <div class="nav-section">
           <div class="nav-title">System</div>
@@ -1254,31 +1253,13 @@ export class AppService {
           </div>
         </div>
 
-        <div class="page" data-page="diagnostics">
-          <section class="section-title">
-            <h2>Diagnostics</h2>
-          </section>
-          <div class="panel">
-            <p style="margin: 0; color: var(--muted);">
-              Diagnostics uploads are mandatory during development. Status and logs will surface here.
-            </p>
-          </div>
-        </div>
-
         <div class="page" data-page="settings">
           <section class="section-title">
-            <h2>System Status</h2>
+            <h2>Settings</h2>
             <span class="pill">Config</span>
           </section>
           <div class="panel">
-            <div id="settings" class="status-grid">Loading settings…</div>
-          </div>
-
-          <section class="section-title" style="margin-top: 28px;">
-            <h2>Bookdarr Connection</h2>
-            <span class="pill">Library</span>
-          </section>
-          <div class="panel">
+            <h3 style="margin-top: 0;">Bookdarr Connection</h3>
             <div class="status-grid">
               <div>
                 <span class="nav-title">IP address / Host</span>
@@ -1307,25 +1288,32 @@ export class AppService {
             <div id="settings-bookdarr-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
 
-          <section class="section-title" style="margin-top: 28px;">
-            <h2>Auth Secrets</h2>
-            <span class="pill">JWT</span>
-          </section>
-          <div class="panel">
+          <div class="panel" style="margin-top: 20px;">
+            <h3 style="margin-top: 0;">Email (SMTP)</h3>
             <div class="status-grid">
               <div>
-                <span class="nav-title">Status</span>
-                <div id="auth-secret-status" style="margin-top: 6px; color: var(--muted);">
-                  Loading...
-                </div>
+                <span class="nav-title">SMTP Host</span>
+                <input id="settings-smtp-host" type="text" placeholder="smtp.gmail.com" />
               </div>
               <div>
-                <span class="nav-title">Last rotated</span>
-                <div id="auth-secret-updated" style="margin-top: 6px; color: var(--muted);">--</div>
+                <span class="nav-title">SMTP Port</span>
+                <input id="settings-smtp-port" type="number" placeholder="587" />
+              </div>
+              <div>
+                <span class="nav-title">Username</span>
+                <input id="settings-smtp-user" type="text" placeholder="you@example.com" />
+              </div>
+              <div>
+                <span class="nav-title">Password</span>
+                <input id="settings-smtp-pass" type="password" placeholder="App password" />
+              </div>
+              <div>
+                <span class="nav-title">From Address</span>
+                <input id="settings-smtp-from" type="text" placeholder="Bookdarr <you@example.com>" />
               </div>
             </div>
-            <button id="rotate-auth-secrets" style="margin-top: 12px;">Rotate Auth Secrets</button>
-            <div id="auth-rotate-status" style="margin-top: 8px; color: var(--muted);"></div>
+            <button id="save-smtp" style="margin-top: 12px;">Save SMTP Settings</button>
+            <div id="settings-smtp-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
         </div>
 
@@ -1340,7 +1328,7 @@ export class AppService {
             </div>
             <div id="accounts-list" class="status-grid"></div>
           </div>
-          <div class="panel" style="margin-top: 20px;">
+          <div class="panel" id="create-user-panel" style="margin-top: 20px;">
             <h3 style="margin-top: 0;">Create User</h3>
             <div class="status-grid">
               <div>
@@ -1530,10 +1518,6 @@ export class AppService {
       const bookdarrKey = document.getElementById('bookdarr-key');
       const bookdarrPath = document.getElementById('bookdarr-path');
       const bookdarrHttps = document.getElementById('bookdarr-https');
-      const authSecretStatus = document.getElementById('auth-secret-status');
-      const authSecretUpdated = document.getElementById('auth-secret-updated');
-      const rotateAuthButton = document.getElementById('rotate-auth-secrets');
-      const authRotateStatus = document.getElementById('auth-rotate-status');
       const settingsBookdarrHost = document.getElementById('settings-bookdarr-host');
       const settingsBookdarrPort = document.getElementById('settings-bookdarr-port');
       const settingsBookdarrKey = document.getElementById('settings-bookdarr-key');
@@ -1541,6 +1525,13 @@ export class AppService {
       const settingsBookdarrHttps = document.getElementById('settings-bookdarr-https');
       const saveBookdarrButton = document.getElementById('save-bookdarr');
       const settingsBookdarrStatus = document.getElementById('settings-bookdarr-status');
+      const settingsSmtpHost = document.getElementById('settings-smtp-host');
+      const settingsSmtpPort = document.getElementById('settings-smtp-port');
+      const settingsSmtpUser = document.getElementById('settings-smtp-user');
+      const settingsSmtpPass = document.getElementById('settings-smtp-pass');
+      const settingsSmtpFrom = document.getElementById('settings-smtp-from');
+      const saveSmtpButton = document.getElementById('save-smtp');
+      const settingsSmtpStatus = document.getElementById('settings-smtp-status');
       const accountsList = document.getElementById('accounts-list');
       const accountsStatus = document.getElementById('accounts-status');
       const createUserButton = document.getElementById('create-user');
@@ -1559,6 +1550,7 @@ export class AppService {
       const loginPagePassword = document.getElementById('login-page-password');
       const loginPageSubmit = document.getElementById('login-page-submit');
       const loginPageStatus = document.getElementById('login-page-status');
+      const createUserPanel = document.getElementById('create-user-panel');
       const userMenu = document.getElementById('user-menu');
       const userButton = document.getElementById('user-button');
       const userDropdown = document.getElementById('user-dropdown');
@@ -1623,6 +1615,10 @@ export class AppService {
       let readerPageMapKey = null;
       let readerNavPending = 0;
       const readerPageMapVersion = 3;
+
+      if (createUserPanel) {
+        createUserPanel.style.display = 'none';
+      }
 
       pageSections.forEach((section) => {
         section.style.display = section.dataset.page === activePage ? 'block' : 'none';
@@ -1878,6 +1874,9 @@ export class AppService {
           userAvatar.textContent = '?';
           userLabel.textContent = 'Signed out';
           userMenu.style.display = 'none';
+          if (createUserPanel) {
+            createUserPanel.style.display = 'none';
+          }
           if (!isLoginPage) {
             window.location.replace('/login?reason=unauth');
           }
@@ -1887,6 +1886,9 @@ export class AppService {
         userAvatar.textContent = letter;
         userLabel.textContent = user.username || user.email;
         userMenu.style.display = 'block';
+        if (createUserPanel) {
+          createUserPanel.style.display = user.isAdmin ? 'block' : 'none';
+        }
       }
 
       function setAuth(token, refreshToken) {
@@ -2146,31 +2148,26 @@ export class AppService {
           });
       })();
 
-      function loadAuthSecretsStatus() {
-        fetch('/api/settings/auth')
+      function loadSmtpConfig() {
+        if (activePage !== 'settings') {
+          return;
+        }
+        fetchWithAuth('/settings/smtp')
           .then((response) => response.json())
           .then((data) => {
-            const configured = Boolean(
-              data?.configured ??
-                (data?.accessSecretConfigured && data?.refreshSecretConfigured),
-            );
-            if (authSecretStatus && activePage === 'settings') {
-              authSecretStatus.textContent = configured
-                ? 'Auth secrets are configured.'
-                : 'Auth secrets are not configured.';
-            }
-            if (authSecretUpdated && activePage === 'settings') {
-              authSecretUpdated.textContent = data?.updatedAt
-                ? new Date(data.updatedAt).toLocaleString()
-                : 'Unknown';
+            if (settingsSmtpHost) settingsSmtpHost.value = data?.host ?? '';
+            if (settingsSmtpPort) settingsSmtpPort.value = data?.port ?? '';
+            if (settingsSmtpUser) settingsSmtpUser.value = data?.user ?? '';
+            if (settingsSmtpFrom) settingsSmtpFrom.value = data?.from ?? '';
+            if (settingsSmtpStatus) {
+              settingsSmtpStatus.textContent = data?.configured
+                ? 'SMTP configured.'
+                : 'SMTP not configured yet.';
             }
           })
           .catch(() => {
-            if (authSecretStatus && activePage === 'settings') {
-              authSecretStatus.textContent = 'Unable to load auth secrets.';
-            }
-            if (authSecretUpdated && activePage === 'settings') {
-              authSecretUpdated.textContent = 'Unknown';
+            if (settingsSmtpStatus) {
+              settingsSmtpStatus.textContent = 'Unable to load SMTP settings.';
             }
           });
       }
@@ -3830,7 +3827,7 @@ export class AppService {
         }
       }
 
-      loadAuthSecretsStatus();
+      loadSmtpConfig();
 
       setupButton?.addEventListener('click', () => {
         const username = document.getElementById('setup-username').value;
@@ -3938,45 +3935,34 @@ export class AppService {
         window.location.href = '/accounts';
       });
 
-      rotateAuthButton?.addEventListener('click', () => {
-        const confirmed = window.confirm(
-          'Rotating auth secrets will sign out all users. Continue?',
-        );
-        if (!confirmed) {
-          return;
+      saveSmtpButton?.addEventListener('click', () => {
+        const host = settingsSmtpHost?.value?.trim();
+        const port = Number(settingsSmtpPort?.value);
+        const user = settingsSmtpUser?.value?.trim();
+        const pass = settingsSmtpPass?.value;
+        const from = settingsSmtpFrom?.value?.trim();
+        if (settingsSmtpStatus) {
+          settingsSmtpStatus.textContent = 'Saving...';
         }
-        if (authRotateStatus) {
-          authRotateStatus.textContent = 'Rotating auth secrets...';
-        }
-        fetchWithAuth('/api/settings/auth/rotate', {
+        fetchWithAuth('/settings/smtp', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ host, port, user, pass, from }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
-              const message = body?.message ?? 'Unable to rotate auth secrets.';
-              if (authRotateStatus) {
-                authRotateStatus.textContent = message;
-              }
+              const message = body?.message ?? 'Unable to save SMTP settings.';
+              if (settingsSmtpStatus) settingsSmtpStatus.textContent = message;
               return;
             }
-            if (authRotateStatus) {
-              authRotateStatus.textContent = 'Auth secrets rotated. Please sign in again.';
-            }
-            if (authSecretUpdated) {
-              authSecretUpdated.textContent = body?.updatedAt
-                ? new Date(body.updatedAt).toLocaleString()
-                : 'Just now';
-            }
-            setAuth(null);
+            if (settingsSmtpStatus) settingsSmtpStatus.textContent = 'SMTP settings saved.';
+            if (settingsSmtpPass) settingsSmtpPass.value = '';
           })
           .catch(() => {
-            if (authRotateStatus) {
-              authRotateStatus.textContent = 'Unable to rotate auth secrets.';
-            }
+            if (settingsSmtpStatus) settingsSmtpStatus.textContent = 'Save failed.';
           });
       });
 
@@ -4108,43 +4094,7 @@ export class AppService {
       loadAccounts();
       loadProfile();
 
-      fetch('/api/settings', { cache: 'no-store' })
-        .then((response) => response.json())
-        .then((data) => {
-          const items = [
-            ['Bookdarr', data.bookdarr?.configured ? 'Connected' : 'Missing', data.bookdarr?.configured],
-            ['Book Pool Path', data.bookdarr?.poolPath ?? 'Not set'],
-            ['Database', data.database?.configured ? 'Configured (' + data.database?.type + ')' : 'Missing', data.database?.configured],
-            ['SMTP', data.smtp?.configured ? 'Configured' : 'Missing', data.smtp?.configured],
-            ['Diagnostics', data.diagnostics?.required ? 'Required' : 'Optional', data.diagnostics?.required],
-            ['Diagnostics Repo', data.diagnostics?.repo ?? 'Not set', data.diagnostics?.configured],
-            ['Auth Access Secret', data.auth?.configured ? 'Configured' : 'Missing', data.auth?.configured],
-            ['Auth Refresh Secret', data.auth?.configured ? 'Configured' : 'Missing', data.auth?.configured],
-            ['Open Library', data.openLibrary?.baseUrl ?? 'Not set'],
-          ];
-
-          const settingsEl = document.getElementById('settings');
-          settingsEl.innerHTML = items
-            .map((item) => {
-              const label = item[0];
-              const value = item[1];
-              const ok = item[2];
-              const statusClass = ok === undefined ? '' : ok ? 'ok' : 'warn';
-              return (
-                '<div class="status-item">' +
-                  '<span>' + label + '</span>' +
-                  '<div class="status-value">' +
-                    '<div class="dot ' + statusClass + '"></div>' +
-                    '<strong>' + value + '</strong>' +
-                  '</div>' +
-                '</div>'
-              );
-            })
-            .join('');
-        })
-        .catch(() => {
-          document.getElementById('settings').textContent = 'Unable to load settings.';
-        });
+      // System status grid removed; settings are now editable panels only.
     </script>
   </body>
 </html>`;

@@ -39,7 +39,7 @@ export class AppController {
     return res.send(this.appService.getLoginHtml());
   }
 
-  @Get(['diagnostics', 'settings', 'accounts', 'my-library'])
+  @Get(['settings', 'accounts', 'my-library'])
   async getPage(@Req() req: Request, @Res() res: Response) {
     const bootstrap = await this.buildBootstrap(req);
     if (!bootstrap?.user) {
@@ -48,6 +48,15 @@ export class AppController {
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
     return res.send(this.appService.getIndexHtml(bootstrap));
+  }
+
+  @Get('diagnostics')
+  async redirectDiagnostics(@Req() req: Request, @Res() res: Response) {
+    const bootstrap = await this.buildBootstrap(req);
+    if (!bootstrap?.user) {
+      return res.redirect('/login');
+    }
+    return res.redirect('/settings');
   }
 
   @Get('downloads')

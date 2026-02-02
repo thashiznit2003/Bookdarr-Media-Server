@@ -1,14 +1,19 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import nodemailer from 'nodemailer';
 import { SettingsService } from '../settings/settings.service';
+import { SmtpConfigService } from '../settings/smtp-config.service';
 
 @Injectable()
 export class MailerService {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly smtpConfigService: SmtpConfigService,
+  ) {}
 
   async sendPasswordReset(email: string, token: string, ttlMinutes: number) {
     const settings = this.settingsService.getSettings();
-    const smtp = settings.smtp;
+    const stored = await this.smtpConfigService.getConfig();
+    const smtp = stored ?? settings.smtp;
 
     if (!smtp.host || !smtp.port || !smtp.user || !smtp.pass) {
       throw new ServiceUnavailableException('SMTP is not configured.');

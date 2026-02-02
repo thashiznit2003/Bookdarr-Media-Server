@@ -15,6 +15,7 @@ import { AuthConfigEntity } from './auth/auth-config.entity';
 import { LoggingModule } from './logging/logging.module';
 import { UserLibraryEntity } from './library/user-library.entity';
 import { OfflineDownloadEntity } from './library/offline-download.entity';
+import { SmtpConfigEntity } from './settings/smtp-config.entity';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { OfflineDownloadEntity } from './library/offline-download.entity';
               AuthConfigEntity,
               UserLibraryEntity,
               OfflineDownloadEntity,
+              SmtpConfigEntity,
             ],
           };
         }
@@ -59,6 +61,7 @@ import { OfflineDownloadEntity } from './library/offline-download.entity';
             AuthConfigEntity,
             UserLibraryEntity,
             OfflineDownloadEntity,
+            SmtpConfigEntity,
           ],
         };
       },
