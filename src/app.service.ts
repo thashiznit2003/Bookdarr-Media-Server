@@ -4173,7 +4173,7 @@ export class AppService {
 
       function testSmtpConfiguredConnection() {
         setSmtpTitleDot('warn');
-        fetchWithAuth('/settings/smtp/test', {
+        fetchWithAuth('/settings/smtp/check', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

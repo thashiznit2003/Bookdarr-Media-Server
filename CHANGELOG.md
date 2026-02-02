@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.84 — 2026-02-01 21:40 -06:00
+- Use a non-sending SMTP check endpoint for status dots so test emails only send on demand.
+
 ## 1.0.83 — 2026-02-01 21:36 -06:00
 - Align Bookdarr HTTPS toggle under the Protocol label.
 

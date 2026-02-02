@@ -113,6 +113,55 @@ export class SmtpConfigController {
     return { ok: true };
   }
 
+  @Post('check')
+  async checkConfig(@Body() input?: SmtpConfigInput) {
+    const host = input?.host?.trim();
+    const port = input?.port;
+    const user = input?.user?.trim();
+    const pass = input?.pass;
+
+    const stored = await this.smtpConfigService.getConfig();
+    const settings = this.settingsService.getSettings();
+    const fallback = stored
+      ? {
+          host: stored.host,
+          port: stored.port,
+          user: stored.user,
+          pass: stored.pass,
+        }
+      : settings.smtp;
+
+    const smtpHost = host || fallback.host;
+    const smtpPort = port || fallback.port;
+    const smtpUser = user || fallback.user;
+    const smtpPass = pass || fallback.pass;
+
+    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+      throw new BadRequestException('SMTP settings are incomplete.');
+    }
+
+    const transport = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    try {
+      await transport.verify();
+    } catch (error) {
+      return {
+        ok: false,
+        message: error?.message ?? 'Unable to verify SMTP connection.',
+      };
+    }
+
+    return { ok: true };
+  }
+
   private formatFromAddress(fromName?: string | null, fromEmail?: string | null) {
     const email = (fromEmail || '').trim();
     if (!email) {
