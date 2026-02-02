@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { SettingsService } from './settings.service';
 import { SmtpConfigService } from './smtp-config.service';
 import type { SmtpConfigInput } from './smtp-config.service';
+import nodemailer from 'nodemailer';
 
 @Controller('settings/smtp')
 @UseGuards(AuthGuard, AdminGuard)
@@ -47,5 +48,62 @@ export class SmtpConfigController {
       user: config.user,
       from: config.from ?? undefined,
     };
+  }
+
+  @Post('test')
+  async testConfig(@Body() input?: SmtpConfigInput) {
+    const host = input?.host?.trim();
+    const port = input?.port;
+    const user = input?.user?.trim();
+    const pass = input?.pass;
+    const from = input?.from?.trim();
+
+    const stored = await this.smtpConfigService.getConfig();
+    const settings = this.settingsService.getSettings();
+    const fallback = stored
+      ? {
+          host: stored.host,
+          port: stored.port,
+          user: stored.user,
+          pass: stored.pass,
+          from: stored.from,
+        }
+      : settings.smtp;
+
+    const smtpHost = host || fallback.host;
+    const smtpPort = port || fallback.port;
+    const smtpUser = user || fallback.user;
+    const smtpPass = pass || fallback.pass;
+    const smtpFrom = from || fallback.from || smtpUser;
+
+    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+      throw new BadRequestException('SMTP settings are incomplete.');
+    }
+
+    const transport = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    try {
+      await transport.sendMail({
+        from: smtpFrom,
+        to: smtpUser,
+        subject: 'Bookdarr Media Server SMTP Test',
+        text: 'This is a test email from Bookdarr Media Server.',
+      });
+    } catch (error) {
+      return {
+        ok: false,
+        message: error?.message ?? 'Unable to send test email.',
+      };
+    }
+
+    return { ok: true };
   }
 }

@@ -1259,7 +1259,10 @@ export class AppService {
             <span class="pill">Config</span>
           </section>
           <div class="panel">
-            <h3 style="margin-top: 0;">Bookdarr Connection</h3>
+            <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
+              <span>Bookdarr Connection</span>
+              <span id="settings-bookdarr-title-dot" class="dot warn"></span>
+            </h3>
             <div class="status-grid">
               <div>
                 <span class="nav-title">IP address / Host</span>
@@ -1318,7 +1321,10 @@ export class AppService {
                 <input id="settings-smtp-from" type="text" placeholder="Bookdarr <you@example.com>" />
               </div>
             </div>
-            <button id="save-smtp" style="margin-top: 12px;">Save SMTP Settings</button>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button id="save-smtp">Save SMTP Settings</button>
+              <button id="test-smtp">Send Test Email</button>
+            </div>
             <div id="settings-smtp-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
         </div>
@@ -1533,12 +1539,14 @@ export class AppService {
       const settingsBookdarrStatus = document.getElementById('settings-bookdarr-status');
       const settingsBookdarrIndicator = document.getElementById('settings-bookdarr-indicator');
       const settingsBookdarrDot = document.getElementById('settings-bookdarr-dot');
+      const settingsBookdarrTitleDot = document.getElementById('settings-bookdarr-title-dot');
       const settingsSmtpHost = document.getElementById('settings-smtp-host');
       const settingsSmtpPort = document.getElementById('settings-smtp-port');
       const settingsSmtpUser = document.getElementById('settings-smtp-user');
       const settingsSmtpPass = document.getElementById('settings-smtp-pass');
       const settingsSmtpFrom = document.getElementById('settings-smtp-from');
       const saveSmtpButton = document.getElementById('save-smtp');
+      const testSmtpButton = document.getElementById('test-smtp');
       const settingsSmtpStatus = document.getElementById('settings-smtp-status');
       const accountsList = document.getElementById('accounts-list');
       const accountsStatus = document.getElementById('accounts-status');
@@ -3674,6 +3682,9 @@ export class AppService {
             if (settingsBookdarrDot) {
               settingsBookdarrDot.className = 'dot ' + (data?.configured ? 'ok' : 'warn');
             }
+            if (settingsBookdarrTitleDot) {
+              settingsBookdarrTitleDot.className = 'dot ' + (data?.configured ? 'warn' : 'warn');
+            }
             if (data?.apiUrl) {
               try {
                 const url = new URL(data.apiUrl);
@@ -3699,6 +3710,9 @@ export class AppService {
               loadMyLibrary();
             }
             updateWizardVisibility();
+            if (data?.configured) {
+              testBookdarrConnection(false);
+            }
           })
           .catch(() => {
             bookdarrConfigured = false;
@@ -3977,6 +3991,36 @@ export class AppService {
           });
       });
 
+      testSmtpButton?.addEventListener('click', () => {
+        const host = settingsSmtpHost?.value?.trim();
+        const port = Number(settingsSmtpPort?.value);
+        const user = settingsSmtpUser?.value?.trim();
+        const pass = settingsSmtpPass?.value;
+        const from = settingsSmtpFrom?.value?.trim();
+        if (settingsSmtpStatus) {
+          settingsSmtpStatus.textContent = 'Sending test email...';
+        }
+        fetchWithAuth('/settings/smtp/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ host, port, user, pass, from }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok || !body?.ok) {
+              const message = body?.message ?? 'Test email failed.';
+              if (settingsSmtpStatus) settingsSmtpStatus.textContent = message;
+              return;
+            }
+            if (settingsSmtpStatus) settingsSmtpStatus.textContent = 'Test email sent.';
+          })
+          .catch(() => {
+            if (settingsSmtpStatus) settingsSmtpStatus.textContent = 'Test email failed.';
+          });
+      });
+
       saveBookdarrButton?.addEventListener('click', () => {
         const host = settingsBookdarrHost?.value;
         const port = Number(settingsBookdarrPort?.value);
@@ -4014,35 +4058,60 @@ export class AppService {
         }
       }
 
-      testBookdarrButton?.addEventListener('click', () => {
-        const host = settingsBookdarrHost?.value;
-        const port = Number(settingsBookdarrPort?.value);
-        const apiKey = settingsBookdarrKey?.value;
-        const useHttps = settingsBookdarrHttps?.checked;
-        settingsBookdarrStatus.textContent = 'Testing connection...';
-        setBookdarrIndicator('warn', 'Testing...');
+      function setBookdarrTitleDot(state) {
+        if (settingsBookdarrTitleDot) {
+          settingsBookdarrTitleDot.className = 'dot ' + state;
+        }
+      }
+
+      function testBookdarrConnection(includeInput) {
+        const payload = includeInput
+          ? {
+              host: settingsBookdarrHost?.value,
+              port: Number(settingsBookdarrPort?.value),
+              apiKey: settingsBookdarrKey?.value,
+              useHttps: settingsBookdarrHttps?.checked,
+            }
+          : undefined;
+        if (includeInput) {
+          settingsBookdarrStatus.textContent = 'Testing connection...';
+          setBookdarrIndicator('warn', 'Testing...');
+        }
         fetchWithAuth('/settings/bookdarr/test', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ host, port, apiKey, useHttps }),
+          body: payload ? JSON.stringify(payload) : JSON.stringify({}),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok || !body?.ok) {
               const message = body?.message ?? 'Connection failed.';
-              settingsBookdarrStatus.textContent = message;
-              setBookdarrIndicator('warn', 'Failed');
+              if (includeInput) {
+                settingsBookdarrStatus.textContent = message;
+                setBookdarrIndicator('warn', 'Failed');
+              }
+              setBookdarrTitleDot('warn');
               return;
             }
-            settingsBookdarrStatus.textContent = 'Connection successful.';
-            setBookdarrIndicator('ok', 'Connected');
+            if (includeInput) {
+              settingsBookdarrStatus.textContent = 'Connection successful.';
+              setBookdarrIndicator('ok', 'Connected');
+            }
+            setBookdarrTitleDot('ok');
           })
           .catch(() => {
-            settingsBookdarrStatus.textContent = 'Connection failed.';
-            setBookdarrIndicator('warn', 'Failed');
+            if (includeInput) {
+              settingsBookdarrStatus.textContent = 'Connection failed.';
+              setBookdarrIndicator('warn', 'Failed');
+            }
+            setBookdarrTitleDot('warn');
           });
+      }
+
+      testBookdarrButton?.addEventListener('click', () => {
+        testBookdarrConnection(true);
       });
 
       bookdarrButton?.addEventListener('click', () => {
