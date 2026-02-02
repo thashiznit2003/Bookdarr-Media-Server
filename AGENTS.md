@@ -92,3 +92,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - SMTP settings controller uses a type-only import to satisfy isolatedModules builds.
 - Create User panel is visible only to admins.
 - Auth module now exports AdminGuard so settings controllers can use it without DI errors.
+- Settings module now includes UserEntity repository to satisfy AdminGuard dependencies.
