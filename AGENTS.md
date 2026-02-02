@@ -110,3 +110,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Bookdarr HTTPS protocol toggle now anchors the checkbox right while keeping the label to its left.
 - Library UI now includes a manual Refresh button that clears and rebuilds the Book Pool cache.
 - Bookdarr connection tests now reject non-local hosts to prevent SSRF.
+- Bookdarr HTTPS field now uses a "Use HTTPS" label with the checkbox directly below.

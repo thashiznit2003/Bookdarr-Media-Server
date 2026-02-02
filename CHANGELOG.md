@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.91 — 2026-02-01 22:14 -06:00
+- Rename Protocol to Use HTTPS and stack the checkbox beneath the label.
+
 ## 1.0.90 — 2026-02-01 22:08 -06:00
 - Guard Bookdarr connection tests against non-local hosts to prevent SSRF.
 

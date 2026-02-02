@@ -1247,12 +1247,9 @@ export class AppService {
                   <input id="bookdarr-path" type="text" placeholder="/api/v1/user/library/pool" />
                 </div>
                 <div>
-                  <span class="nav-title">Protocol</span>
-                  <div class="protocol-toggle">
-                    <label>
-                      <span style="color: var(--text); font-size: 0.9rem;">Use HTTPS</span>
-                      <input id="bookdarr-https" type="checkbox" />
-                    </label>
+                  <span class="nav-title">Use HTTPS</span>
+                  <div class="protocol-toggle" style="justify-content: flex-start;">
+                    <input id="bookdarr-https" type="checkbox" />
                   </div>
                 </div>
               </div>
@@ -1323,12 +1320,9 @@ export class AppService {
                 <input id="settings-bookdarr-key" type="password" placeholder="Bookdarr API key" />
               </div>
               <div>
-                <span class="nav-title">Protocol</span>
-                <div class="protocol-toggle">
-                  <label>
-                    <span style="color: var(--text); font-size: 0.9rem;">Use HTTPS</span>
-                    <input id="settings-bookdarr-https" type="checkbox" />
-                  </label>
+                <span class="nav-title">Use HTTPS</span>
+                <div class="protocol-toggle" style="justify-content: flex-start;">
+                  <input id="settings-bookdarr-https" type="checkbox" />
                 </div>
               </div>
             </div>
