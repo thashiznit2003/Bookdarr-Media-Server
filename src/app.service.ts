@@ -1298,7 +1298,10 @@ export class AppService {
           </div>
 
           <div class="panel" style="margin-top: 20px;">
-            <h3 style="margin-top: 0;">Email (SMTP)</h3>
+            <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
+              <span>Email (SMTP)</span>
+              <span id="settings-smtp-title-dot" class="dot warn"></span>
+            </h3>
             <div class="status-grid">
               <div>
                 <span class="nav-title">SMTP Host</span>
@@ -1548,6 +1551,7 @@ export class AppService {
       const saveSmtpButton = document.getElementById('save-smtp');
       const testSmtpButton = document.getElementById('test-smtp');
       const settingsSmtpStatus = document.getElementById('settings-smtp-status');
+      const settingsSmtpTitleDot = document.getElementById('settings-smtp-title-dot');
       const accountsList = document.getElementById('accounts-list');
       const accountsStatus = document.getElementById('accounts-status');
       const createUserButton = document.getElementById('create-user');
@@ -2180,11 +2184,17 @@ export class AppService {
                 ? 'SMTP configured.'
                 : 'SMTP not configured yet.';
             }
+            if (data?.configured) {
+              testSmtpConfiguredConnection();
+            } else {
+              setSmtpTitleDot('warn');
+            }
           })
           .catch(() => {
             if (settingsSmtpStatus) {
               settingsSmtpStatus.textContent = 'Unable to load SMTP settings.';
             }
+            setSmtpTitleDot('warn');
           });
       }
 
@@ -4000,6 +4010,7 @@ export class AppService {
         if (settingsSmtpStatus) {
           settingsSmtpStatus.textContent = 'Sending test email...';
         }
+        setSmtpTitleDot('warn');
         fetchWithAuth('/settings/smtp/test', {
           method: 'POST',
           headers: {
@@ -4012,12 +4023,15 @@ export class AppService {
             if (!ok || !body?.ok) {
               const message = body?.message ?? 'Test email failed.';
               if (settingsSmtpStatus) settingsSmtpStatus.textContent = message;
+              setSmtpTitleDot('warn');
               return;
             }
             if (settingsSmtpStatus) settingsSmtpStatus.textContent = 'Test email sent.';
+            setSmtpTitleDot('ok');
           })
           .catch(() => {
             if (settingsSmtpStatus) settingsSmtpStatus.textContent = 'Test email failed.';
+            setSmtpTitleDot('warn');
           });
       });
 
@@ -4064,6 +4078,12 @@ export class AppService {
         }
       }
 
+      function setSmtpTitleDot(state) {
+        if (settingsSmtpTitleDot) {
+          settingsSmtpTitleDot.className = 'dot ' + state;
+        }
+      }
+
       function testBookdarrConnection(includeInput) {
         const payload = includeInput
           ? {
@@ -4077,6 +4097,7 @@ export class AppService {
           settingsBookdarrStatus.textContent = 'Testing connection...';
           setBookdarrIndicator('warn', 'Testing...');
         }
+        setBookdarrTitleDot('warn');
         fetchWithAuth('/settings/bookdarr/test', {
           method: 'POST',
           headers: {
@@ -4107,6 +4128,28 @@ export class AppService {
               setBookdarrIndicator('warn', 'Failed');
             }
             setBookdarrTitleDot('warn');
+          });
+      }
+
+      function testSmtpConfiguredConnection() {
+        setSmtpTitleDot('warn');
+        fetchWithAuth('/settings/smtp/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok || !body?.ok) {
+              setSmtpTitleDot('warn');
+              return;
+            }
+            setSmtpTitleDot('ok');
+          })
+          .catch(() => {
+            setSmtpTitleDot('warn');
           });
       }
 

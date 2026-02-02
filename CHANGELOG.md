@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.76 — 2026-02-01 21:08 -06:00
+- Add SMTP title status dot and live connectivity check for configured SMTP.
+
 ## 1.0.75 — 2026-02-01 20:58 -06:00
 - Add SMTP test email endpoint + UI button and show Bookdarr title status based on live connectivity.
 

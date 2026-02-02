@@ -75,6 +75,7 @@
 - Settings module now includes UserEntity repository to satisfy AdminGuard dependencies.
 - Settings no longer show Book Pool Path, and Bookdarr connections can be tested from the UI via /settings/bookdarr/test.
 - SMTP settings can be tested via /settings/smtp/test, and the Bookdarr title dot reflects live connectivity.
+- SMTP settings now show a title status dot based on live connectivity checks.
 
 ## Decisions
 - Stack: Node.js + NestJS
