@@ -158,11 +158,17 @@ export class AuthService implements OnModuleInit {
     if (user.twoFactorEnabled) {
       const otp = request.otp?.trim();
       if (!otp) {
-        throw new UnauthorizedException('Two-factor code required.');
+        throw new UnauthorizedException({
+          message: 'Two-factor code required.',
+          twoFactorRequired: true,
+        });
       }
       const secret = user.twoFactorSecret ?? '';
       if (!secret || !(await verify({ token: otp, secret })).valid) {
-        throw new UnauthorizedException('Invalid two-factor code.');
+        throw new UnauthorizedException({
+          message: 'Invalid two-factor code.',
+          twoFactorRequired: true,
+        });
       }
     }
 

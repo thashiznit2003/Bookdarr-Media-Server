@@ -4085,13 +4085,16 @@ export class AppService {
           credentials: 'same-origin',
           body: JSON.stringify({ username, password, otp }),
         })
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
+          .then((response) =>
+            response.json().then((body) => ({ ok: response.ok, status: response.status, body })),
+          )
+          .then(({ ok, status, body }) => {
             if (!ok) {
               const message = body?.message ?? 'Login failed.';
               loginPageStatus.textContent = message;
-              if (message.toLowerCase().includes('two-factor')) {
+              if (body?.twoFactorRequired || message.toLowerCase().includes('two-factor') || status === 401) {
                 if (loginPageOtpField) loginPageOtpField.style.display = 'block';
+                if (loginPageOtp) loginPageOtp.focus();
               }
               return;
             }

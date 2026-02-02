@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.98 — 2026-02-01 23:03 -06:00
+- Fix login 2FA prompt by returning twoFactorRequired and revealing the OTP field on 401s.
+
 ## 1.0.97 — 2026-02-01 22:53 -06:00
 - Use otplib functional helpers for TOTP generation/verification to fix builds.
 
