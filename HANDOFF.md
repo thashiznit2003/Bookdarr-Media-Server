@@ -89,6 +89,7 @@
 - Bookdarr HTTPS label now sits to the left of the checkbox.
 - Bookdarr HTTPS protocol toggle now anchors the checkbox right while keeping the label to its left.
 - Library UI now includes a manual Refresh button that clears and rebuilds the Book Pool cache.
+- Bookdarr connection tests now reject non-local hosts to prevent SSRF.
 
 ## Decisions
 - Stack: Node.js + NestJS

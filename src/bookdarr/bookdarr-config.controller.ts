@@ -1,4 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { isIP } from 'net';
 import { AuthGuard } from '../auth/auth.guard';
 import { BookdarrConfigService } from './bookdarr-config.service';
 import type { BookdarrConfigInput } from './bookdarr-config.service';
@@ -61,6 +62,11 @@ export class BookdarrConfigController {
       apiKey = config.apiKey;
     }
 
+    const parsedUrl = new URL(apiUrl);
+    if (!this.isAllowedHost(parsedUrl.hostname)) {
+      throw new BadRequestException('Bookdarr host must be a local/private address.');
+    }
+
     const testUrl = this.joinUrl(apiUrl, '/api/v1/system/status');
     const response = await fetch(testUrl, {
       headers: {
@@ -88,5 +94,38 @@ export class BookdarrConfigController {
     const trimmedBase = base.replace(/\/$/, '');
     const trimmedPath = path.startsWith('/') ? path : `/${path}`;
     return `${trimmedBase}${trimmedPath}`;
+  }
+
+  private isAllowedHost(hostname: string): boolean {
+    if (!hostname) return false;
+    const lower = hostname.toLowerCase();
+    if (lower === 'localhost' || lower.endsWith('.local') || !lower.includes('.')) {
+      return true;
+    }
+
+    const ipVersion = isIP(lower);
+    if (ipVersion === 4) {
+      const parts = lower.split('.').map((part) => Number(part));
+      if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+        return false;
+      }
+      const [a, b] = parts;
+      if (a === 10) return true;
+      if (a === 127) return true;
+      if (a === 192 && b === 168) return true;
+      if (a === 172 && b >= 16 && b <= 31) return true;
+      return false;
+    }
+
+    if (ipVersion === 6) {
+      if (lower === '::1') return true;
+      if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // fc00::/7
+      if (lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) {
+        return true; // fe80::/10
+      }
+      return false;
+    }
+
+    return false;
   }
 }

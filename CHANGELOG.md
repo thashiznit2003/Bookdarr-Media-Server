@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.90 — 2026-02-01 22:08 -06:00
+- Guard Bookdarr connection tests against non-local hosts to prevent SSRF.
+
 ## 1.0.89 — 2026-02-01 22:04 -06:00
 - Add a manual Book Pool refresh button that rebuilds the cached library.
 
