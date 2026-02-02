@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { AuthGuard } from './auth.guard';
+import qrcode from 'qrcode';
 import type {
   LoginRequest,
   LogoutRequest,
@@ -50,6 +52,13 @@ export class AuthController {
       .find((part) => part.startsWith(`${name}=`));
     if (!match) return undefined;
     return decodeURIComponent(match.slice(name.length + 1));
+  }
+
+  private getBaseUrl(req: Request) {
+    const proto = (req.headers['x-forwarded-proto'] as string | undefined) ?? req.protocol ?? 'http';
+    const host = (req.headers['x-forwarded-host'] as string | undefined) ?? req.get('host');
+    if (!host) return undefined;
+    return `${proto}://${host}`;
   }
 
   @Post('signup')
@@ -151,12 +160,45 @@ export class AuthController {
   }
 
   @Post('password/request')
-  requestPasswordReset(@Body() request: PasswordResetRequest) {
-    return this.authService.requestPasswordReset(request);
+  requestPasswordReset(@Body() request: PasswordResetRequest, @Req() req: Request) {
+    return this.authService.requestPasswordReset(request, this.getBaseUrl(req));
   }
 
   @Post('password/reset')
   resetPassword(@Body() request: PasswordResetConfirmRequest) {
     return this.authService.resetPassword(request);
+  }
+
+  @Get('2fa/status')
+  @UseGuards(AuthGuard)
+  getTwoFactorStatus(@Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.authService.getTwoFactorStatus(userId);
+  }
+
+  @Post('2fa/setup')
+  @UseGuards(AuthGuard)
+  async beginTwoFactor(@Req() req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    const payload = await this.authService.beginTwoFactorSetup(userId);
+    const qrDataUrl = await qrcode.toDataURL(payload.otpauthUrl);
+    return { ...payload, qrDataUrl };
+  }
+
+  @Post('2fa/confirm')
+  @UseGuards(AuthGuard)
+  confirmTwoFactor(@Req() req: Request, @Body() body: { code: string }) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.authService.confirmTwoFactorSetup(userId, body?.code ?? '');
+  }
+
+  @Post('2fa/disable')
+  @UseGuards(AuthGuard)
+  disableTwoFactor(
+    @Req() req: Request,
+    @Body() body: { currentPassword?: string; code?: string },
+  ) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.authService.disableTwoFactor(userId, body ?? {});
   }
 }

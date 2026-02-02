@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
 import { AuthGuard } from './auth.guard';
 import { AdminGuard } from './admin.guard';
 import { AuthService } from './auth.service';
@@ -13,8 +14,18 @@ export class UsersController {
     return this.authService.listUsers();
   }
 
+  private getBaseUrl(req: Request) {
+    const proto = (req.headers['x-forwarded-proto'] as string | undefined) ?? req.protocol ?? 'http';
+    const host = (req.headers['x-forwarded-host'] as string | undefined) ?? req.get('host');
+    if (!host) return undefined;
+    return `${proto}://${host}`;
+  }
+
   @Post()
-  create(@Body() body: { username: string; email: string; password: string; isAdmin?: boolean }) {
-    return this.authService.createUser(body);
+  create(
+    @Req() req: Request,
+    @Body() body: { username: string; email: string; password: string; isAdmin?: boolean },
+  ) {
+    return this.authService.createUser({ ...body, baseUrl: this.getBaseUrl(req) });
   }
 }

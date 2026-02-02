@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.94 — 2026-02-01 22:43 -06:00
+- Add user welcome email on account creation, password reset UI/linking, and 2FA (TOTP) setup with QR codes.
+
 ## 1.0.93 — 2026-02-01 22:23 -06:00
 - Fix checkbox alignment by scoping form-grid input widths to text fields only.
 

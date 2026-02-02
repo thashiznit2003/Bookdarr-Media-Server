@@ -25,4 +25,13 @@ export class UserEntity {
 
   @Column({ type: 'text', nullable: true })
   refreshTokenId?: string | null;
+
+  @Column({ default: false })
+  twoFactorEnabled!: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  twoFactorSecret?: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  twoFactorTempSecret?: string | null;
 }

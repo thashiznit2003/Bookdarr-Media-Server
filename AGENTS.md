@@ -113,3 +113,4 @@ After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the late
 - Bookdarr HTTPS field now uses a "Use HTTPS" label with the checkbox directly below.
 - Bookdarr HTTPS checkbox is now left-aligned under its label.
 - Form-grid input sizing now excludes checkboxes so the HTTPS toggle aligns correctly.
+- Added welcome email on user creation, password reset flow in login UI, and TOTP-based 2FA setup with QR codes.

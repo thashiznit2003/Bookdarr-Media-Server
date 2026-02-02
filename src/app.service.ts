@@ -1448,6 +1448,31 @@ export class AppService {
             <button id="save-profile" style="margin-top: 12px;">Save Profile</button>
             <div id="profile-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
+          <div class="panel" style="margin-top: 20px;">
+            <h3 style="margin-top: 0;">Two-Factor Authentication</h3>
+            <div id="twofactor-status" style="color: var(--muted); margin-bottom: 12px;">
+              Two-factor authentication is disabled.
+            </div>
+            <div id="twofactor-setup" style="display: none;">
+              <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                <img id="twofactor-qr" alt="2FA QR Code" style="width: 160px; height: 160px; background: #0f1115; border-radius: 12px; padding: 8px;" />
+                <div>
+                  <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 6px;">Manual key</div>
+                  <div id="twofactor-secret" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem;"></div>
+                </div>
+              </div>
+              <div style="margin-top: 12px; max-width: 240px;">
+                <span class="nav-title">Authenticator Code</span>
+                <input id="twofactor-code" type="text" placeholder="123456" inputmode="numeric" />
+              </div>
+              <button id="twofactor-confirm" style="margin-top: 12px;">Enable 2FA</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button id="twofactor-start">Set up 2FA</button>
+              <button id="twofactor-disable" class="filter-btn">Disable 2FA</button>
+            </div>
+            <div id="twofactor-message" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
         </div>
 
         <div class="page" data-page="login">
@@ -1465,9 +1490,40 @@ export class AppService {
                 <span class="nav-title">Password</span>
                 <input id="login-page-password" type="password" placeholder="password" />
               </div>
+              <div id="login-page-otp-field" style="display: none;">
+                <span class="nav-title">Authenticator Code</span>
+                <input id="login-page-otp" type="text" placeholder="123456" inputmode="numeric" />
+              </div>
             </div>
             <button id="login-page-submit" style="margin-top: 12px;">Log in</button>
+            <button id="login-forgot" class="filter-btn" style="margin-top: 12px;">Forgot password?</button>
             <div id="login-page-status" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
+          <div class="panel" id="login-reset-panel" style="margin-top: 16px; display: none;">
+            <div class="status-grid">
+              <div>
+                <span class="nav-title">Email</span>
+                <input id="reset-email" type="email" placeholder="you@example.com" />
+              </div>
+              <div>
+                <span class="nav-title">Reset Token</span>
+                <input id="reset-token" type="text" placeholder="token from email" />
+              </div>
+              <div>
+                <span class="nav-title">New Password</span>
+                <input id="reset-password" type="password" placeholder="new password" />
+              </div>
+              <div>
+                <span class="nav-title">Confirm Password</span>
+                <input id="reset-password-confirm" type="password" placeholder="confirm new password" />
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button id="reset-request">Send reset email</button>
+              <button id="reset-submit">Reset password</button>
+              <button id="reset-cancel" class="filter-btn">Back to login</button>
+            </div>
+            <div id="reset-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
         </div>
       </div>
@@ -1625,10 +1681,31 @@ export class AppService {
       const profileNewPassword = document.getElementById('profile-new-password');
       const saveProfileButton = document.getElementById('save-profile');
       const profileStatus = document.getElementById('profile-status');
+      const twoFactorStatus = document.getElementById('twofactor-status');
+      const twoFactorSetup = document.getElementById('twofactor-setup');
+      const twoFactorQr = document.getElementById('twofactor-qr');
+      const twoFactorSecret = document.getElementById('twofactor-secret');
+      const twoFactorCode = document.getElementById('twofactor-code');
+      const twoFactorConfirm = document.getElementById('twofactor-confirm');
+      const twoFactorStart = document.getElementById('twofactor-start');
+      const twoFactorDisable = document.getElementById('twofactor-disable');
+      const twoFactorMessage = document.getElementById('twofactor-message');
       const loginPageUsername = document.getElementById('login-page-username');
       const loginPagePassword = document.getElementById('login-page-password');
+      const loginPageOtpField = document.getElementById('login-page-otp-field');
+      const loginPageOtp = document.getElementById('login-page-otp');
       const loginPageSubmit = document.getElementById('login-page-submit');
+      const loginForgot = document.getElementById('login-forgot');
       const loginPageStatus = document.getElementById('login-page-status');
+      const resetPanel = document.getElementById('login-reset-panel');
+      const resetEmail = document.getElementById('reset-email');
+      const resetToken = document.getElementById('reset-token');
+      const resetPassword = document.getElementById('reset-password');
+      const resetPasswordConfirm = document.getElementById('reset-password-confirm');
+      const resetRequestButton = document.getElementById('reset-request');
+      const resetSubmitButton = document.getElementById('reset-submit');
+      const resetCancelButton = document.getElementById('reset-cancel');
+      const resetStatus = document.getElementById('reset-status');
       const createUserPanel = document.getElementById('create-user-panel');
       const userMenu = document.getElementById('user-menu');
       const userButton = document.getElementById('user-button');
@@ -3884,6 +3961,32 @@ export class AppService {
           });
       }
 
+      function loadTwoFactorStatus() {
+        if (activePage !== 'accounts') {
+          return;
+        }
+        fetchWithAuth('/auth/2fa/status')
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              if (twoFactorStatus) twoFactorStatus.textContent = 'Unable to load 2FA status.';
+              return;
+            }
+            const enabled = Boolean(body?.enabled);
+            if (twoFactorStatus) {
+              twoFactorStatus.textContent = enabled
+                ? 'Two-factor authentication is enabled.'
+                : 'Two-factor authentication is disabled.';
+            }
+            if (twoFactorDisable) {
+              twoFactorDisable.disabled = !enabled;
+            }
+          })
+          .catch(() => {
+            if (twoFactorStatus) twoFactorStatus.textContent = 'Unable to load 2FA status.';
+          });
+      }
+
       function loadCurrentUser() {
         fetchWithAuth('/api/me')
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
@@ -3974,18 +4077,22 @@ export class AppService {
       function handleLoginPage() {
         const username = loginPageUsername?.value;
         const password = loginPagePassword?.value;
+        const otp = loginPageOtp?.value;
         loginPageStatus.textContent = 'Signing in...';
         fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password, otp }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
               const message = body?.message ?? 'Login failed.';
               loginPageStatus.textContent = message;
+              if (message.toLowerCase().includes('two-factor')) {
+                if (loginPageOtpField) loginPageOtpField.style.display = 'block';
+              }
               return;
             }
             loginPageStatus.textContent = 'Signed in.';
@@ -4013,9 +4120,92 @@ export class AppService {
         }
       });
 
+      loginPageOtp?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          handleLoginPage();
+        }
+      });
+
       if (isLoginPage) {
         if (setupRequired) {
           loginPageStatus.textContent = 'No users yet. Complete first-run setup.';
+        }
+      }
+
+      function showResetPanel(show) {
+        if (!resetPanel) return;
+        resetPanel.style.display = show ? 'block' : 'none';
+        if (loginPageSubmit) loginPageSubmit.style.display = show ? 'none' : 'inline-block';
+        if (loginForgot) loginForgot.style.display = show ? 'none' : 'inline-block';
+      }
+
+      loginForgot?.addEventListener('click', () => {
+        showResetPanel(true);
+      });
+
+      resetCancelButton?.addEventListener('click', () => {
+        showResetPanel(false);
+      });
+
+      resetRequestButton?.addEventListener('click', () => {
+        const email = resetEmail?.value;
+        if (resetStatus) resetStatus.textContent = 'Sending reset email...';
+        fetch('/auth/password/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ email }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to send reset email.';
+              if (resetStatus) resetStatus.textContent = message;
+              return;
+            }
+            if (resetStatus) resetStatus.textContent = 'Reset email sent.';
+          })
+          .catch(() => {
+            if (resetStatus) resetStatus.textContent = 'Unable to send reset email.';
+          });
+      });
+
+      resetSubmitButton?.addEventListener('click', () => {
+        const token = resetToken?.value;
+        const newPassword = resetPassword?.value;
+        const confirm = resetPasswordConfirm?.value;
+        if (newPassword !== confirm) {
+          if (resetStatus) resetStatus.textContent = 'Passwords do not match.';
+          return;
+        }
+        if (resetStatus) resetStatus.textContent = 'Resetting password...';
+        fetch('/auth/password/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ token, newPassword }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to reset password.';
+              if (resetStatus) resetStatus.textContent = message;
+              return;
+            }
+            if (resetStatus) resetStatus.textContent = 'Password reset. You can sign in.';
+            showResetPanel(false);
+          })
+          .catch(() => {
+            if (resetStatus) resetStatus.textContent = 'Unable to reset password.';
+          });
+      });
+
+      if (isLoginPage) {
+        const resetParam = new URLSearchParams(window.location.search).get('reset');
+        if (resetParam) {
+          showResetPanel(true);
+          if (resetToken) resetToken.value = resetParam;
         }
       }
 
@@ -4363,10 +4553,82 @@ export class AppService {
           });
       });
 
+      twoFactorStart?.addEventListener('click', () => {
+        if (twoFactorMessage) twoFactorMessage.textContent = 'Preparing 2FA setup...';
+        fetchWithAuth('/auth/2fa/setup', { method: 'POST' })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to start 2FA setup.';
+              if (twoFactorMessage) twoFactorMessage.textContent = message;
+              return;
+            }
+            if (twoFactorQr) twoFactorQr.src = body?.qrDataUrl ?? '';
+            if (twoFactorSecret) twoFactorSecret.textContent = body?.secret ?? '';
+            if (twoFactorSetup) twoFactorSetup.style.display = 'block';
+            if (twoFactorMessage) twoFactorMessage.textContent = 'Scan the QR code and enter the 6-digit code.';
+          })
+          .catch(() => {
+            if (twoFactorMessage) twoFactorMessage.textContent = 'Unable to start 2FA setup.';
+          });
+      });
+
+      twoFactorConfirm?.addEventListener('click', () => {
+        const code = twoFactorCode?.value;
+        if (twoFactorMessage) twoFactorMessage.textContent = 'Enabling 2FA...';
+        fetchWithAuth('/auth/2fa/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to enable 2FA.';
+              if (twoFactorMessage) twoFactorMessage.textContent = message;
+              return;
+            }
+            if (twoFactorMessage) twoFactorMessage.textContent = 'Two-factor authentication enabled.';
+            if (twoFactorSetup) twoFactorSetup.style.display = 'none';
+            if (twoFactorCode) twoFactorCode.value = '';
+            loadTwoFactorStatus();
+          })
+          .catch(() => {
+            if (twoFactorMessage) twoFactorMessage.textContent = 'Unable to enable 2FA.';
+          });
+      });
+
+      twoFactorDisable?.addEventListener('click', () => {
+        const currentPassword = prompt('Enter your current password to disable 2FA:');
+        if (!currentPassword) {
+          return;
+        }
+        if (twoFactorMessage) twoFactorMessage.textContent = 'Disabling 2FA...';
+        fetchWithAuth('/auth/2fa/disable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to disable 2FA.';
+              if (twoFactorMessage) twoFactorMessage.textContent = message;
+              return;
+            }
+            if (twoFactorMessage) twoFactorMessage.textContent = 'Two-factor authentication disabled.';
+            loadTwoFactorStatus();
+          })
+          .catch(() => {
+            if (twoFactorMessage) twoFactorMessage.textContent = 'Unable to disable 2FA.';
+          });
+      });
+
       loadLibrary();
       loadMyLibrary();
       loadAccounts();
       loadProfile();
+      loadTwoFactorStatus();
 
       // System status grid removed; settings are now editable panels only.
     </script>

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
+import { authenticator } from 'otplib';
 import { randomBytes } from 'crypto';
 import type { StringValue } from 'ms';
 import { SettingsService } from '../settings/settings.service';
@@ -154,6 +155,17 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
+    if (user.twoFactorEnabled) {
+      const otp = request.otp?.trim();
+      if (!otp) {
+        throw new UnauthorizedException('Two-factor code required.');
+      }
+      const secret = user.twoFactorSecret ?? '';
+      if (!secret || !authenticator.check(otp, secret)) {
+        throw new UnauthorizedException('Invalid two-factor code.');
+      }
+    }
+
     const tokens = await this.issueTokens(user);
     return { user: this.toAuthUser(user), tokens };
   }
@@ -194,7 +206,7 @@ export class AuthService implements OnModuleInit {
     return users.map((user) => this.toAuthUser(user));
   }
 
-  async createUser(input: { username: string; email: string; password: string; isAdmin?: boolean }) {
+  async createUser(input: { username: string; email: string; password: string; isAdmin?: boolean; baseUrl?: string }) {
     const username = this.normalizeUsername(input.username);
     const email = this.normalizeEmail(input.email);
 
@@ -221,6 +233,7 @@ export class AuthService implements OnModuleInit {
     });
 
     await this.users.save(user);
+    await this.mailerService.sendNewUserWelcome(user.email, user.username ?? '', input.baseUrl);
     return this.toAuthUser(user);
   }
 
@@ -285,7 +298,7 @@ export class AuthService implements OnModuleInit {
     return this.toAuthUser(user);
   }
 
-  async requestPasswordReset(request: PasswordResetRequest) {
+  async requestPasswordReset(request: PasswordResetRequest, baseUrl?: string) {
     const email = this.normalizeEmail(request.email);
     this.assertEmail(email);
 
@@ -309,6 +322,7 @@ export class AuthService implements OnModuleInit {
       user.email,
       token,
       settings.auth.resetTokenTtlMinutes,
+      baseUrl,
     );
 
     return { status: 'ok' };
@@ -352,6 +366,88 @@ export class AuthService implements OnModuleInit {
     return { status: 'ok' };
   }
 
+  async getTwoFactorStatus(userId?: string) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    return { enabled: Boolean(user.twoFactorEnabled) };
+  }
+
+  async beginTwoFactorSetup(userId?: string) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const secret = authenticator.generateSecret();
+    user.twoFactorTempSecret = secret;
+    await this.users.save(user);
+    const label = user.username ?? user.email;
+    const issuer = 'Bookdarr Media Server';
+    const otpauthUrl = authenticator.keyuri(label, issuer, secret);
+    return { secret, otpauthUrl, issuer };
+  }
+
+  async confirmTwoFactorSetup(userId: string | undefined, code: string) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const secret = user.twoFactorTempSecret ?? '';
+    if (!secret || !authenticator.check(code, secret)) {
+      throw new BadRequestException('Invalid two-factor code.');
+    }
+    user.twoFactorSecret = secret;
+    user.twoFactorTempSecret = null;
+    user.twoFactorEnabled = true;
+    await this.users.save(user);
+    return { enabled: true };
+  }
+
+  async disableTwoFactor(
+    userId: string | undefined,
+    input: { currentPassword?: string; code?: string },
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    if (!user.twoFactorEnabled) {
+      return { enabled: false };
+    }
+    if (input.code) {
+      const secret = user.twoFactorSecret ?? '';
+      if (!secret || !authenticator.check(input.code.trim(), secret)) {
+        throw new BadRequestException('Invalid two-factor code.');
+      }
+    } else if (input.currentPassword) {
+      const matches = await argon2.verify(user.passwordHash, input.currentPassword);
+      if (!matches) {
+        throw new UnauthorizedException('Current password is invalid.');
+      }
+    } else {
+      throw new BadRequestException('Two-factor code or current password is required.');
+    }
+
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = null;
+    user.twoFactorTempSecret = null;
+    await this.users.save(user);
+    return { enabled: false };
+  }
+
   async isSetupRequired(): Promise<boolean> {
     const total = await this.users.count();
     return total === 0;
@@ -364,6 +460,7 @@ export class AuthService implements OnModuleInit {
       email: user.email,
       isActive: user.isActive,
       isAdmin: user.isAdmin,
+      twoFactorEnabled: Boolean(user.twoFactorEnabled),
       createdAt: user.createdAt,
     };
   }

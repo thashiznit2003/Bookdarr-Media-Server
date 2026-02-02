@@ -10,6 +10,7 @@ export interface AuthUser {
   email: string;
   isActive: boolean;
   isAdmin: boolean;
+  twoFactorEnabled: boolean;
   createdAt: string;
 }
 
@@ -23,6 +24,7 @@ export interface SignupRequest {
 export interface LoginRequest {
   username: string;
   password: string;
+  otp?: string;
 }
 
 export interface RefreshRequest {
