@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.126 — 2026-02-02 21:02 -06:00
+- Decode auth query tokens before bootstrapping so login completes successfully.
+
 ## 1.0.125 — 2026-02-02 20:53 -06:00
 - Redirect auth=1 failures back to the login screen to avoid a signed-out shell.
 

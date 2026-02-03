@@ -16,8 +16,10 @@ export class AppController {
 
   @Get()
   async getIndex(@Req() req: Request, @Res() res: Response) {
-    const queryAccess = typeof req.query?.access === 'string' ? req.query.access : undefined;
-    const queryRefresh = typeof req.query?.refresh === 'string' ? req.query.refresh : undefined;
+    const queryAccessRaw = typeof req.query?.access === 'string' ? req.query.access : undefined;
+    const queryRefreshRaw = typeof req.query?.refresh === 'string' ? req.query.refresh : undefined;
+    const queryAccess = queryAccessRaw ? decodeURIComponent(queryAccessRaw) : undefined;
+    const queryRefresh = queryRefreshRaw ? decodeURIComponent(queryRefreshRaw) : undefined;
     if (queryAccess) {
       this.setAuthCookies(res, queryAccess, queryRefresh);
     }
