@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.141 — 2026-02-02 22:56 -06:00
+- Stabilize Readium startup by waiting for module globals and logging readiness failures.
+- Harden reader settings storage against missing DB tables (avoid 500s).
+
 ## 1.0.140 — 2026-02-02 22:46 -06:00
 - Add VERBOSE_LOGS mode with full request/response tracing (redacted payloads).
 

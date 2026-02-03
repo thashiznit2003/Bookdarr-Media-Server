@@ -40,6 +40,7 @@
 - Touch devices now use a full-screen EPUB reader with back button, no scroll, and iframe swipe handling.
 - Added server-side Readium request + library stream logging for EPUB blank-page diagnostics.
 - Added VERBOSE_LOGS=true flag to emit full request/response tracing (redacted payload metadata).
+- Readium now waits for module globals and logs readiness failures; reader settings no longer 500 if the table is missing.
 - Login now reveals the OTP field when 2FA is required and preserves it via login redirects.
 - Touch reader now hides toolbars and shows overlay back/progress controls for a cleaner full-screen view.
 - Auth storage now guards localStorage access for iOS/Safari so login doesn’t break.

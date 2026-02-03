@@ -1917,6 +1917,7 @@ export class AppService {
       let readiumNavigator = null;
       let readiumPublication = null;
       let readiumManifestUrl = null;
+      let readiumReadyPromise = null;
       let epubLocationsReady = false;
       let epubLocationsGenerating = false;
       let readerBodyOverflow = null;
@@ -3773,11 +3774,41 @@ export class AppService {
         return new ReadiumShared.HttpFetcher(client, baseUrl, normalizedLinks);
       }
 
+      function ensureReadiumReady(timeoutMs = 3000) {
+        if (window.ReadiumNavigator && window.ReadiumShared) {
+          return Promise.resolve(true);
+        }
+        if (readiumReadyPromise) {
+          return readiumReadyPromise;
+        }
+        readiumReadyPromise = new Promise((resolve) => {
+          const start = Date.now();
+          const timer = setInterval(() => {
+            if (window.ReadiumNavigator && window.ReadiumShared) {
+              clearInterval(timer);
+              resolve(true);
+              return;
+            }
+            if (Date.now() - start > timeoutMs) {
+              clearInterval(timer);
+              resolve(false);
+            }
+          }, 50);
+        });
+        return readiumReadyPromise;
+      }
+
       async function openReadiumReader(file) {
         if (!readerView) return false;
+        const ready = await ensureReadiumReady();
+        if (!ready) {
+          debugReaderLog('readium_not_ready');
+          return false;
+        }
         const ReadiumNavigator = window.ReadiumNavigator;
         const ReadiumShared = window.ReadiumShared;
         if (!ReadiumNavigator || !ReadiumShared) {
+          debugReaderLog('readium_missing_globals');
           return false;
         }
 
