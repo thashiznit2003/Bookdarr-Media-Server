@@ -1177,6 +1177,26 @@ export class AppService {
   </head>
   <body>
     <script>
+      (function() {
+        const hash = window.location.hash;
+        if (!hash || hash.length < 2) return;
+        const params = new URLSearchParams(hash.slice(1));
+        const access = params.get('access');
+        const refresh = params.get('refresh');
+        if (!access) return;
+        const maxAge = 60 * 60 * 24 * 30;
+        document.cookie = 'bmsAccessToken=' + encodeURIComponent(access) + '; path=/; max-age=' + maxAge + '; samesite=lax';
+        if (refresh) {
+          document.cookie = 'bmsRefreshToken=' + encodeURIComponent(refresh) + '; path=/; max-age=' + maxAge + '; samesite=lax';
+        }
+        document.cookie = 'bmsLoggedIn=1; path=/; max-age=' + maxAge + '; samesite=lax';
+        const url = new URL(window.location.href);
+        url.hash = '';
+        url.searchParams.delete('auth');
+        window.location.replace(url.toString());
+      })();
+    </script>
+    <script>
       window.__BMS_BOOTSTRAP__ = ${JSON.stringify(boot)};
     </script>
     <div class="app-shell">

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.121 — 2026-02-02 19:09 -06:00
+- Auto-persist login tokens from the auth hash into cookies and reload to prevent signed-out shells.
+
 ## 1.0.120 — 2026-02-02 19:01 -06:00
 - Redirect to the login page when no valid access token is present to avoid a signed-out shell.
 
