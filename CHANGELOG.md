@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.142 — 2026-02-02 23:00 -06:00
+- Fix Settings module DI so reader settings logging doesn't crash the server.
+
 ## 1.0.141 — 2026-02-02 22:56 -06:00
 - Stabilize Readium startup by waiting for module globals and logging readiness failures.
 - Harden reader settings storage against missing DB tables (avoid 500s).

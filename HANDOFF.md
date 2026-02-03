@@ -41,6 +41,7 @@
 - Added server-side Readium request + library stream logging for EPUB blank-page diagnostics.
 - Added VERBOSE_LOGS=true flag to emit full request/response tracing (redacted payload metadata).
 - Readium now waits for module globals and logs readiness failures; reader settings no longer 500 if the table is missing.
+- Settings module now imports LoggingModule so reader settings logging doesn't crash the service.
 - Login now reveals the OTP field when 2FA is required and preserves it via login redirects.
 - Touch reader now hides toolbars and shows overlay back/progress controls for a cleaner full-screen view.
 - Auth storage now guards localStorage access for iOS/Safari so login doesn’t break.

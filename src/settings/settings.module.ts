@@ -11,11 +11,13 @@ import { UserEntity } from '../auth/entities/user.entity';
 import { ReaderConfigEntity } from './reader-config.entity';
 import { ReaderConfigService } from './reader-config.service';
 import { ReaderConfigController } from './reader-config.controller';
+import { LoggingModule } from '../logging/logging.module';
 
 @Module({
   imports: [
     forwardRef(() => BookdarrModule),
     forwardRef(() => AuthModule),
+    LoggingModule,
     TypeOrmModule.forFeature([SmtpConfigEntity, ReaderConfigEntity, UserEntity]),
   ],
   controllers: [SettingsController, SmtpConfigController, ReaderConfigController],
