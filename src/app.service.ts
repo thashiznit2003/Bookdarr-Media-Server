@@ -1723,6 +1723,18 @@ export class AppService {
       const isMyLibraryPage = activePage === 'my-library';
       const isLoginPage = activePage === 'login';
       const authParam = new URLSearchParams(window.location.search).get('auth');
+      const hasAccessCookie = (() => {
+        const raw = document.cookie || '';
+        if (!raw) return false;
+        const parts = raw.split(';');
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (trimmed.startsWith('bmsAccessToken=')) {
+            return trimmed.length > 'bmsAccessToken='.length;
+          }
+        }
+        return false;
+      })();
       const libraryFilterSelect = document.getElementById('library-filter');
       const myLibraryFilterSelect = document.getElementById('my-library-filter');
       const refreshLibraryButton = document.getElementById('refresh-library');
@@ -1899,7 +1911,7 @@ export class AppService {
         wizardPanel.style.display = 'none';
       }
 
-      if (!bootstrap?.user && authParam !== '1') {
+      if (!bootstrap?.token && !hasAccessCookie && authParam !== '1') {
         window.location.replace('/login?reason=unauth');
       }
 

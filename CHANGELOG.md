@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.120 — 2026-02-02 19:01 -06:00
+- Redirect to the login page when no valid access token is present to avoid a signed-out shell.
+
 ## 1.0.119 — 2026-02-02 18:50 -06:00
 - Normalize Readium manifest links to resolve relative resources consistently and reduce blank pages.
 
