@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.125 — 2026-02-02 20:53 -06:00
+- Redirect auth=1 failures back to the login screen to avoid a signed-out shell.
+
 ## 1.0.124 — 2026-02-02 20:44 -06:00
 - Bootstrap login using query tokens on the root route to guarantee a signed-in shell.
 

@@ -119,6 +119,7 @@
 - Login completion now routes through /auth/complete to set cookies server-side before redirecting to the app shell.
 - Login completion now also writes tokens into localStorage/window.name as a cookie fallback.
 - Root route now accepts access/refresh query tokens to bootstrap the session before the shell renders.
+- Root now redirects auth=1 failures back to the login screen instead of showing a signed-out shell.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions

@@ -24,9 +24,10 @@ export class AppController {
     const bootstrap = await this.buildBootstrap(req, queryAccess, queryRefresh);
     if (!bootstrap?.user) {
       const authParam = req.query?.auth;
-      if (authParam !== '1') {
-        return res.redirect('/login');
+      if (authParam === '1') {
+        return res.redirect('/login?reason=authfail');
       }
+      return res.redirect('/login');
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
