@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.136 — 2026-02-02 22:06 -06:00
+- Relax Readium theme overflow to avoid blank pages between sections.
+
 ## 1.0.135 — 2026-02-02 21:58 -06:00
 - Fix client-side regex escaping that was breaking the app script during login.
 

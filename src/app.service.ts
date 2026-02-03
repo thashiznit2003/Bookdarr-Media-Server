@@ -3311,8 +3311,8 @@ export class AppService {
         if (!readerView || !readiumNavigator) return;
         const css =
           readerTheme === 'dark'
-            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;margin:0 !important;padding:0 !important;overflow:hidden !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;}'
-            : 'html,body{background:#f8f5ef !important;color:#111827 !important;margin:0 !important;padding:0 !important;overflow:hidden !important;} body *{color:#111827 !important;} a{color:#0f172a !important;}';
+            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;margin:0 !important;padding:0 !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;}'
+            : 'html,body{background:#f8f5ef !important;color:#111827 !important;margin:0 !important;padding:0 !important;} body *{color:#111827 !important;} a{color:#0f172a !important;}';
         readerView.querySelectorAll('iframe').forEach((iframe) => {
           try {
             const doc = iframe.contentDocument;

@@ -130,6 +130,7 @@
 - Added /auth/debug-log plus client-side auth debug events for login/session tracing.
 - Client now logs boot + JS errors to /auth/debug-log to capture early failures.
 - Fixed regex escaping in the Readium manifest link resolver that caused a client JS syntax error.
+- Readium theme no longer forces overflow hidden to avoid blank pages.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions
