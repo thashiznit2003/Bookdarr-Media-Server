@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.118 — 2026-02-02 18:43 -06:00
+- Fix Readium resource fetching by anchoring manifest-relative URLs, and align Readium reader UI with overlay arrows/controls.
+
 ## 1.0.117 — 2026-02-02 18:31 -06:00
 - Switch Readium to use the built-in HTTP fetcher to avoid blank pages.
 

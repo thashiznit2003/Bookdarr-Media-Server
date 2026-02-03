@@ -797,7 +797,9 @@ export class AppService {
       }
 
       .reader-modal[data-reader-mode="epub"] .reader-controls #reader-prev,
-      .reader-modal[data-reader-mode="epub"] .reader-controls #reader-next {
+      .reader-modal[data-reader-mode="epub"] .reader-controls #reader-next,
+      .reader-modal[data-reader-mode="readium"] .reader-controls #reader-prev,
+      .reader-modal[data-reader-mode="readium"] .reader-controls #reader-next {
         display: none;
       }
 
@@ -824,6 +826,7 @@ export class AppService {
       }
 
       .reader-modal[data-reader-mode="epub"] .reader-nav-overlay,
+      .reader-modal[data-reader-mode="readium"] .reader-nav-overlay,
       .reader-modal[data-reader-mode="pdf"] .reader-nav-overlay {
         opacity: 1;
         pointer-events: auto;
@@ -881,7 +884,8 @@ export class AppService {
         overscroll-behavior: contain;
       }
 
-      .reader-modal[data-reader-mode="epub"] .reader-view {
+      .reader-modal[data-reader-mode="epub"] .reader-view,
+      .reader-modal[data-reader-mode="readium"] .reader-view {
         overflow: hidden;
         padding: 0;
         height: 100%;
@@ -3714,7 +3718,11 @@ export class AppService {
         (manifest.readingOrder || []).forEach(pushLink);
         (manifest.resources || []).forEach(pushLink);
 
-        const fetcher = createReadiumFetcher(manifest.baseURL, allLinks);
+        const fallbackBase = readiumManifestUrl
+          ? readiumManifestUrl.replace(/manifest\.json$/, '')
+          : manifest.baseURL;
+        const baseUrl = manifest.baseURL || fallbackBase;
+        const fetcher = createReadiumFetcher(baseUrl, allLinks);
         if (!fetcher) {
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           return false;
