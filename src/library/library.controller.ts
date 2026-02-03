@@ -20,6 +20,7 @@ import { AuthGuard } from '../auth/auth.guard';
 import { LibraryService } from './library.service';
 import { BookdarrService } from '../bookdarr/bookdarr.service';
 import { OfflineDownloadService } from './offline-download.service';
+import { FileLoggerService } from '../logging/file-logger.service';
 
 @Controller('library')
 export class LibraryController {
@@ -27,6 +28,7 @@ export class LibraryController {
     private readonly libraryService: LibraryService,
     private readonly bookdarrService: BookdarrService,
     private readonly offlineDownloadService: OfflineDownloadService,
+    private readonly logger: FileLoggerService,
   ) {}
 
   @Get()
@@ -60,11 +62,18 @@ export class LibraryController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    const start = Date.now();
     const userId = (req as any).user?.userId as string | undefined;
     if (userId) {
       const cachedPath = await this.offlineDownloadService.getCachedFilePath(userId, id);
       if (cachedPath) {
         await this.sendCachedFile(cachedPath, req, res, 'GET');
+        this.logger.info('library_stream_cached', {
+          fileId: id,
+          userId,
+          range: req.headers.range ?? null,
+          durationMs: Date.now() - start,
+        });
         return;
       }
     }
@@ -79,10 +88,25 @@ export class LibraryController {
 
     if (!upstream.body) {
       res.end();
+      this.logger.warn('library_stream_empty', {
+        fileId: id,
+        userId: userId ?? null,
+        status: upstream.status,
+        range,
+      });
       return;
     }
 
     Readable.fromWeb(upstream.body as any).pipe(res);
+    res.on('finish', () => {
+      this.logger.info('library_stream', {
+        fileId: id,
+        userId: userId ?? null,
+        status: res.statusCode,
+        range,
+        durationMs: Date.now() - start,
+      });
+    });
   }
 
   @Head('files/:id/stream')
@@ -92,11 +116,18 @@ export class LibraryController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    const start = Date.now();
     const userId = (req as any).user?.userId as string | undefined;
     if (userId) {
       const cachedPath = await this.offlineDownloadService.getCachedFilePath(userId, id);
       if (cachedPath) {
         await this.sendCachedFile(cachedPath, req, res, 'HEAD');
+        this.logger.info('library_head_cached', {
+          fileId: id,
+          userId,
+          range: req.headers.range ?? null,
+          durationMs: Date.now() - start,
+        });
         return;
       }
     }
@@ -108,6 +139,13 @@ export class LibraryController {
       res.setHeader(key, value);
     });
     res.end();
+    this.logger.info('library_head', {
+      fileId: id,
+      userId: userId ?? null,
+      status: upstream.status,
+      range,
+      durationMs: Date.now() - start,
+    });
   }
 
   @Get('cover-image')

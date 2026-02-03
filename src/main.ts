@@ -51,6 +51,20 @@ async function bootstrap() {
     disableRemotePubUrl: false,
   });
   const readiumExpress = (readiumServer as any).expressApp as express.Express;
+  readiumExpress.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      logger.info('readium_request', {
+        method: req.method,
+        path: req.originalUrl ?? req.url,
+        statusCode: res.statusCode,
+        durationMs: Date.now() - start,
+        range: req.headers?.range ?? null,
+        referer: req.headers?.referer ?? null,
+      });
+    });
+    next();
+  });
   const authConfig = app.get(AuthConfigService);
   const jwtService = app.get(JwtService);
   readiumExpress.use((req, res, next) => {

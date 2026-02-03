@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.139 — 2026-02-02 22:33 -06:00
+- Add server-side Readium and library stream logging to trace blank-page EPUB issues.
+
 ## 1.0.138 — 2026-02-02 22:21 -06:00
 - Add verbose Readium reader logging to trace blank-page rendering issues.
 
