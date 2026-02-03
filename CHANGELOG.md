@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.127 — 2026-02-02 21:12 -06:00
+- Force the shell to redirect to /login whenever no bootstrap user exists.
+
 ## 1.0.126 — 2026-02-02 21:02 -06:00
 - Decode auth query tokens before bootstrapping so login completes successfully.
 

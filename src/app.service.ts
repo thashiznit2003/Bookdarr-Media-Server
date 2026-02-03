@@ -1911,7 +1911,7 @@ export class AppService {
         wizardPanel.style.display = 'none';
       }
 
-      if (!bootstrap?.token && !hasAccessCookie && authParam !== '1') {
+      if (!bootstrap?.user) {
         window.location.replace('/login?reason=unauth');
       }
 
