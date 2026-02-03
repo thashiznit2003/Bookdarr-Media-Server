@@ -1857,6 +1857,16 @@ export class AppService {
       const readerGesture = document.getElementById('reader-gesture');
       const readerView = document.getElementById('reader-view');
 
+      function debugAuthLog(event, meta = {}) {
+        try {
+          fetch('/auth/debug-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event, meta }),
+          }).catch(() => {});
+        } catch {}
+      }
+
       let pdfDoc = null;
       let pdfPage = 1;
       let epubBook = null;
@@ -2167,6 +2177,10 @@ export class AppService {
           return;
         }
         if (!user) {
+          debugAuthLog('update_user_menu_signed_out', {
+            hasToken: Boolean(state.token),
+            hasBootstrap: Boolean(bootstrap?.user),
+          });
           userAvatar.textContent = '?';
           userLabel.textContent = 'Signed out';
           userMenu.style.display = 'none';
@@ -2198,6 +2212,7 @@ export class AppService {
       function setAuth(token, refreshToken) {
         state.token = token;
         if (token) {
+          debugAuthLog('set_auth_token', { hasRefresh: Boolean(refreshToken) });
           setAuthCookie(true);
           setTokenCookies(token, refreshToken ?? safeStorageGet('bmsRefreshToken'));
           safeStorageSet('bmsAccessToken', token);
@@ -2213,6 +2228,7 @@ export class AppService {
           loadMyLibrary();
           loadCurrentUser();
         } else {
+          debugAuthLog('set_auth_cleared');
           setAuthCookie(false);
           setTokenCookies(null, null);
           safeStorageRemove('bmsAccessToken');
@@ -2228,6 +2244,7 @@ export class AppService {
       }
 
       if (bootstrap?.token) {
+        debugAuthLog('bootstrap_token_present', { hasUser: Boolean(bootstrap?.user) });
         setAuth(bootstrap.token, bootstrap.refreshToken);
         if (bootstrap.user) {
           updateUserMenu(bootstrap.user);
@@ -2398,6 +2415,11 @@ export class AppService {
       }
 
       async function restoreSession() {
+        debugAuthLog('restore_session_start', {
+          hasToken: Boolean(state.token),
+          authParam,
+          hasBootstrapUser: Boolean(bootstrap?.user),
+        });
         if (state.token) {
           await ensureFreshToken();
           loadCurrentUser();
@@ -2405,6 +2427,7 @@ export class AppService {
         }
         const windowTokens = readWindowNameTokens();
         if (windowTokens?.accessToken) {
+          debugAuthLog('restore_session_window_name', { hasRefresh: Boolean(windowTokens?.refreshToken) });
           setAuth(windowTokens.accessToken, windowTokens.refreshToken ?? undefined);
           clearAuthParams();
           await ensureFreshToken();
@@ -2413,6 +2436,7 @@ export class AppService {
         }
         const hashTokens = readHashTokens();
         if (hashTokens?.accessToken) {
+          debugAuthLog('restore_session_hash', { hasRefresh: Boolean(hashTokens?.refreshToken) });
           setAuth(hashTokens.accessToken, hashTokens.refreshToken ?? undefined);
           clearHashTokens();
           await ensureFreshToken();
@@ -2426,6 +2450,11 @@ export class AppService {
         const accessToken = cachedToken || cookieToken;
         const refreshToken = cachedRefresh || cookieRefresh;
         if (accessToken) {
+          debugAuthLog('restore_session_cached', {
+            cached: Boolean(cachedToken),
+            cookie: Boolean(cookieToken),
+            hasRefresh: Boolean(refreshToken),
+          });
           setAuth(accessToken, refreshToken ?? undefined);
           await ensureFreshToken();
           loadCurrentUser();
@@ -2434,9 +2463,11 @@ export class AppService {
         await refreshAuthToken();
         if (!state.token) {
           if (isAuthenticated()) {
+            debugAuthLog('restore_session_auth_cookie_only');
             loadCurrentUser();
             return;
           }
+          debugAuthLog('restore_session_no_auth');
           updateUserMenu(null);
           setAuthCookie(false);
         }
@@ -4603,19 +4634,23 @@ export class AppService {
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
+              debugAuthLog('api_me_not_ok', { status: body?.status ?? null });
               updateUserMenu(null);
               state.userId = null;
               return;
             }
+            debugAuthLog('api_me_ok', { userId: body?.id ?? null });
             updateUserMenu(body);
             state.userId = body?.id ?? null;
           })
           .catch(() => {
             if (bootstrap?.user) {
+              debugAuthLog('api_me_error_fallback_bootstrap', { userId: bootstrap?.user?.id ?? null });
               updateUserMenu(bootstrap.user);
               state.userId = bootstrap.user.id ?? null;
               return;
             }
+            debugAuthLog('api_me_error_signed_out');
             updateUserMenu(null);
             state.userId = null;
           });

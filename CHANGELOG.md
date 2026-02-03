@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.133 — 2026-02-02 21:45 -06:00
+- Add client-side auth debug logging endpoint to trace login/session failures.
+
 ## 1.0.132 — 2026-02-02 21:40 -06:00
 - Add /api/me request/response logging to pinpoint auth session failures.
 

@@ -260,6 +260,15 @@ export class AuthController {
     return res.redirect(`/?auth=1&access=${safeAccess}&refresh=${safeRefresh}`);
   }
 
+  @Post('debug-log')
+  async debugLog(@Body() body: { event?: string; meta?: Record<string, unknown> }) {
+    this.logger.info('auth_debug', {
+      event: body?.event ?? 'unknown',
+      meta: body?.meta ?? null,
+    });
+    return { ok: true };
+  }
+
   @Post('logout')
   async logout(
     @Body() request: LogoutRequest,
