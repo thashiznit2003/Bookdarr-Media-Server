@@ -114,6 +114,7 @@
 - Admin reset requests now avoid template literals inside the HTML template.
 - Reader progress is now stored per user/book in the DB (`reader_progress`), with Sync/Restart controls and `/reader/progress` endpoints.
 - Readium (beta) is available via r2-streamer-js and @readium/navigator with a Readium button for EPUBs.
+- Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions
 - Stack: Node.js + NestJS

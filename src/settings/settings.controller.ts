@@ -3,6 +3,7 @@ import { SettingsService } from './settings.service';
 import { BookdarrConfigService } from '../bookdarr/bookdarr-config.service';
 import { AuthConfigService } from '../auth/auth-config.service';
 import { SmtpConfigService } from './smtp-config.service';
+import { ReaderConfigService } from './reader-config.service';
 
 @Controller('api/settings')
 export class SettingsController {
@@ -11,6 +12,7 @@ export class SettingsController {
     private readonly bookdarrConfigService: BookdarrConfigService,
     private readonly authConfigService: AuthConfigService,
     private readonly smtpConfigService: SmtpConfigService,
+    private readonly readerConfigService: ReaderConfigService,
   ) {}
 
   @Get()
@@ -35,6 +37,10 @@ export class SettingsController {
       settings.smtp.from = smtpConfig.from ?? undefined;
       settings.smtp.fromName = smtpConfig.fromName ?? undefined;
       settings.smtp.configured = this.smtpConfigService.isConfigured(smtpConfig);
+    }
+    const readerConfig = await this.readerConfigService.getConfig();
+    if (readerConfig) {
+      settings.reader.legacyEpubEnabled = readerConfig.legacyEpubEnabled;
     }
     return settings;
   }

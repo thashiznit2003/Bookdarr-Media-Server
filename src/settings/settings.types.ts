@@ -42,6 +42,9 @@ export interface Settings {
   openLibrary: {
     baseUrl: string;
   };
+  reader: {
+    legacyEpubEnabled: boolean;
+  };
 }
 
 export interface PublicSettings {
@@ -85,5 +88,8 @@ export interface PublicSettings {
   };
   openLibrary: {
     baseUrl: string;
+  };
+  reader: {
+    legacyEpubEnabled: boolean;
   };
 }

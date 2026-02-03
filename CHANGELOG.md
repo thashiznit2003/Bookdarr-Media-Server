@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.115 — 2026-02-02 18:17 -06:00
+- Gate legacy epub.js reader behind a settings feature flag and make Read default to Readium.
+
 ## 1.0.114 — 2026-02-02 14:09 -06:00
 - Bump version and redeploy after Node/npm upgrade.
 

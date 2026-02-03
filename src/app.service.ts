@@ -1024,6 +1024,22 @@ export class AppService {
         white-space: nowrap;
       }
 
+      .checkbox-field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .checkbox-field input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+
+      .checkbox-label {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
       .status-item span {
         display: block;
         color: var(--muted);
@@ -1398,6 +1414,23 @@ export class AppService {
             </div>
             <div id="settings-smtp-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
+
+          <div class="panel" style="margin-top: 20px;">
+            <h3 style="margin-top: 0;">Reader Compatibility</h3>
+            <div class="status-grid form-grid">
+              <div>
+                <span class="nav-title">Legacy EPUB (epub.js)</span>
+                <div class="checkbox-field">
+                  <input id="settings-reader-legacy" type="checkbox" />
+                  <span class="checkbox-label">Show legacy Read button for compatibility</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button id="save-reader-settings">Save Reader Settings</button>
+            </div>
+            <div id="settings-reader-status" style="margin-top: 8px; color: var(--muted);"></div>
+          </div>
         </div>
 
         <div class="page" data-page="accounts">
@@ -1655,6 +1688,7 @@ export class AppService {
       };
       let setupRequired = false;
       let bookdarrConfigured = false;
+      let legacyEpubEnabled = false;
       let tokenRefreshTimer = null;
       let myLibraryRefreshTimer = null;
 
@@ -1706,6 +1740,9 @@ export class AppService {
       const testSmtpButton = document.getElementById('test-smtp');
       const settingsSmtpStatus = document.getElementById('settings-smtp-status');
       const settingsSmtpTitleDot = document.getElementById('settings-smtp-title-dot');
+      const settingsReaderLegacy = document.getElementById('settings-reader-legacy');
+      const saveReaderSettingsButton = document.getElementById('save-reader-settings');
+      const settingsReaderStatus = document.getElementById('settings-reader-status');
       const accountsList = document.getElementById('accounts-list');
       const accountsStatus = document.getElementById('accounts-status');
       const adminActionsPanel = document.getElementById('admin-actions-panel');
@@ -2419,6 +2456,25 @@ export class AppService {
               settingsSmtpStatus.textContent = 'Unable to load SMTP settings.';
             }
             setSmtpTitleDot('warn');
+          });
+      }
+
+      function loadReaderConfig() {
+        fetchWithAuth('/settings/reader')
+          .then((response) => response.json())
+          .then((data) => {
+            legacyEpubEnabled = Boolean(data?.legacyEpubEnabled);
+            if (settingsReaderLegacy) settingsReaderLegacy.checked = legacyEpubEnabled;
+            if (settingsReaderStatus) {
+              settingsReaderStatus.textContent = legacyEpubEnabled
+                ? 'Legacy EPUB reader is enabled.'
+                : 'Legacy EPUB reader is disabled.';
+            }
+          })
+          .catch(() => {
+            if (settingsReaderStatus) {
+              settingsReaderStatus.textContent = 'Unable to load reader settings.';
+            }
           });
       }
 
@@ -4110,16 +4166,20 @@ export class AppService {
             const readButton = document.createElement('button');
             readButton.textContent = 'Read';
             readButton.addEventListener('click', () => {
-              openReader(file, detailTitle?.textContent, 'epubjs');
+              if (file.format === '.epub') {
+                openReader(file, detailTitle?.textContent, 'readium');
+              } else {
+                openReader(file, detailTitle?.textContent, 'epubjs');
+              }
             });
             actions.appendChild(readButton);
-            if (file.format === '.epub') {
-              const readiumButton = document.createElement('button');
-              readiumButton.textContent = 'Readium';
-              readiumButton.addEventListener('click', () => {
-                openReader(file, detailTitle?.textContent, 'readium');
+            if (file.format === '.epub' && legacyEpubEnabled) {
+              const legacyButton = document.createElement('button');
+              legacyButton.textContent = 'Legacy Read';
+              legacyButton.addEventListener('click', () => {
+                openReader(file, detailTitle?.textContent, 'epubjs');
               });
-              actions.appendChild(readiumButton);
+              actions.appendChild(legacyButton);
             }
           }
 
@@ -4598,6 +4658,7 @@ export class AppService {
       }
 
       loadSmtpConfig();
+      loadReaderConfig();
 
       setupButton?.addEventListener('click', () => {
         const username = document.getElementById('setup-username').value;
@@ -5616,6 +5677,38 @@ export class AppService {
             document.getElementById('login-submit')?.click();
           }
         });
+      });
+
+      saveReaderSettingsButton?.addEventListener('click', () => {
+        const legacy = Boolean(settingsReaderLegacy?.checked);
+        if (settingsReaderStatus) {
+          settingsReaderStatus.textContent = 'Saving...';
+        }
+        fetchWithAuth('/settings/reader', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ legacyEpubEnabled: legacy }),
+        })
+          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+          .then(({ ok, body }) => {
+            if (!ok) {
+              const message = body?.message ?? 'Unable to save reader settings.';
+              if (settingsReaderStatus) settingsReaderStatus.textContent = message;
+              return;
+            }
+            legacyEpubEnabled = Boolean(body?.legacyEpubEnabled);
+            if (settingsReaderLegacy) settingsReaderLegacy.checked = legacyEpubEnabled;
+            if (settingsReaderStatus) {
+              settingsReaderStatus.textContent = legacyEpubEnabled
+                ? 'Legacy EPUB reader is enabled.'
+                : 'Legacy EPUB reader is disabled.';
+            }
+          })
+          .catch(() => {
+            if (settingsReaderStatus) settingsReaderStatus.textContent = 'Save failed.';
+          });
       });
 
       ['setup-username', 'setup-email', 'setup-password'].forEach((id) => {

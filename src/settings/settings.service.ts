@@ -14,6 +14,7 @@ const DEFAULT_DB_TYPE = 'sqlite';
 const DEFAULT_DB_PATH = 'data/bms.sqlite';
 const DEFAULT_BOOKPOOL_PATH = '/api/v1/user/library/pool';
 const DEFAULT_OPENLIBRARY_BASE = 'https://openlibrary.org';
+const DEFAULT_LEGACY_EPUB_ENABLED = false;
 
 @Injectable()
 export class SettingsService {
@@ -96,6 +97,9 @@ export class SettingsService {
       openLibrary: {
         baseUrl: this.settings.openLibrary.baseUrl,
       },
+      reader: {
+        legacyEpubEnabled: this.settings.reader.legacyEpubEnabled,
+      },
     };
   }
 
@@ -145,6 +149,10 @@ export class SettingsService {
     const openLibraryBase =
       this.parseUrl(this.readEnv('OPENLIBRARY_BASE_URL'), 'OPENLIBRARY_BASE_URL') ??
       DEFAULT_OPENLIBRARY_BASE;
+    const legacyEpubEnabled = this.parseBoolean(
+      this.readEnv('LEGACY_EPUB_ENABLED'),
+      DEFAULT_LEGACY_EPUB_ENABLED,
+    );
 
     const apiUrl = this.parseUrl(process.env.BOOKDARR_API_URL, 'BOOKDARR_API_URL');
 
@@ -194,6 +202,9 @@ export class SettingsService {
       },
       openLibrary: {
         baseUrl: openLibraryBase,
+      },
+      reader: {
+        legacyEpubEnabled,
       },
     };
   }
