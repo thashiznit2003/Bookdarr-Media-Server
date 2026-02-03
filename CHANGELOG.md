@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.130 — 2026-02-02 21:29 -06:00
+- Fix auth logging dependency injection so the server boots (resolves 502).
+
 ## 1.0.129 — 2026-02-02 21:24 -06:00
 - Add detailed server-side login/bootstrap logs for auth troubleshooting.
 

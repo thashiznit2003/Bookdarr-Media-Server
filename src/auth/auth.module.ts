@@ -16,10 +16,12 @@ import { AdminGuard } from './admin.guard';
 import { UsersController } from './users.controller';
 import { AuthSettingsController } from './auth-settings.controller';
 import { MeController } from './me.controller';
+import { LoggingModule } from '../logging/logging.module';
 
 @Module({
   imports: [
     forwardRef(() => SettingsModule),
+    LoggingModule,
     JwtModule.register({}),
     TypeOrmModule.forFeature([
       UserEntity,
