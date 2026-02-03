@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.123 — 2026-02-02 19:56 -06:00
+- Persist login tokens in localStorage/window.name as a fallback when cookies are not read by the shell.
+
 ## 1.0.122 — 2026-02-02 19:29 -06:00
 - Route login completion through /auth/complete so cookies are set server-side and the shell boots authenticated.
 

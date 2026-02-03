@@ -219,8 +219,11 @@ export class AuthController {
       return res.redirect('/login?reason=authfail');
     }
     this.setAuthCookies(res, { accessToken: access, refreshToken: refresh });
+    const safeAccess = encodeURIComponent(access);
+    const safeRefresh = encodeURIComponent(refresh ?? '');
+    res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
-    return res.redirect('/');
+    return res.send(`<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>(function(){var access=decodeURIComponent('${safeAccess}');var refresh='${safeRefresh}'?decodeURIComponent('${safeRefresh}'):'';try{localStorage.setItem('bmsAccessToken',access);}catch(e){}try{if(refresh){localStorage.setItem('bmsRefreshToken',refresh);}}catch(e){}try{window.name='bms:'+btoa(JSON.stringify({accessToken:access,refreshToken:refresh}));}catch(e){}try{const maxAge=60*60*24*30;document.cookie='bmsAccessToken='+encodeURIComponent(access)+'; path=/; max-age='+maxAge+'; samesite=lax';if(refresh){document.cookie='bmsRefreshToken='+encodeURIComponent(refresh)+'; path=/; max-age='+maxAge+'; samesite=lax';}document.cookie='bmsLoggedIn=1; path=/; max-age='+maxAge+'; samesite=lax';}catch(e){}window.location.replace('/');})();</script></body></html>`);
   }
 
   @Post('logout')

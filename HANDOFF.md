@@ -117,6 +117,7 @@
 - Readium now anchors manifest-relative resource URLs and normalizes manifest links to reduce blank pages while using the overlay navigation UI.
 - App shell now redirects to /login whenever no access token cookie or bootstrap token is present.
 - Login completion now routes through /auth/complete to set cookies server-side before redirecting to the app shell.
+- Login completion now also writes tokens into localStorage/window.name as a cookie fallback.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions
