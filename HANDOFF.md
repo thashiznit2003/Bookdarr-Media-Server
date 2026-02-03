@@ -126,6 +126,7 @@
 - Added detailed auth/login bootstrap logging to bms.log for troubleshooting.
 - Auth module now imports LoggingModule so login logging doesn't crash the server.
 - Client now falls back to bootstrap user if /api/me fails.
+- /api/me now logs request + response details to bms.log for auth debugging.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.132 — 2026-02-02 21:40 -06:00
+- Add /api/me request/response logging to pinpoint auth session failures.
+
 ## 1.0.131 — 2026-02-02 21:34 -06:00
 - Fall back to the server bootstrap user if /api/me fails, to avoid a signed-out shell.
 
