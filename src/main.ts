@@ -19,9 +19,41 @@ async function bootstrap() {
     httpServer.disable('etag');
   }
   const logger = app.get(FileLoggerService);
+  const verboseLogs = process.env.VERBOSE_LOGS === 'true';
   const requestLogger = new RequestLoggingMiddleware(logger);
   app.use(requestLogger.use.bind(requestLogger));
   app.useGlobalFilters(new HttpExceptionFilter(logger));
+  if (verboseLogs) {
+    app.use((req, res, next) => {
+      const start = Date.now();
+      const path = req.originalUrl ?? req.url ?? '';
+      const queryKeys = req.query ? Object.keys(req.query) : [];
+      const body = (req as any).body;
+      const bodyKeys =
+        body && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body) : [];
+
+      logger.info('http_verbose_request', {
+        method: req.method,
+        path,
+        queryKeys,
+        bodyKeys,
+        ip: req.ip ?? req.socket?.remoteAddress ?? null,
+        userAgent: req.headers['user-agent'] ?? null,
+      });
+
+      res.on('finish', () => {
+        const userId = (req as any).user?.userId ?? null;
+        logger.info('http_verbose_response', {
+          method: req.method,
+          path,
+          statusCode: res.statusCode,
+          durationMs: Date.now() - start,
+          userId,
+        });
+      });
+      next();
+    });
+  }
 
   const epubPath = join(process.cwd(), 'node_modules', 'epubjs', 'dist');
   if (existsSync(epubPath)) {

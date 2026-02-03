@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.140 — 2026-02-02 22:46 -06:00
+- Add VERBOSE_LOGS mode with full request/response tracing (redacted payloads).
+
 ## 1.0.139 — 2026-02-02 22:33 -06:00
 - Add server-side Readium and library stream logging to trace blank-page EPUB issues.
 

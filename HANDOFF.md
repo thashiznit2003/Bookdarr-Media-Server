@@ -39,6 +39,7 @@
 - EPUB reader now shows page numbers + percent in the header and persists location with touch-only page-turn animation.
 - Touch devices now use a full-screen EPUB reader with back button, no scroll, and iframe swipe handling.
 - Added server-side Readium request + library stream logging for EPUB blank-page diagnostics.
+- Added VERBOSE_LOGS=true flag to emit full request/response tracing (redacted payload metadata).
 - Login now reveals the OTP field when 2FA is required and preserves it via login redirects.
 - Touch reader now hides toolbars and shows overlay back/progress controls for a cleaner full-screen view.
 - Auth storage now guards localStorage access for iOS/Safari so login doesn’t break.
