@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.122 — 2026-02-02 19:29 -06:00
+- Route login completion through /auth/complete so cookies are set server-side and the shell boots authenticated.
+
 ## 1.0.121 — 2026-02-02 19:09 -06:00
 - Auto-persist login tokens from the auth hash into cookies and reload to prevent signed-out shells.
 

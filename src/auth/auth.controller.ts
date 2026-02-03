@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
@@ -146,16 +146,9 @@ export class AuthController {
       this.setAuthCookies(res, response.tokens);
       this.setTwoFactorCookie(res);
       if (response.tokens?.accessToken) {
-        const payload = Buffer.from(
-          JSON.stringify({
-            accessToken: response.tokens.accessToken,
-            refreshToken: response.tokens.refreshToken ?? '',
-          }),
-          'utf8',
-        ).toString('base64');
-        res.setHeader('content-type', 'text/html; charset=utf-8');
-        res.setHeader('cache-control', 'no-store');
-        return res.send(`<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(response.tokens.refreshToken ?? '')}');</script></body></html>`);
+        const access = encodeURIComponent(response.tokens.accessToken);
+        const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
+        return res.redirect(`/auth/complete?access=${access}&refresh=${refresh}`);
       }
       return res.redirect('/');
     } catch (error) {
@@ -192,16 +185,9 @@ export class AuthController {
       this.setAuthCookies(res, response.tokens);
       this.setTwoFactorCookie(res);
       if (response.tokens?.accessToken) {
-        const payload = Buffer.from(
-          JSON.stringify({
-            accessToken: response.tokens.accessToken,
-            refreshToken: response.tokens.refreshToken ?? '',
-          }),
-          'utf8',
-        ).toString('base64');
-        res.setHeader('content-type', 'text/html; charset=utf-8');
-        res.setHeader('cache-control', 'no-store');
-        return res.send(`<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(response.tokens.refreshToken ?? '')}');</script></body></html>`);
+        const access = encodeURIComponent(response.tokens.accessToken);
+        const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
+        return res.redirect(`/auth/complete?access=${access}&refresh=${refresh}`);
       }
       return res.redirect('/');
     } catch (error) {
@@ -221,6 +207,20 @@ export class AuthController {
     const response = await this.authService.refresh({ refreshToken });
     this.setAuthCookies(res, response.tokens);
     return response;
+  }
+
+  @Get('complete')
+  async completeLogin(
+    @Query('access') access: string | undefined,
+    @Query('refresh') refresh: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!access) {
+      return res.redirect('/login?reason=authfail');
+    }
+    this.setAuthCookies(res, { accessToken: access, refreshToken: refresh });
+    res.setHeader('cache-control', 'no-store');
+    return res.redirect('/');
   }
 
   @Post('logout')

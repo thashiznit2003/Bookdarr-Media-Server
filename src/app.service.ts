@@ -1177,26 +1177,6 @@ export class AppService {
   </head>
   <body>
     <script>
-      (function() {
-        const hash = window.location.hash;
-        if (!hash || hash.length < 2) return;
-        const params = new URLSearchParams(hash.slice(1));
-        const access = params.get('access');
-        const refresh = params.get('refresh');
-        if (!access) return;
-        const maxAge = 60 * 60 * 24 * 30;
-        document.cookie = 'bmsAccessToken=' + encodeURIComponent(access) + '; path=/; max-age=' + maxAge + '; samesite=lax';
-        if (refresh) {
-          document.cookie = 'bmsRefreshToken=' + encodeURIComponent(refresh) + '; path=/; max-age=' + maxAge + '; samesite=lax';
-        }
-        document.cookie = 'bmsLoggedIn=1; path=/; max-age=' + maxAge + '; samesite=lax';
-        const url = new URL(window.location.href);
-        url.hash = '';
-        url.searchParams.delete('auth');
-        window.location.replace(url.toString());
-      })();
-    </script>
-    <script>
       window.__BMS_BOOTSTRAP__ = ${JSON.stringify(boot)};
     </script>
     <div class="app-shell">
@@ -2401,6 +2381,12 @@ export class AppService {
         const url = new URL(window.location.href);
         if (url.searchParams.has('auth')) {
           url.searchParams.delete('auth');
+        }
+        if (url.searchParams.has('access')) {
+          url.searchParams.delete('access');
+        }
+        if (url.searchParams.has('refresh')) {
+          url.searchParams.delete('refresh');
         }
         url.hash = '';
         history.replaceState(null, '', url.toString());
@@ -5598,7 +5584,7 @@ export class AppService {
               safeStorageSet('bmsRefreshToken', data.refreshToken);
             }
             window.location.href =
-              '/#access=' +
+              '/auth/complete?access=' +
               encodeURIComponent(data.accessToken) +
               (data.refreshToken || refreshToken ? '&refresh=' + encodeURIComponent(data.refreshToken || refreshToken) : '');
             return true;
@@ -5618,7 +5604,7 @@ export class AppService {
         if (accessToken) {
           setAuthCookie(true);
           window.location.href =
-            '/#access=' +
+            '/auth/complete?access=' +
             encodeURIComponent(accessToken) +
             (refreshToken ? '&refresh=' + encodeURIComponent(refreshToken) : '');
           return;
