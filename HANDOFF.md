@@ -128,6 +128,7 @@
 - Client now falls back to bootstrap user if /api/me fails.
 - /api/me now logs request + response details to bms.log for auth debugging.
 - Added /auth/debug-log plus client-side auth debug events for login/session tracing.
+- Client now logs boot + JS errors to /auth/debug-log to capture early failures.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions

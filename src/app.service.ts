@@ -1177,6 +1177,39 @@ export class AppService {
   </head>
   <body>
     <script>
+      (function() {
+        function send(event, meta) {
+          try {
+            var payload = JSON.stringify({ event: event, meta: meta || {} });
+            if (navigator && navigator.sendBeacon) {
+              var blob = new Blob([payload], { type: 'application/json' });
+              navigator.sendBeacon('/auth/debug-log', blob);
+              return;
+            }
+            fetch('/auth/debug-log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: payload,
+              keepalive: true
+            }).catch(function() {});
+          } catch (e) {}
+        }
+        window.__bmsDebug = send;
+        send('client_boot', { href: window.location.href });
+        window.addEventListener('error', function(e) {
+          send('client_error', {
+            message: e && e.message,
+            source: e && e.filename,
+            line: e && e.lineno,
+            col: e && e.colno
+          });
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+          send('client_unhandledrejection', { reason: String(e && e.reason) });
+        });
+      })();
+    </script>
+    <script>
       window.__BMS_BOOTSTRAP__ = ${JSON.stringify(boot)};
     </script>
     <div class="app-shell">
@@ -1859,10 +1892,15 @@ export class AppService {
 
       function debugAuthLog(event, meta = {}) {
         try {
+          if (window.__bmsDebug) {
+            window.__bmsDebug(event, meta);
+            return;
+          }
           fetch('/auth/debug-log', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event, meta }),
+            keepalive: true,
           }).catch(() => {});
         } catch {}
       }

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.134 — 2026-02-02 21:52 -06:00
+- Add client boot/error logging to trace JS failures during login.
+
 ## 1.0.133 — 2026-02-02 21:45 -06:00
 - Add client-side auth debug logging endpoint to trace login/session failures.
 
