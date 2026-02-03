@@ -796,6 +796,11 @@ export class AppService {
         z-index: 7;
       }
 
+      .reader-modal[data-reader-mode="epub"] .reader-controls #reader-prev,
+      .reader-modal[data-reader-mode="epub"] .reader-controls #reader-next {
+        display: none;
+      }
+
       .reader-button {
         border: none;
         padding: 8px 12px;
@@ -847,19 +852,19 @@ export class AppService {
       }
 
       .reader-arrow {
-        width: 44px;
-        height: 44px;
+        width: 38px;
+        height: 38px;
         border-radius: 999px;
         border: none;
-        background: rgba(0, 0, 0, 0.45);
+        background: rgba(0, 0, 0, 0.35);
         color: #fff;
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         display: flex;
         align-items: center;
         justify-content: center;
         pointer-events: auto;
         cursor: pointer;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
       }
 
       .reader-arrow:hover {
@@ -873,6 +878,7 @@ export class AppService {
         padding: 16px;
         position: relative;
         z-index: 1;
+        overscroll-behavior: contain;
       }
 
       .reader-modal[data-reader-mode="epub"] .reader-view {
@@ -898,6 +904,7 @@ export class AppService {
         width: 100%;
         height: 100%;
         border: none;
+        display: block;
       }
       .readium-container {
         width: 100%;
@@ -909,6 +916,7 @@ export class AppService {
         width: 100%;
         height: 100%;
         border: none;
+        display: block;
       }
 
       .reader-view .epub-container,
@@ -3174,6 +3182,9 @@ export class AppService {
               'html, body': {
                 background: '#0f1115 !important',
                 color: '#e5e7eb !important',
+                margin: '0 !important',
+                padding: '0 !important',
+                overflow: 'hidden !important',
               },
               'body *': {
                 color: '#e5e7eb !important',
@@ -3186,6 +3197,9 @@ export class AppService {
               'html, body': {
                 background: '#f8f5ef !important',
                 color: '#111827 !important',
+                margin: '0 !important',
+                padding: '0 !important',
+                overflow: 'hidden !important',
               },
               'body *': {
                 color: '#111827 !important',
@@ -3206,8 +3220,8 @@ export class AppService {
         if (!readerView || !readiumNavigator) return;
         const css =
           readerTheme === 'dark'
-            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;}'
-            : 'html,body{background:#f8f5ef !important;color:#111827 !important;} body *{color:#111827 !important;} a{color:#0f172a !important;}';
+            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;margin:0 !important;padding:0 !important;overflow:hidden !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;}'
+            : 'html,body{background:#f8f5ef !important;color:#111827 !important;margin:0 !important;padding:0 !important;overflow:hidden !important;} body *{color:#111827 !important;} a{color:#0f172a !important;}';
         readerView.querySelectorAll('iframe').forEach((iframe) => {
           try {
             const doc = iframe.contentDocument;

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.116 — 2026-02-02 18:24 -06:00
+- Use side-arrow navigation for ebooks and reduce scrollbar/zoom artifacts.
+
 ## 1.0.115 — 2026-02-02 18:17 -06:00
 - Gate legacy epub.js reader behind a settings feature flag and make Read default to Readium.
 
