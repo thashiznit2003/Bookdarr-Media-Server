@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.131 — 2026-02-02 21:34 -06:00
+- Fall back to the server bootstrap user if /api/me fails, to avoid a signed-out shell.
+
 ## 1.0.130 — 2026-02-02 21:29 -06:00
 - Fix auth logging dependency injection so the server boots (resolves 502).
 

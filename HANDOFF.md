@@ -125,6 +125,7 @@
 - Auth bootstrap now redirects to a clean / URL once tokens validate to avoid lingering auth params.
 - Added detailed auth/login bootstrap logging to bms.log for troubleshooting.
 - Auth module now imports LoggingModule so login logging doesn't crash the server.
+- Client now falls back to bootstrap user if /api/me fails.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions

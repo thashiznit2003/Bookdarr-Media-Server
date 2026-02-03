@@ -4611,6 +4611,11 @@ export class AppService {
             state.userId = body?.id ?? null;
           })
           .catch(() => {
+            if (bootstrap?.user) {
+              updateUserMenu(bootstrap.user);
+              state.userId = bootstrap.user.id ?? null;
+              return;
+            }
             updateUserMenu(null);
             state.userId = null;
           });
