@@ -1905,6 +1905,10 @@ export class AppService {
         } catch {}
       }
 
+      function debugReaderLog(event, meta = {}) {
+        debugAuthLog('reader_' + event, meta);
+      }
+
       let pdfDoc = null;
       let pdfPage = 1;
       let epubBook = null;
@@ -3777,9 +3781,15 @@ export class AppService {
           return false;
         }
 
+        debugReaderLog('readium_open_start', {
+          fileId: file?.id ?? null,
+          format: file?.format ?? null,
+          streamUrl: file?.streamUrl ?? null,
+        });
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
         updateReaderLayout();
         readiumManifestUrl = getReadiumManifestUrl(file);
+        debugReaderLog('readium_manifest_url', { url: readiumManifestUrl });
         let manifestJson = null;
         try {
           const response = await readiumFetch(readiumManifestUrl);
@@ -3788,18 +3798,21 @@ export class AppService {
           }
           manifestJson = await response.json();
         } catch {
+          debugReaderLog('readium_manifest_error');
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           return false;
         }
 
         const manifest = ReadiumShared.Manifest.deserialize(manifestJson);
         if (!manifest) {
+          debugReaderLog('readium_manifest_invalid');
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           return false;
         }
         const manifestSelf = toAbsoluteUrl(readiumManifestUrl);
         manifest.setSelfLink(manifestSelf);
         const manifestBase = manifestSelf.replace(/manifest\.json.*$/i, '');
+        debugReaderLog('readium_manifest_self', { self: manifestSelf, base: manifestBase });
 
         const allLinks = [];
         const seen = new Set();
@@ -3822,14 +3835,22 @@ export class AppService {
         (manifest.links || []).forEach(pushLink);
         (manifest.readingOrder || []).forEach(pushLink);
         (manifest.resources || []).forEach(pushLink);
+        debugReaderLog('readium_manifest_links', {
+          links: (manifest.links || []).length,
+          readingOrder: (manifest.readingOrder || []).length,
+          resources: (manifest.resources || []).length,
+          total: allLinks.length,
+        });
 
         const baseUrl = manifest.baseURL || manifestBase;
         const fetcher = createReadiumFetcher(baseUrl, allLinks);
         if (!fetcher) {
+          debugReaderLog('readium_fetcher_missing');
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           return false;
         }
         readiumPublication = new ReadiumShared.Publication({ manifest, fetcher });
+        debugReaderLog('readium_publication_ready', { baseUrl });
 
         readerView.innerHTML = '';
         const container = document.createElement('div');
@@ -3852,11 +3873,17 @@ export class AppService {
             setTimeout(() => {
               applyReadiumTheme();
             }, 150);
+            debugReaderLog('readium_frame_loaded');
           },
           positionChanged: (locator) => {
             if (locator) {
               saveProgress('ebook-epub', file.id, { locator });
               updateReadiumProgress(locator);
+              debugReaderLog('readium_position_changed', {
+                href: locator?.href ?? null,
+                progression: locator?.locations?.progression ?? null,
+                totalProgression: locator?.locations?.totalProgression ?? null,
+              });
             }
           },
           tap: () => {
@@ -3893,7 +3920,9 @@ export class AppService {
         try {
           await readiumNavigator.load();
           applyReadiumTheme();
+          debugReaderLog('readium_load_ok');
         } catch {
+          debugReaderLog('readium_load_error');
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           return false;
         }

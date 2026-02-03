@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.138 — 2026-02-02 22:21 -06:00
+- Add verbose Readium reader logging to trace blank-page rendering issues.
+
 ## 1.0.137 — 2026-02-02 22:13 -06:00
 - Normalize Readium resource links and tweak navigator prefs to prevent blank pages between chapters.
 

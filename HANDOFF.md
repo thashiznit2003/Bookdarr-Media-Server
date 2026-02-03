@@ -132,6 +132,7 @@
 - Fixed regex escaping in the Readium manifest link resolver that caused a client JS syntax error.
 - Readium theme no longer forces overflow hidden to avoid blank pages.
 - Readium navigator now normalizes resource links and applies text normalization for better pagination.
+- Added verbose Readium reader logs via /auth/debug-log for rendering diagnostics.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions
