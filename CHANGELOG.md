@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.135 — 2026-02-02 21:58 -06:00
+- Fix client-side regex escaping that was breaking the app script during login.
+
 ## 1.0.134 — 2026-02-02 21:52 -06:00
 - Add client boot/error logging to trace JS failures during login.
 

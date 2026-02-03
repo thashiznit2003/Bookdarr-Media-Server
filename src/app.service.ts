@@ -3803,7 +3803,7 @@ export class AppService {
           try {
             return new URL(href, manifestBase).toString();
           } catch {
-            return manifestBase + href.replace(/^\//, '');
+            return manifestBase + href.replace(/^\\//, '');
           }
         };
         const pushLink = (link) => {
