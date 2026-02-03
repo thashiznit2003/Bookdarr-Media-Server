@@ -3704,12 +3704,24 @@ export class AppService {
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           return false;
         }
-        manifest.setSelfLink(readiumManifestUrl);
+        const manifestSelf = toAbsoluteUrl(readiumManifestUrl);
+        manifest.setSelfLink(manifestSelf);
+        const manifestBase = manifestSelf.replace(/manifest\.json.*$/i, '');
 
         const allLinks = [];
         const seen = new Set();
+        const resolveHref = (href) => {
+          if (!href) return href;
+          if (href.startsWith('http://') || href.startsWith('https://')) return href;
+          try {
+            return new URL(href, manifestBase).toString();
+          } catch {
+            return manifestBase + href.replace(/^\//, '');
+          }
+        };
         const pushLink = (link) => {
           if (!link || !link.href) return;
+          link.href = resolveHref(link.href);
           if (seen.has(link.href)) return;
           seen.add(link.href);
           allLinks.push(link);
@@ -3718,10 +3730,7 @@ export class AppService {
         (manifest.readingOrder || []).forEach(pushLink);
         (manifest.resources || []).forEach(pushLink);
 
-        const fallbackBase = readiumManifestUrl
-          ? readiumManifestUrl.replace(/manifest\.json$/, '')
-          : manifest.baseURL;
-        const baseUrl = manifest.baseURL || fallbackBase;
+        const baseUrl = manifest.baseURL || manifestBase;
         const fetcher = createReadiumFetcher(baseUrl, allLinks);
         if (!fetcher) {
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';

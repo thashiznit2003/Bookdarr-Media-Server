@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.119 — 2026-02-02 18:50 -06:00
+- Normalize Readium manifest links to resolve relative resources consistently and reduce blank pages.
+
 ## 1.0.118 — 2026-02-02 18:43 -06:00
 - Fix Readium resource fetching by anchoring manifest-relative URLs, and align Readium reader UI with overlay arrows/controls.
 
