@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.117 — 2026-02-02 18:31 -06:00
+- Switch Readium to use the built-in HTTP fetcher to avoid blank pages.
+
 ## 1.0.116 — 2026-02-02 18:24 -06:00
 - Use side-arrow navigation for ebooks and reduce scrollbar/zoom artifacts.
 

@@ -3668,59 +3668,8 @@ export class AppService {
         if (!ReadiumShared) {
           return null;
         }
-        class BmsResource extends ReadiumShared.Resource {
-          constructor(url, link) {
-            super();
-            this.url = url;
-            this._link = link;
-          }
-          async link() {
-            return this._link;
-          }
-          async length() {
-            try {
-              const response = await readiumFetch(this.url, { method: 'HEAD' });
-              if (!response.ok) return undefined;
-              const len = response.headers.get('Content-Length');
-              return len ? Number(len) : undefined;
-            } catch {
-              return undefined;
-            }
-          }
-          async read(range) {
-            try {
-              const headers = {};
-              if (range) {
-                headers['Range'] = 'bytes=' + range.start + '-' + range.endInclusive;
-              }
-              const response = await readiumFetch(this.url, { headers });
-              if (!response.ok) return undefined;
-              const buffer = await response.arrayBuffer();
-              return new Uint8Array(buffer);
-            } catch {
-              return undefined;
-            }
-          }
-          close() {}
-        }
-        class BmsFetcher {
-          constructor(baseUrl, links) {
-            this.baseUrl = baseUrl;
-            this._links = links || [];
-          }
-          links() {
-            return this._links;
-          }
-          get(link) {
-            const href = link?.href || '';
-            const resolved = href.startsWith('http://') || href.startsWith('https://')
-              ? href
-              : new URL(href, this.baseUrl).toString();
-            return new BmsResource(resolved, link);
-          }
-          close() {}
-        }
-        return new BmsFetcher(baseUrl, links);
+        const client = (input, init) => readiumFetch(input, init);
+        return new ReadiumShared.HttpFetcher(client, baseUrl);
       }
 
       async function openReadiumReader(file) {
