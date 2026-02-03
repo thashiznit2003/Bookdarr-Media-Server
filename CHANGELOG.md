@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.128 — 2026-02-02 21:18 -06:00
+- Redirect auth=1 bootstrap requests to a clean / URL once tokens validate.
+
 ## 1.0.127 — 2026-02-02 21:12 -06:00
 - Force the shell to redirect to /login whenever no bootstrap user exists.
 

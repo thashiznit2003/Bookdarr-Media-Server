@@ -22,8 +22,13 @@ export class AppController {
     const queryRefresh = queryRefreshRaw ? decodeURIComponent(queryRefreshRaw) : undefined;
     if (queryAccess) {
       this.setAuthCookies(res, queryAccess, queryRefresh);
+      const bootstrap = await this.buildBootstrap(req, queryAccess, queryRefresh);
+      if (bootstrap?.user) {
+        return res.redirect('/');
+      }
+      return res.redirect('/login?reason=authfail');
     }
-    const bootstrap = await this.buildBootstrap(req, queryAccess, queryRefresh);
+    const bootstrap = await this.buildBootstrap(req);
     if (!bootstrap?.user) {
       const authParam = req.query?.auth;
       if (authParam === '1') {
