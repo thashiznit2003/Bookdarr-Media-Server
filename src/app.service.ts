@@ -3760,7 +3760,13 @@ export class AppService {
           return null;
         }
         const client = (input, init) => readiumFetch(input, init);
-        return new ReadiumShared.HttpFetcher(client, baseUrl);
+        const normalizedLinks = (links || [])
+          .filter((link) => link && link.href)
+          .map((link) => ({
+            ...link,
+            href: link.href.replace(/([?#].*)$/, ''),
+          }));
+        return new ReadiumShared.HttpFetcher(client, baseUrl, normalizedLinks);
       }
 
       async function openReadiumReader(file) {
@@ -3843,6 +3849,9 @@ export class AppService {
         const listeners = {
           frameLoaded: () => {
             applyReadiumTheme();
+            setTimeout(() => {
+              applyReadiumTheme();
+            }, 150);
           },
           positionChanged: (locator) => {
             if (locator) {
@@ -3868,10 +3877,15 @@ export class AppService {
           listeners,
           initialLocator,
           {
-            preferences: new ReadiumNavigator.WebPubPreferences({}),
+            preferences: new ReadiumNavigator.WebPubPreferences({
+              iOSPatch: true,
+              iPadOSPatch: true,
+              textNormalization: true,
+            }),
             defaults: new ReadiumNavigator.WebPubDefaults({
               iOSPatch: true,
               iPadOSPatch: true,
+              textNormalization: true,
             }),
           },
         );

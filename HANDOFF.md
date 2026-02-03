@@ -131,6 +131,7 @@
 - Client now logs boot + JS errors to /auth/debug-log to capture early failures.
 - Fixed regex escaping in the Readium manifest link resolver that caused a client JS syntax error.
 - Readium theme no longer forces overflow hidden to avoid blank pages.
+- Readium navigator now normalizes resource links and applies text normalization for better pagination.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.137 — 2026-02-02 22:13 -06:00
+- Normalize Readium resource links and tweak navigator prefs to prevent blank pages between chapters.
+
 ## 1.0.136 — 2026-02-02 22:06 -06:00
 - Relax Readium theme overflow to avoid blank pages between sections.
 
