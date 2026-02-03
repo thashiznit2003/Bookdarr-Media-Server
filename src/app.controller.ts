@@ -2,6 +2,7 @@ import { Controller, Get, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { AppService } from './app.service';
+import { FileLoggerService } from './logging/file-logger.service';
 import { AuthConfigService } from './auth/auth-config.service';
 import { SettingsService } from './settings/settings.service';
 
@@ -12,6 +13,7 @@ export class AppController {
     private readonly authConfigService: AuthConfigService,
     private readonly settingsService: SettingsService,
     private readonly jwtService: JwtService,
+    private readonly logger: FileLoggerService,
   ) {}
 
   @Get()
@@ -20,9 +22,19 @@ export class AppController {
     const queryRefreshRaw = typeof req.query?.refresh === 'string' ? req.query.refresh : undefined;
     const queryAccess = queryAccessRaw ? decodeURIComponent(queryAccessRaw) : undefined;
     const queryRefresh = queryRefreshRaw ? decodeURIComponent(queryRefreshRaw) : undefined;
+    this.logger.info('app_index_enter', {
+      authParam: req.query?.auth ?? null,
+      hasQueryAccess: Boolean(queryAccess),
+      hasQueryRefresh: Boolean(queryRefresh),
+      hasCookieAccess: Boolean(this.readCookie(req, 'bmsAccessToken')),
+      hasCookieRefresh: Boolean(this.readCookie(req, 'bmsRefreshToken')),
+    });
     if (queryAccess) {
       this.setAuthCookies(res, queryAccess, queryRefresh);
       const bootstrap = await this.buildBootstrap(req, queryAccess, queryRefresh);
+      this.logger.info('app_index_auth_bootstrap', {
+        hasUser: Boolean(bootstrap?.user),
+      });
       if (bootstrap?.user) {
         return res.redirect('/');
       }
@@ -32,10 +44,13 @@ export class AppController {
     if (!bootstrap?.user) {
       const authParam = req.query?.auth;
       if (authParam === '1') {
+        this.logger.warn('app_index_auth_failed', { authParam });
         return res.redirect('/login?reason=authfail');
       }
+      this.logger.info('app_index_redirect_login', { authParam });
       return res.redirect('/login');
     }
+    this.logger.info('app_index_bootstrap_ok', { userId: bootstrap?.user?.id ?? null });
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
     return res.send(this.appService.getIndexHtml(bootstrap));

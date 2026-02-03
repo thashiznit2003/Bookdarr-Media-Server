@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { FileLoggerService } from '../logging/file-logger.service';
 import { AuthGuard } from './auth.guard';
 import qrcode from 'qrcode';
 import type {
@@ -16,7 +17,10 @@ import type {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly logger: FileLoggerService,
+  ) {}
 
   private static readonly COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 
@@ -136,13 +140,27 @@ export class AuthController {
   @Post('login/web')
   async loginWeb(@Body() request: LoginRequest, @Res() res: Response) {
     try {
+      this.logger.info('auth_login_web_attempt', {
+        username: request?.username ?? null,
+        hasPassword: Boolean(request?.password),
+        hasOtp: Boolean((request as any)?.otp),
+      });
       const response = await this.authService.login(request);
       if ((response as { twoFactorRequired?: boolean; challengeToken?: string })?.twoFactorRequired) {
+        this.logger.info('auth_login_web_2fa_required', {
+          username: request?.username ?? null,
+          challengeIssued: Boolean((response as { challengeToken?: string }).challengeToken),
+        });
         const challengeToken = (response as { challengeToken?: string }).challengeToken;
         this.setTwoFactorCookie(res, challengeToken);
         const challengeParam = challengeToken ? `&challenge=${encodeURIComponent(challengeToken)}` : '';
         return res.redirect(`/login?otp=1${challengeParam}`);
       }
+      this.logger.info('auth_login_web_success', {
+        username: request?.username ?? null,
+        hasAccess: Boolean(response.tokens?.accessToken),
+        hasRefresh: Boolean(response.tokens?.refreshToken),
+      });
       this.setAuthCookies(res, response.tokens);
       this.setTwoFactorCookie(res);
       if (response.tokens?.accessToken) {
@@ -153,6 +171,10 @@ export class AuthController {
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
+      this.logger.warn('auth_login_web_error', {
+        username: request?.username ?? null,
+        message,
+      });
       const normalized = message.toLowerCase();
       const otpRequired =
         normalized.includes('two-factor') || normalized.includes('2fa') || normalized.includes('otp');
@@ -177,10 +199,18 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
+      this.logger.info('auth_login_2fa_attempt', {
+        hasOtp: Boolean(request?.otp),
+        hasChallenge: Boolean(request?.challengeToken),
+      });
       const challengeToken = request.challengeToken ?? this.readTwoFactorCookie(req);
       const response = await this.authService.completeTwoFactorLogin({
         otp: request.otp,
         challengeToken,
+      });
+      this.logger.info('auth_login_2fa_success', {
+        hasAccess: Boolean(response.tokens?.accessToken),
+        hasRefresh: Boolean(response.tokens?.refreshToken),
       });
       this.setAuthCookies(res, response.tokens);
       this.setTwoFactorCookie(res);
@@ -192,6 +222,7 @@ export class AuthController {
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
+      this.logger.warn('auth_login_2fa_error', { message });
       this.setTwoFactorCookie(res);
       return res.redirect(`/login?error=${encodeURIComponent(message)}&otp=1`);
     }
@@ -215,6 +246,10 @@ export class AuthController {
     @Query('refresh') refresh: string | undefined,
     @Res() res: Response,
   ) {
+    this.logger.info('auth_complete', {
+      hasAccess: Boolean(access),
+      hasRefresh: Boolean(refresh),
+    });
     if (!access) {
       return res.redirect('/login?reason=authfail');
     }

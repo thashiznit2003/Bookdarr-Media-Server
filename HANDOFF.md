@@ -123,6 +123,7 @@
 - Root now decodes auth query tokens before verifying JWTs.
 - Client shell now redirects to /login if no bootstrap user is present.
 - Auth bootstrap now redirects to a clean / URL once tokens validate to avoid lingering auth params.
+- Added detailed auth/login bootstrap logging to bms.log for troubleshooting.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions

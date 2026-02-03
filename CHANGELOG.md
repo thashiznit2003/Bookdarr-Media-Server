@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.129 — 2026-02-02 21:24 -06:00
+- Add detailed server-side login/bootstrap logs for auth troubleshooting.
+
 ## 1.0.128 — 2026-02-02 21:18 -06:00
 - Redirect auth=1 bootstrap requests to a clean / URL once tokens validate.
 
