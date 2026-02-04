@@ -3341,8 +3341,8 @@ export class AppService {
         if (!readerView || !readiumNavigator) return;
         const css =
           readerTheme === 'dark'
-            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;margin:0 !important;padding:0 !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;}'
-            : 'html,body{background:#f8f5ef !important;color:#111827 !important;margin:0 !important;padding:0 !important;} body *{color:#111827 !important;} a{color:#0f172a !important;}';
+            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;} img,svg,video{max-width:100% !important;height:auto !important;}'
+            : 'html,body{background:#f8f5ef !important;color:#111827 !important;margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;} body *{color:#111827 !important;} a{color:#0f172a !important;} img,svg,video{max-width:100% !important;height:auto !important;}';
         readerView.querySelectorAll('iframe').forEach((iframe) => {
           try {
             const doc = iframe.contentDocument;
@@ -3358,6 +3358,23 @@ export class AppService {
             // ignore cross-origin
           }
         });
+      }
+
+      async function applyReadiumPreferences() {
+        if (!readiumNavigator) return;
+        try {
+          await readiumNavigator.submitPreferences(
+            new ReadiumNavigator.WebPubPreferences({
+              zoom: 0.9,
+              lineHeight: 1.4,
+              textAlign: 'left',
+              hyphens: false,
+              textNormalization: true,
+            }),
+          );
+        } catch {
+          // ignore preference errors
+        }
       }
 
       function setReaderUiVisible(visible) {
@@ -3816,7 +3833,7 @@ export class AppService {
           .filter((link) => link && link.href)
           .map((link) => ({
             ...link,
-            href: link.href.replace(/([?#].*)$/, ''),
+            href: link.href.replace(/(#.*)$/, ''),
           }));
         return new ReadiumShared.HttpFetcher(client, baseUrl, normalizedLinks);
       }
@@ -3947,7 +3964,19 @@ export class AppService {
         const seen = new Set();
         const resolveHref = (href) => {
           if (!href) return href;
-          if (href.startsWith('http://') || href.startsWith('https://')) return href;
+          if (href.startsWith('http://') || href.startsWith('https://')) {
+            try {
+              const parsed = new URL(href);
+              const host = (parsed.hostname || '').toLowerCase();
+              if (host === '127.0.0.1' || host === '0.0.0.0' || host === 'localhost' || host === '::1') {
+                const replacement = parsed.pathname + parsed.search + parsed.hash;
+                return new URL(replacement, manifestBase).toString();
+              }
+              return parsed.toString();
+            } catch {
+              return href;
+            }
+          }
           try {
             return new URL(href, manifestBase).toString();
           } catch {
@@ -4020,6 +4049,7 @@ export class AppService {
             setTimeout(() => {
               applyReadiumTheme();
             }, 150);
+            updateReaderLayout();
             debugReaderLog('readium_frame_loaded');
           },
           positionChanged: (locator) => {
@@ -4055,11 +4085,19 @@ export class AppService {
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
+              zoom: 0.9,
+              lineHeight: 1.4,
+              textAlign: 'left',
+              hyphens: false,
             }),
             defaults: new ReadiumNavigator.WebPubDefaults({
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
+              zoom: 0.9,
+              lineHeight: 1.4,
+              textAlign: 'left',
+              hyphens: false,
             }),
           },
         );
@@ -4067,6 +4105,7 @@ export class AppService {
 
         try {
           await readiumNavigator.load();
+          await applyReadiumPreferences();
           applyReadiumTheme();
           debugReaderLog('readium_load_ok');
         } catch {

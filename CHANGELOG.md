@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.161 — 2026-02-04 15:22 -06:00
+- Rewrite Readium manifest links away from localhost, preserve query strings, and reduce default zoom to fit the modal.
+
+## 1.0.160 — 2026-02-04 13:59 -06:00
+- Tune Readium zoom + layout defaults to fit the modal and reduce skipped pages.
+
 ## 1.0.159 — 2026-02-04 13:44 -06:00
 - Proxy Readium manifests through BMS to drop oversized Link headers.
 

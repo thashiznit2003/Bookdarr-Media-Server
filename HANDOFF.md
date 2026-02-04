@@ -29,6 +29,7 @@
 - Readium manifest link lists are normalized to arrays to avoid crashes when a single link is returned.
 - Readium manifests now force local origin for stream URLs to prevent 502s when using public hostnames.
 - Readium manifest URLs now use a local internal base (127.0.0.1) to bypass proxy 502s on public domains.
+- Readium link resolution now rewrites localhost URLs to the current origin, preserves query strings, and defaults to 0.9 zoom for better fit.
 - Login page script no longer references reader settings handlers from the main app shell.
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.
