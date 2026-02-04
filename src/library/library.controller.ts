@@ -21,6 +21,7 @@ import { LibraryService } from './library.service';
 import { BookdarrService } from '../bookdarr/bookdarr.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { FileLoggerService } from '../logging/file-logger.service';
+import { SettingsService } from '../settings/settings.service';
 
 const CONTENT_TYPE_BY_EXT: Record<string, string> = {
   '.epub': 'application/epub+zip',
@@ -44,6 +45,7 @@ export class LibraryController {
     private readonly bookdarrService: BookdarrService,
     private readonly offlineDownloadService: OfflineDownloadService,
     private readonly logger: FileLoggerService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   @Get()
@@ -131,6 +133,47 @@ export class LibraryController {
     upstream.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
+
+    if (!upstream.body) {
+      res.end();
+      return;
+    }
+
+    Readable.fromWeb(upstream.body as any).pipe(res);
+  }
+
+  @Get('readium/manifest')
+  @UseGuards(AuthGuard)
+  async readiumManifest(
+    @Query('pub') pub: string | undefined,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    if (!pub) {
+      res.status(400).json({ message: 'Readium pub is required.' });
+      return;
+    }
+
+    const token = this.extractAccessToken(req);
+    if (!token) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const port = this.settingsService.getSettings().port;
+    const url = `http://127.0.0.1:${port}/readium/pub/${pub}/manifest.json`;
+    const upstream = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    res.status(upstream.status);
+    const contentType = upstream.headers.get('content-type');
+    if (contentType) {
+      res.setHeader('content-type', contentType);
+    }
+    res.setHeader('cache-control', 'no-store');
 
     if (!upstream.body) {
       res.end();
@@ -292,6 +335,25 @@ export class LibraryController {
     if (mapped) {
       res.setHeader('content-type', mapped);
     }
+  }
+
+  private extractAccessToken(req: Request) {
+    const authHeader = req.headers.authorization;
+    if (typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
+      return authHeader.slice(7);
+    }
+    const queryToken = req.query?.token ?? req.query?.accessToken;
+    if (typeof queryToken === 'string') {
+      return queryToken;
+    }
+    const rawCookie = req.headers.cookie;
+    if (!rawCookie) return null;
+    const token = rawCookie
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith('bmsAccessToken='));
+    if (!token) return null;
+    return decodeURIComponent(token.slice('bmsAccessToken='.length));
   }
 
   private async handleStream(id: number, req: Request, res: Response, method: 'GET' | 'HEAD') {

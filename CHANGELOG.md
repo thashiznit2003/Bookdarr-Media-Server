@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.159 — 2026-02-04 13:44 -06:00
+- Proxy Readium manifests through BMS to drop oversized Link headers.
+
 ## 1.0.158 — 2026-02-04 13:37 -06:00
 - Force Link header removal during Readium responses to avoid proxy failures.
 

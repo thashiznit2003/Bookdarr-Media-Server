@@ -3003,7 +3003,11 @@ export class AppService {
           // ignore invalid URL
         }
         const encoded = encodeURIComponent(toBase64(streamUrl));
-        return '/readium/pub/' + encoded + '/manifest.json';
+        return {
+          pub: encoded,
+          self: '/readium/pub/' + encoded + '/manifest.json',
+          fetch: '/library/readium/manifest?pub=' + encoded,
+        };
       }
 
       async function readiumFetch(url, options = {}) {
@@ -3891,9 +3895,15 @@ export class AppService {
         };
 
         const fetchManifest = async (retry = false, refreshed = false) => {
-          readiumManifestUrl = getReadiumManifestUrl(file);
-          debugReaderLog('readium_manifest_url', { url: readiumManifestUrl, retry, refreshed });
-          const response = await readiumFetch(readiumManifestUrl);
+          const manifestTargets = getReadiumManifestUrl(file);
+          readiumManifestUrl = manifestTargets.self;
+          debugReaderLog('readium_manifest_url', {
+            url: manifestTargets.self,
+            fetch: manifestTargets.fetch,
+            retry,
+            refreshed,
+          });
+          const response = await readiumFetch(manifestTargets.fetch);
           if (!response.ok) {
             debugReaderLog('readium_manifest_status', { status: response.status, retry, refreshed });
             if (!retry && (response.status === 401 || response.status === 403 || response.status >= 500)) {
