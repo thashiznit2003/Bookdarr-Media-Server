@@ -20,6 +20,7 @@
 - Auto-generate JWT secrets on first run and provide admin-only rotation (no UI secret inputs).
 - Fixed reader engine selection so Readium remains active when chosen (no reset to epub.js).
 - Ebook stream endpoints now normalize content-type headers from Bookdarr (EPUB/PDF/audio) so Readium can open manifests.
+- Library stream URLs now include the original filename/extension to help Readium detect EPUBs.
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.
 - Login now submits on Enter key in both login flows.

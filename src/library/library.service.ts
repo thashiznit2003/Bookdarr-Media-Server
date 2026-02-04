@@ -349,7 +349,7 @@ export class LibraryService {
       size: file.size ?? 0,
       mediaType,
       format: format || undefined,
-      streamUrl: `/library/files/${file.id}/stream`,
+      streamUrl: `/library/files/${file.id}/stream/${encodeURIComponent(fileName)}`,
     };
   }
 

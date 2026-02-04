@@ -77,52 +77,17 @@ export class LibraryController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const start = Date.now();
-    const userId = (req as any).user?.userId as string | undefined;
-    if (userId) {
-      const cachedPath = await this.offlineDownloadService.getCachedFilePath(userId, id);
-      if (cachedPath) {
-        await this.sendCachedFile(cachedPath, req, res, 'GET');
-        this.logger.info('library_stream_cached', {
-          fileId: id,
-          userId,
-          range: req.headers.range ?? null,
-          durationMs: Date.now() - start,
-        });
-        return;
-      }
-    }
+    await this.handleStream(id, req, res, 'GET');
+  }
 
-    const range = req.headers.range;
-    const upstream = await this.bookdarrService.streamBookFile(id, range, 'GET');
-
-    res.status(upstream.status);
-    upstream.headers.forEach((value, key) => {
-      res.setHeader(key, value);
-    });
-    this.applyContentTypeOverride(res, upstream.headers);
-
-    if (!upstream.body) {
-      res.end();
-      this.logger.warn('library_stream_empty', {
-        fileId: id,
-        userId: userId ?? null,
-        status: upstream.status,
-        range,
-      });
-      return;
-    }
-
-    Readable.fromWeb(upstream.body as any).pipe(res);
-    res.on('finish', () => {
-      this.logger.info('library_stream', {
-        fileId: id,
-        userId: userId ?? null,
-        status: res.statusCode,
-        range,
-        durationMs: Date.now() - start,
-      });
-    });
+  @Get('files/:id/stream/:name')
+  @UseGuards(AuthGuard)
+  async streamBookFileNamed(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    await this.handleStream(id, req, res, 'GET');
   }
 
   @Head('files/:id/stream')
@@ -132,37 +97,17 @@ export class LibraryController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const start = Date.now();
-    const userId = (req as any).user?.userId as string | undefined;
-    if (userId) {
-      const cachedPath = await this.offlineDownloadService.getCachedFilePath(userId, id);
-      if (cachedPath) {
-        await this.sendCachedFile(cachedPath, req, res, 'HEAD');
-        this.logger.info('library_head_cached', {
-          fileId: id,
-          userId,
-          range: req.headers.range ?? null,
-          durationMs: Date.now() - start,
-        });
-        return;
-      }
-    }
+    await this.handleStream(id, req, res, 'HEAD');
+  }
 
-    const range = req.headers.range;
-    const upstream = await this.bookdarrService.streamBookFile(id, range, 'HEAD');
-    res.status(upstream.status);
-    upstream.headers.forEach((value, key) => {
-      res.setHeader(key, value);
-    });
-    this.applyContentTypeOverride(res, upstream.headers);
-    res.end();
-    this.logger.info('library_head', {
-      fileId: id,
-      userId: userId ?? null,
-      status: upstream.status,
-      range,
-      durationMs: Date.now() - start,
-    });
+  @Head('files/:id/stream/:name')
+  @UseGuards(AuthGuard)
+  async headBookFileNamed(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    await this.handleStream(id, req, res, 'HEAD');
   }
 
   @Get('cover-image')
@@ -347,5 +292,66 @@ export class LibraryController {
     if (mapped) {
       res.setHeader('content-type', mapped);
     }
+  }
+
+  private async handleStream(id: number, req: Request, res: Response, method: 'GET' | 'HEAD') {
+    const start = Date.now();
+    const userId = (req as any).user?.userId as string | undefined;
+    if (userId) {
+      const cachedPath = await this.offlineDownloadService.getCachedFilePath(userId, id);
+      if (cachedPath) {
+        await this.sendCachedFile(cachedPath, req, res, method);
+        this.logger.info(method === 'GET' ? 'library_stream_cached' : 'library_head_cached', {
+          fileId: id,
+          userId,
+          range: req.headers.range ?? null,
+          durationMs: Date.now() - start,
+        });
+        return;
+      }
+    }
+
+    const range = req.headers.range;
+    const upstream = await this.bookdarrService.streamBookFile(id, range, method);
+
+    res.status(upstream.status);
+    upstream.headers.forEach((value, key) => {
+      res.setHeader(key, value);
+    });
+    this.applyContentTypeOverride(res, upstream.headers);
+
+    if (method === 'HEAD') {
+      res.end();
+      this.logger.info('library_head', {
+        fileId: id,
+        userId: userId ?? null,
+        status: res.statusCode,
+        range,
+        durationMs: Date.now() - start,
+      });
+      return;
+    }
+
+    if (!upstream.body) {
+      res.end();
+      this.logger.warn('library_stream_empty', {
+        fileId: id,
+        userId: userId ?? null,
+        status: upstream.status,
+        range,
+      });
+      return;
+    }
+
+    Readable.fromWeb(upstream.body as any).pipe(res);
+    res.on('finish', () => {
+      this.logger.info('library_stream', {
+        fileId: id,
+        userId: userId ?? null,
+        status: res.statusCode,
+        range,
+        durationMs: Date.now() - start,
+      });
+    });
   }
 }

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.148 — 2026-02-03 22:24 -06:00
+- Add filename-based stream routes so Readium can detect EPUBs by URL extension.
+
 ## 1.0.147 — 2026-02-03 22:12 -06:00
 - Ensure ebook streams emit correct content-type headers (EPUB/PDF) so Readium can open manifests.
 
