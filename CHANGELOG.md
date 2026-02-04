@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.175 — 2026-02-04 17:18 -06:00
+- Use locator progression to resolve Readium next/prev so page turns stop skipping.
+
 ## 1.0.174 — 2026-02-04 17:09 -06:00
 - Use position-based Readium navigation for next/prev and refine page centering styles.
 

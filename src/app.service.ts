@@ -2019,24 +2019,54 @@ export class AppService {
         };
         const locator = readiumLastLocator || readiumNavigator.currentLocator || null;
         let index = -1;
-        const positionValue =
-          typeof locator?.locations?.position === 'number' ? locator.locations.position : null;
-        if (positionValue && readiumPositions.length) {
+        const normalizedHref = locator?.href ? normalizeHref(locator.href) : null;
+        const progression =
+          typeof locator?.locations?.progression === 'number'
+            ? locator.locations.progression
+            : null;
+        if (normalizedHref) {
+          const candidates = [];
+          for (let i = 0; i < readiumPositions.length; i += 1) {
+            const entry = readiumPositions[i];
+            if (normalizeHref(entry?.href) === normalizedHref) {
+              candidates.push({ index: i, locator: entry });
+            }
+          }
+          if (candidates.length) {
+            if (typeof progression === 'number') {
+              let bestIndex = candidates[0].index;
+              let bestDiff = Math.abs(
+                (candidates[0].locator?.locations?.progression ?? 0) - progression,
+              );
+              for (const candidate of candidates) {
+                const diff = Math.abs(
+                  (candidate.locator?.locations?.progression ?? 0) - progression,
+                );
+                if (diff < bestDiff) {
+                  bestDiff = diff;
+                  bestIndex = candidate.index;
+                }
+              }
+              index = bestIndex;
+            } else {
+              index = candidates[0].index;
+            }
+          }
+        }
+        if (index < 0 && typeof locator?.locations?.position === 'number') {
+          const positionValue = locator.locations.position;
           index = Math.min(Math.max(positionValue - 1, 0), readiumPositions.length - 1);
-        } else if (locator?.href) {
-          const normalized = normalizeHref(locator.href);
-          index = readiumPositions.findIndex(
-            (entry) => normalizeHref(entry?.href) === normalized,
-          );
         }
         if (index < 0) index = 0;
         const nextIndex = Math.min(
           Math.max(index + delta, 0),
           Math.max(readiumPositions.length - 1, 0),
         );
-        if (!readiumPositions[nextIndex]) return false;
+        const target = readiumPositions[nextIndex];
+        if (!target) return false;
         try {
-          readiumNavigator.go(readiumPositions[nextIndex], false, () => {});
+          readiumLastLocator = target;
+          readiumNavigator.go(target, false, () => {});
           return true;
         } catch {
           return false;
