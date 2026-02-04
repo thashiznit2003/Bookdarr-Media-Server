@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.156 — 2026-02-04 12:05 -06:00
+- Route Readium manifests through a local internal base to avoid 502s when using a public domain.
+
 ## 1.0.155 — 2026-02-04 11:50 -06:00
 - Force Readium manifests to use the current origin for local stream URLs to avoid 502s.
 

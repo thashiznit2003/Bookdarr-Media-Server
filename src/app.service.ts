@@ -21,6 +21,9 @@ export class AppService {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bookdarr Media Server</title>
+    <script>
+      window.__BMS_INTERNAL_BASE = 'http://127.0.0.1:9797';
+    </script>
     <style>
       :root {
         color-scheme: dark;
@@ -2982,10 +2985,19 @@ export class AppService {
 
       function getReadiumManifestUrl(file) {
         let streamUrl = toAbsoluteUrl(withToken(file.streamUrl));
+        const internalBase = window.__BMS_INTERNAL_BASE;
+        if (internalBase) {
+          try {
+            const parsed = new URL(streamUrl);
+            streamUrl = internalBase + parsed.pathname + parsed.search;
+          } catch {
+            // ignore invalid URL
+          }
+        }
         try {
           const parsed = new URL(streamUrl);
           if (parsed.pathname.startsWith('/library/files/')) {
-            streamUrl = window.location.origin + parsed.pathname + parsed.search;
+            streamUrl = (internalBase || window.location.origin) + parsed.pathname + parsed.search;
           }
         } catch {
           // ignore invalid URL
