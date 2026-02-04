@@ -2011,9 +2011,43 @@ export class AppService {
         }
       });
 
+      const goReadiumRelative = (delta) => {
+        if (!readiumNavigator || !readiumPositions?.length) return false;
+        const normalizeHref = (href) => {
+          if (!href) return href;
+          return href.replace(/^https?:\\/\\/[^/]+\\//, '').replace(/^\\//, '');
+        };
+        const locator = readiumLastLocator || readiumNavigator.currentLocator || null;
+        let index = -1;
+        const positionValue =
+          typeof locator?.locations?.position === 'number' ? locator.locations.position : null;
+        if (positionValue && readiumPositions.length) {
+          index = Math.min(Math.max(positionValue - 1, 0), readiumPositions.length - 1);
+        } else if (locator?.href) {
+          const normalized = normalizeHref(locator.href);
+          index = readiumPositions.findIndex(
+            (entry) => normalizeHref(entry?.href) === normalized,
+          );
+        }
+        if (index < 0) index = 0;
+        const nextIndex = Math.min(
+          Math.max(index + delta, 0),
+          Math.max(readiumPositions.length - 1, 0),
+        );
+        if (!readiumPositions[nextIndex]) return false;
+        try {
+          readiumNavigator.go(readiumPositions[nextIndex], false, () => {});
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
       const goPrev = () => {
         if (readiumNavigator) {
-          readiumNavigator.goBackward(false, () => {});
+          if (!goReadiumRelative(-1)) {
+            readiumNavigator.goBackward(false, () => {});
+          }
         } else if (epubRendition) {
           readerNavPending = Math.max(readerNavPending - 1, -10);
           epubRendition.prev();
@@ -2024,7 +2058,9 @@ export class AppService {
       };
       const goNext = () => {
         if (readiumNavigator) {
-          readiumNavigator.goForward(false, () => {});
+          if (!goReadiumRelative(1)) {
+            readiumNavigator.goForward(false, () => {});
+          }
         } else if (epubRendition) {
           readerNavPending = Math.min(readerNavPending + 1, 10);
           epubRendition.next();
@@ -3349,8 +3385,8 @@ export class AppService {
 
       function getReadiumThemeCss() {
         const base =
-          'html{display:flex !important;justify-content:center !important;} ' +
-          'body{margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;align-self:center !important;}';
+          'html{width:100% !important;text-align:center !important;} ' +
+          'body{display:inline-block !important;text-align:left !important;margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;}';
         return readerTheme === 'dark'
           ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;} ' +
               base +

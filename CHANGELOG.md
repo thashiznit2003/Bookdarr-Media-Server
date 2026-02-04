@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.174 — 2026-02-04 17:09 -06:00
+- Use position-based Readium navigation for next/prev and refine page centering styles.
+
 ## 1.0.173 — 2026-02-04 16:51 -06:00
 - Center Readium pages inside the modal using injected layout styling.
 
