@@ -109,7 +109,21 @@ async function bootstrap() {
       }
       return originalWriteHead(statusCode, statusMessage);
     }) as any;
-    res.removeHeader('Link');
+    const stripLinkHeader = () => {
+      res.removeHeader('Link');
+      res.removeHeader('link');
+    };
+    const originalWrite = res.write.bind(res);
+    res.write = ((...args: any[]) => {
+      stripLinkHeader();
+      return originalWrite(...args);
+    }) as any;
+    const originalEnd = res.end.bind(res);
+    res.end = ((...args: any[]) => {
+      stripLinkHeader();
+      return originalEnd(...args);
+    }) as any;
+    stripLinkHeader();
     next();
   });
   readiumExpress.use((req, res, next) => {

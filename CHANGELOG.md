@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.158 — 2026-02-04 13:37 -06:00
+- Force Link header removal during Readium responses to avoid proxy failures.
+
 ## 1.0.157 — 2026-02-04 13:28 -06:00
 - Strip Readium Link headers to avoid proxy 502s on manifest responses.
 
