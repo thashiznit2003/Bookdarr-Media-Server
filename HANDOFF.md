@@ -39,6 +39,7 @@
 - Readium no longer mutates manifest readingOrder hrefs; fetcher uses resolved copies.
 - Readium UI now centers pages and uses position-based global page counters.
 - Readium positions are now stored in shared scope to avoid load-time reference errors.
+- Readium now fetches the position list link for accurate total pages and global progress.
 - Login page script no longer references reader settings handlers from the main app shell.
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.

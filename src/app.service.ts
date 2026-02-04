@@ -3839,16 +3839,19 @@ export class AppService {
         if (!locator) return;
         const href = locator?.href ?? null;
         const normalizedHref = href ? href.replace(/^https?:\\/\\/[^/]+\\//, '') : null;
+        const totalPages = readiumPositions?.length || null;
         let pageIndex = null;
-        let totalPages = null;
-        if (normalizedHref && readiumPositions?.length) {
+        const positionValue =
+          typeof locator?.locations?.position === 'number' ? locator.locations.position : null;
+        if (positionValue && totalPages) {
+          pageIndex = Math.min(Math.max(positionValue, 1), totalPages);
+        } else if (normalizedHref && totalPages) {
           const matchIndex = readiumPositions.findIndex((entry) => entry?.href === normalizedHref);
           if (matchIndex >= 0) {
             pageIndex = matchIndex + 1;
-            totalPages = readiumPositions.length;
           }
         }
-        const percent = totalPages ? Math.round((pageIndex / totalPages) * 100) : null;
+        const percent = totalPages && pageIndex ? Math.round((pageIndex / totalPages) * 100) : null;
         const parts = [];
         if (pageIndex && totalPages) {
           parts.push('Page ' + pageIndex + ' / ' + totalPages);
@@ -4097,6 +4100,20 @@ export class AppService {
         const resourceList = Array.isArray(manifest.resources?.items)
           ? manifest.resources.items
           : [];
+        const resolveManifestRel = (rel) => {
+          if (!rel) return [];
+          return Array.isArray(rel) ? rel : [rel];
+        };
+        const findPositionListHref = () => {
+          if (!Array.isArray(manifestJson?.links)) {
+            return null;
+          }
+          const link = manifestJson.links.find((entry) => {
+            const rels = resolveManifestRel(entry?.rel);
+            return rels.includes('http://readium.org/position-list');
+          });
+          return link?.href ?? null;
+        };
         linkList.forEach(pushLink);
         readingOrderList.forEach(pushLink);
         resourceList.forEach(pushLink);
@@ -4177,18 +4194,47 @@ export class AppService {
 
         readiumPositions = [];
         try {
-          const fetched = await readiumPublication.positionsFromManifest();
-          if (Array.isArray(fetched) && fetched.length) {
-            readiumPositions = fetched
-              .map((locator, index) =>
-                ensureReadiumPosition(normalizeReadiumLocator(locator), index + 1),
-              )
-              .filter(Boolean);
+          const positionHref = findPositionListHref();
+          if (positionHref) {
+            const positionsUrl = resolveHref(positionHref);
+            if (positionsUrl) {
+              const response = await readiumFetch(positionsUrl);
+              if (response.ok) {
+                const json = await response.json();
+                const rawPositions = Array.isArray(json?.positions) ? json.positions : [];
+                const parsed = rawPositions
+                  .map((entry) => ReadiumShared.Locator.deserialize(entry))
+                  .filter(Boolean);
+                if (parsed.length) {
+                  readiumPositions = parsed
+                    .map((locator, index) =>
+                      ensureReadiumPosition(normalizeReadiumLocator(locator), index + 1),
+                    )
+                    .filter(Boolean);
+                }
+              }
+            }
           }
         } catch (error) {
           debugReaderLog('readium_positions_error', {
             message: error?.message ?? String(error),
           });
+        }
+        if (!readiumPositions.length) {
+          try {
+            const fetched = await readiumPublication.positionsFromManifest();
+            if (Array.isArray(fetched) && fetched.length) {
+              readiumPositions = fetched
+                .map((locator, index) =>
+                  ensureReadiumPosition(normalizeReadiumLocator(locator), index + 1),
+                )
+                .filter(Boolean);
+            }
+          } catch (error) {
+            debugReaderLog('readium_positions_error', {
+              message: error?.message ?? String(error),
+            });
+          }
         }
         if (!readiumPositions.length && readiumPublication?.readingOrder?.items?.length) {
           readiumPositions = readiumPublication.readingOrder.items

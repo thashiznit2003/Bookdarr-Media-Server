@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.171 — 2026-02-04 17:09 -06:00
+- Pull Readium position list from manifest and use global page positions for counters.
+
 ## 1.0.170 — 2026-02-04 16:57 -06:00
 - Fix Readium page counter state by lifting positions to shared scope.
 
