@@ -3846,16 +3846,46 @@ export class AppService {
         });
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
         updateReaderLayout();
-        const fetchManifest = async (retry = false) => {
+        const refreshFileFromDetail = async () => {
+          const bookId = currentDetail?.id ?? detailModal?.dataset?.bookId;
+          if (!bookId) {
+            return false;
+          }
+          try {
+            const response = await fetchWithAuth('/library/' + bookId);
+            const body = await response.json();
+            if (!response.ok || !body) {
+              return false;
+            }
+            const updated = (body.ebookFiles || []).find((entry) => entry?.id === file?.id);
+            if (!updated) {
+              return false;
+            }
+            file.streamUrl = updated.streamUrl ?? file.streamUrl;
+            file.fileName = updated.fileName ?? file.fileName;
+            file.format = updated.format ?? file.format;
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
+        const fetchManifest = async (retry = false, refreshed = false) => {
           readiumManifestUrl = getReadiumManifestUrl(file);
-          debugReaderLog('readium_manifest_url', { url: readiumManifestUrl, retry });
+          debugReaderLog('readium_manifest_url', { url: readiumManifestUrl, retry, refreshed });
           const response = await readiumFetch(readiumManifestUrl);
           if (!response.ok) {
-            debugReaderLog('readium_manifest_status', { status: response.status, retry });
+            debugReaderLog('readium_manifest_status', { status: response.status, retry, refreshed });
             if (!retry && (response.status === 401 || response.status === 403 || response.status >= 500)) {
-              const refreshed = await refreshAuthToken();
-              if (refreshed) {
-                return fetchManifest(true);
+              const refreshedAuth = await refreshAuthToken();
+              if (refreshedAuth) {
+                return fetchManifest(true, refreshed);
+              }
+            }
+            if (!refreshed) {
+              const refreshedDetail = await refreshFileFromDetail();
+              if (refreshedDetail) {
+                return fetchManifest(retry, true);
               }
             }
             throw new Error('Failed to load Readium manifest');
