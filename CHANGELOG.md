@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.152 — 2026-02-03 23:29 -06:00
+- Force Readium to resolve asset URLs under the /readium base to avoid 404s.
+- Remove stray reader settings hook from the login page script.
+
 ## 1.0.151 — 2026-02-03 22:59 -06:00
 - Retry Readium manifest with refreshed book detail to pick up updated stream URLs.
 

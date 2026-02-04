@@ -3941,7 +3941,9 @@ export class AppService {
           total: allLinks.length,
         });
 
-        const baseUrl = manifest.baseURL || manifestBase;
+        // Force Readium assets to resolve under /readium instead of /pub.
+        manifest.baseURL = manifestBase;
+        const baseUrl = manifestBase;
         const fetcher = createReadiumFetcher(baseUrl, allLinks);
         if (!fetcher) {
           debugReaderLog('readium_fetcher_missing');
@@ -5897,38 +5899,6 @@ export class AppService {
             document.getElementById('login-submit')?.click();
           }
         });
-      });
-
-      saveReaderSettingsButton?.addEventListener('click', () => {
-        const legacy = Boolean(settingsReaderLegacy?.checked);
-        if (settingsReaderStatus) {
-          settingsReaderStatus.textContent = 'Saving...';
-        }
-        fetchWithAuth('/settings/reader', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ legacyEpubEnabled: legacy }),
-        })
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
-            if (!ok) {
-              const message = body?.message ?? 'Unable to save reader settings.';
-              if (settingsReaderStatus) settingsReaderStatus.textContent = message;
-              return;
-            }
-            legacyEpubEnabled = Boolean(body?.legacyEpubEnabled);
-            if (settingsReaderLegacy) settingsReaderLegacy.checked = legacyEpubEnabled;
-            if (settingsReaderStatus) {
-              settingsReaderStatus.textContent = legacyEpubEnabled
-                ? 'Legacy EPUB reader is enabled.'
-                : 'Legacy EPUB reader is disabled.';
-            }
-          })
-          .catch(() => {
-            if (settingsReaderStatus) settingsReaderStatus.textContent = 'Save failed.';
-          });
       });
 
       ['setup-username', 'setup-email', 'setup-password'].forEach((id) => {
