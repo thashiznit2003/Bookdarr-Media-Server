@@ -3676,15 +3676,27 @@ export class AppService {
         }
         if (format === '.epub') {
           if (readerEngine === 'readium') {
-            openReadiumReader(file).then((ok) => {
-              if (!ok) {
+            debugReaderLog('readium_call');
+            openReadiumReader(file)
+              .then((ok) => {
+                debugReaderLog('readium_result', { ok });
+                if (!ok) {
+                  const forceReadium = window.__BMS_FORCE_READIUM === true;
+                  debugReaderLog('readium_fallback', { forceReadium });
+                  if (!forceReadium) {
+                    openEpubReader(file);
+                  }
+                }
+              })
+              .catch((error) => {
+                debugReaderLog('readium_error', {
+                  message: error?.message ?? String(error),
+                });
                 const forceReadium = window.__BMS_FORCE_READIUM === true;
-                debugReaderLog('readium_fallback', { forceReadium });
                 if (!forceReadium) {
                   openEpubReader(file);
                 }
-              }
-            });
+              });
           } else {
             openEpubReader(file);
           }
@@ -3810,7 +3822,11 @@ export class AppService {
       }
 
       async function openReadiumReader(file) {
-        if (!readerView) return false;
+        if (!readerView) {
+          debugReaderLog('readium_missing_view');
+          return false;
+        }
+        debugReaderLog('readium_enter');
         const ready = await ensureReadiumReady();
         if (!ready) {
           debugReaderLog('readium_not_ready');

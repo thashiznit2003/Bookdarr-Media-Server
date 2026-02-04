@@ -44,6 +44,7 @@
 - Settings module now imports LoggingModule so reader settings logging doesn't crash the service.
 - Added FORCE_READIUM=true diagnostic mode and extra Readium start/fallback logging.
 - App shell routes now send strict no-cache headers to prevent stale UI.
+- Readium now logs call/result/error events to explain why it falls back.
 - Login now reveals the OTP field when 2FA is required and preserves it via login redirects.
 - Touch reader now hides toolbars and shows overlay back/progress controls for a cleaner full-screen view.
 - Auth storage now guards localStorage access for iOS/Safari so login doesn’t break.
