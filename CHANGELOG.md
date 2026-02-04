@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.166 — 2026-02-04 16:16 -06:00
+- Apply Readium line-length defaults, normalize positions, and use PreferencesEditor to sync settings.
+
 ## 1.0.165 — 2026-02-04 16:04 -06:00
 - Normalize Readium locator hrefs for navigation, adjust fit sizing, and keep progress stable.
 

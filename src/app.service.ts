@@ -3369,15 +3369,26 @@ export class AppService {
           if (!Prefs) return;
           await readiumNavigator.submitPreferences(
             new Prefs({
-              fontSize: 0.95,
-              lineHeight: 1.4,
+              fontSize: 1.0,
+              lineHeight: 1.5,
               textAlign: 'left',
               hyphens: false,
               textNormalization: true,
               scroll: false,
               columnCount: 1,
+              minimalLineLength: 20,
+              optimalLineLength: 55,
+              maximalLineLength: 65,
             }),
           );
+          try {
+            const editor = readiumNavigator.preferencesEditor;
+            if (editor?.preferences) {
+              await readiumNavigator.submitPreferences(editor.preferences);
+            }
+          } catch {
+            // ignore preference editor errors
+          }
         } catch {
           // ignore preference errors
         }
@@ -4104,7 +4115,7 @@ export class AppService {
         try {
           const fetched = await readiumPublication.positionsFromManifest();
           if (Array.isArray(fetched) && fetched.length) {
-            readiumPositions = fetched;
+            readiumPositions = fetched.map((locator) => normalizeReadiumLocator(locator));
           }
         } catch (error) {
           debugReaderLog('readium_positions_error', {
@@ -4112,14 +4123,18 @@ export class AppService {
           });
         }
         if (!readiumPositions.length && readiumPublication?.readingOrder?.items?.length) {
-          readiumPositions = readiumPublication.readingOrder.items.map((link) =>
-            new ReadiumShared.Locator({
-              href: link.href,
-              type: link.type ?? 'text/html',
-              title: link.title,
-              locations: new ReadiumShared.LocatorLocations({ progression: 0 }),
-            }),
-          );
+          readiumPositions = readiumPublication.readingOrder.items
+            .map((link) =>
+              normalizeReadiumLocator(
+                new ReadiumShared.Locator({
+                  href: link.href,
+                  type: link.type ?? 'text/html',
+                  title: link.title,
+                  locations: new ReadiumShared.LocatorLocations({ progression: 0 }),
+                }),
+              ),
+            )
+            .filter(Boolean);
         }
 
         const Prefs = ReadiumNavigator.EpubPreferences ?? ReadiumNavigator.WebPubPreferences;
@@ -4135,23 +4150,29 @@ export class AppService {
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              fontSize: 0.95,
-              lineHeight: 1.4,
+              fontSize: 1.0,
+              lineHeight: 1.5,
               textAlign: 'left',
               hyphens: false,
               scroll: false,
               columnCount: 1,
+              minimalLineLength: 20,
+              optimalLineLength: 55,
+              maximalLineLength: 65,
             }),
             defaults: new Defaults({
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              fontSize: 0.95,
-              lineHeight: 1.4,
+              fontSize: 1.0,
+              lineHeight: 1.5,
               textAlign: 'left',
               hyphens: false,
               scroll: false,
               columnCount: 1,
+              minimalLineLength: 20,
+              optimalLineLength: 55,
+              maximalLineLength: 65,
             }),
           },
         );
