@@ -2981,7 +2981,15 @@ export class AppService {
       }
 
       function getReadiumManifestUrl(file) {
-        const streamUrl = toAbsoluteUrl(withToken(file.streamUrl));
+        let streamUrl = toAbsoluteUrl(withToken(file.streamUrl));
+        try {
+          const parsed = new URL(streamUrl);
+          if (parsed.pathname.startsWith('/library/files/')) {
+            streamUrl = window.location.origin + parsed.pathname + parsed.search;
+          }
+        } catch {
+          // ignore invalid URL
+        }
         const encoded = encodeURIComponent(toBase64(streamUrl));
         return '/readium/pub/' + encoded + '/manifest.json';
       }
