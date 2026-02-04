@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.173 — 2026-02-04 16:51 -06:00
+- Center Readium pages inside the modal using injected layout styling.
+
 ## 1.0.172 — 2026-02-04 16:40 -06:00
 - Center Readium page layout and compute synthetic positions to drive page counts.
 

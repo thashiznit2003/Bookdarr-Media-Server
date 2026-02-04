@@ -3349,7 +3349,8 @@ export class AppService {
 
       function getReadiumThemeCss() {
         const base =
-          'body{margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;}';
+          'html{display:flex !important;justify-content:center !important;} ' +
+          'body{margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;align-self:center !important;}';
         return readerTheme === 'dark'
           ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;} ' +
               base +
