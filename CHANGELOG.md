@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.170 — 2026-02-04 16:57 -06:00
+- Fix Readium page counter state by lifting positions to shared scope.
+
 ## 1.0.169 — 2026-02-04 16:48 -06:00
 - Center Readium pages and restore global page counters from positions.
 

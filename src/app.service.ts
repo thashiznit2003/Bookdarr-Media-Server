@@ -1925,6 +1925,8 @@ export class AppService {
       let readiumPublication = null;
       let readiumManifestUrl = null;
       let readiumReadyPromise = null;
+      let readiumPositions = [];
+      let readiumLastLocator = null;
       let epubLocationsReady = false;
       let epubLocationsGenerating = false;
       let readerBodyOverflow = null;
@@ -3195,6 +3197,8 @@ export class AppService {
         readiumNavigator = null;
         readiumPublication = null;
         readiumManifestUrl = null;
+        readiumPositions = [];
+        readiumLastLocator = null;
         if (epubObjectUrl) {
           try {
             URL.revokeObjectURL(epubObjectUrl);
@@ -4171,7 +4175,7 @@ export class AppService {
           textSelected: () => {},
         };
 
-        let readiumPositions = [];
+        readiumPositions = [];
         try {
           const fetched = await readiumPublication.positionsFromManifest();
           if (Array.isArray(fetched) && fetched.length) {
