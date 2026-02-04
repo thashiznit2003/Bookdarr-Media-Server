@@ -37,6 +37,7 @@
 - Readium now applies line-length defaults and preferences editor settings per EpubNavigator docs.
 - Readium now ensures locator positions are set so EpubNavigator frame pooling works.
 - Readium no longer mutates manifest readingOrder hrefs; fetcher uses resolved copies.
+- Readium UI now centers pages and uses position-based global page counters.
 - Login page script no longer references reader settings handlers from the main app shell.
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.169 — 2026-02-04 16:48 -06:00
+- Center Readium pages and restore global page counters from positions.
+
 ## 1.0.168 — 2026-02-04 16:36 -06:00
 - Keep Readium manifest readingOrder hrefs relative so EpubNavigator can attach frames.
 

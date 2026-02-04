@@ -918,6 +918,9 @@ export class AppService {
         height: 100%;
         position: relative;
         overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .readium-container iframe {
         width: 100%;
@@ -3830,14 +3833,35 @@ export class AppService {
 
       function updateReadiumProgress(locator) {
         if (!locator) return;
-        const progression =
-          typeof locator.locations?.totalProgression === 'number'
-            ? locator.locations.totalProgression
-            : locator.locations?.progression;
-        if (typeof progression === 'number') {
-          const percent = Math.round(progression * 100);
-          updateReaderProgress('Location ' + percent + '%');
+        const href = locator?.href ?? null;
+        const normalizedHref = href ? href.replace(/^https?:\\/\\/[^/]+\\//, '') : null;
+        let pageIndex = null;
+        let totalPages = null;
+        if (normalizedHref && readiumPositions?.length) {
+          const matchIndex = readiumPositions.findIndex((entry) => entry?.href === normalizedHref);
+          if (matchIndex >= 0) {
+            pageIndex = matchIndex + 1;
+            totalPages = readiumPositions.length;
+          }
         }
+        const percent = totalPages ? Math.round((pageIndex / totalPages) * 100) : null;
+        const parts = [];
+        if (pageIndex && totalPages) {
+          parts.push('Page ' + pageIndex + ' / ' + totalPages);
+        }
+        if (typeof percent === 'number') {
+          parts.push(percent + '%');
+        }
+        if (!parts.length) {
+          const progression =
+            typeof locator.locations?.totalProgression === 'number'
+              ? locator.locations.totalProgression
+              : locator.locations?.progression;
+          if (typeof progression === 'number') {
+            parts.push('Location ' + Math.round(progression * 100) + '%');
+          }
+        }
+        updateReaderProgress(parts.join(' · '));
       }
 
       function createReadiumFetcher(baseUrl, links) {
@@ -4124,6 +4148,7 @@ export class AppService {
                 normalized,
                 readiumPositions[0]?.locations?.position ?? 1,
               );
+              readiumLastLocator = positioned ?? normalized ?? locator;
               saveProgress('ebook-epub', file.id, { locator: positioned });
               updateReadiumProgress(positioned ?? normalized ?? locator);
               debugReaderLog('readium_position_changed', {
@@ -4182,6 +4207,7 @@ export class AppService {
         if (!readiumPositions.length) {
           debugReaderLog('readium_positions_empty');
         }
+        window.__bmsReadiumPositions = readiumPositions;
         if (initialLocator && readiumPositions.length) {
           const normalizedInitial = normalizeReadiumLocator(initialLocator);
           const match = readiumPositions.find((entry) => entry?.href === normalizedInitial?.href);
