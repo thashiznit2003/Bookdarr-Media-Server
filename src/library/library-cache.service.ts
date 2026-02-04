@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, rm } from 'fs/promises';
 import { dirname, join } from 'path';
 import { LibraryItem } from './library.types';
 
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
 interface LibraryCachePayload {

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.149 — 2026-02-03 22:37 -06:00
+- Invalidate the library cache to force updated stream URLs with file extensions.
+
 ## 1.0.148 — 2026-02-03 22:24 -06:00
 - Add filename-based stream routes so Readium can detect EPUBs by URL extension.
 
