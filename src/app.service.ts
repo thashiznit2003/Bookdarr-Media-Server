@@ -4001,6 +4001,32 @@ export class AppService {
             return locator;
           }
         };
+        const ensureReadiumPosition = (locator, positionFallback) => {
+          if (!locator || !locator.href) return locator;
+          const existing = locator.locations;
+          const position =
+            typeof existing?.position === 'number' && existing.position > 0
+              ? existing.position
+              : positionFallback;
+          if (!position) return locator;
+          try {
+            return new ReadiumShared.Locator({
+              href: locator.href,
+              type: locator.type ?? 'text/html',
+              title: locator.title,
+              locations: new ReadiumShared.LocatorLocations({
+                fragments: existing?.fragments,
+                progression: existing?.progression,
+                totalProgression: existing?.totalProgression,
+                position,
+                otherLocations: existing?.otherLocations,
+              }),
+              text: locator.text,
+            });
+          } catch {
+            return locator;
+          }
+        };
 
         const allLinks = [];
         const seen = new Set();
@@ -4090,12 +4116,17 @@ export class AppService {
           positionChanged: (locator) => {
             if (locator) {
               const normalized = normalizeReadiumLocator(locator);
-              saveProgress('ebook-epub', file.id, { locator: normalized });
-              updateReadiumProgress(normalized ?? locator);
+              const positioned = ensureReadiumPosition(
+                normalized,
+                readiumPositions[0]?.locations?.position ?? 1,
+              );
+              saveProgress('ebook-epub', file.id, { locator: positioned });
+              updateReadiumProgress(positioned ?? normalized ?? locator);
               debugReaderLog('readium_position_changed', {
-                href: normalized?.href ?? locator?.href ?? null,
-                progression: (normalized ?? locator)?.locations?.progression ?? null,
-                totalProgression: (normalized ?? locator)?.locations?.totalProgression ?? null,
+                href: positioned?.href ?? normalized?.href ?? locator?.href ?? null,
+                progression: (positioned ?? normalized ?? locator)?.locations?.progression ?? null,
+                totalProgression: (positioned ?? normalized ?? locator)?.locations?.totalProgression ?? null,
+                position: (positioned ?? normalized ?? locator)?.locations?.position ?? null,
               });
             }
           },
@@ -4115,7 +4146,11 @@ export class AppService {
         try {
           const fetched = await readiumPublication.positionsFromManifest();
           if (Array.isArray(fetched) && fetched.length) {
-            readiumPositions = fetched.map((locator) => normalizeReadiumLocator(locator));
+            readiumPositions = fetched
+              .map((locator, index) =>
+                ensureReadiumPosition(normalizeReadiumLocator(locator), index + 1),
+              )
+              .filter(Boolean);
           }
         } catch (error) {
           debugReaderLog('readium_positions_error', {
@@ -4124,17 +4159,35 @@ export class AppService {
         }
         if (!readiumPositions.length && readiumPublication?.readingOrder?.items?.length) {
           readiumPositions = readiumPublication.readingOrder.items
-            .map((link) =>
-              normalizeReadiumLocator(
-                new ReadiumShared.Locator({
-                  href: link.href,
-                  type: link.type ?? 'text/html',
-                  title: link.title,
-                  locations: new ReadiumShared.LocatorLocations({ progression: 0 }),
-                }),
+            .map((link, index) =>
+              ensureReadiumPosition(
+                normalizeReadiumLocator(
+                  new ReadiumShared.Locator({
+                    href: link.href,
+                    type: link.type ?? 'text/html',
+                    title: link.title,
+                    locations: new ReadiumShared.LocatorLocations({ progression: 0 }),
+                  }),
+                ),
+                index + 1,
               ),
             )
             .filter(Boolean);
+        }
+
+        if (!readiumPositions.length) {
+          debugReaderLog('readium_positions_empty');
+        }
+        if (initialLocator && readiumPositions.length) {
+          const normalizedInitial = normalizeReadiumLocator(initialLocator);
+          const match = readiumPositions.find((entry) => entry?.href === normalizedInitial?.href);
+          if (match) {
+            initialLocator = ensureReadiumPosition(normalizedInitial, match.locations?.position ?? 1);
+          } else {
+            initialLocator = ensureReadiumPosition(normalizedInitial, 1);
+          }
+        } else if (readiumPositions.length) {
+          initialLocator = readiumPositions[0];
         }
 
         const Prefs = ReadiumNavigator.EpubPreferences ?? ReadiumNavigator.WebPubPreferences;

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.167 — 2026-02-04 16:28 -06:00
+- Ensure Readium locators include position indices so EpubNavigator can create frames.
+
 ## 1.0.166 — 2026-02-04 16:16 -06:00
 - Apply Readium line-length defaults, normalize positions, and use PreferencesEditor to sync settings.
 
