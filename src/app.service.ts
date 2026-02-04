@@ -1926,6 +1926,7 @@ export class AppService {
       let readiumManifestUrl = null;
       let readiumReadyPromise = null;
       let readiumPositions = [];
+      let readiumPositionsCache = new Map();
       let readiumLastLocator = null;
       let epubLocationsReady = false;
       let epubLocationsGenerating = false;
@@ -3346,23 +3347,37 @@ export class AppService {
         applyReadiumTheme();
       }
 
+      function getReadiumThemeCss() {
+        const base =
+          'body{margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;}';
+        return readerTheme === 'dark'
+          ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;} ' +
+              base +
+              ' body *{color:#e5e7eb !important;} a{color:#93c5fd !important;} img,svg,video{max-width:100% !important;height:auto !important;}'
+          : 'html,body{background:#f8f5ef !important;color:#111827 !important;} ' +
+              base +
+              ' body *{color:#111827 !important;} a{color:#0f172a !important;} img,svg,video{max-width:100% !important;height:auto !important;}';
+      }
+
+      function injectReadiumTheme(doc, css) {
+        if (!doc) return;
+        let style = doc.getElementById('bms-readium-theme');
+        if (!style) {
+          style = doc.createElement('style');
+          style.id = 'bms-readium-theme';
+          (doc.head || doc.documentElement).appendChild(style);
+        }
+        style.textContent = css;
+      }
+
       function applyReadiumTheme() {
         if (!readerView || !readiumNavigator) return;
-        const css =
-          readerTheme === 'dark'
-            ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;} body *{color:#e5e7eb !important;} a{color:#93c5fd !important;} img,svg,video{max-width:100% !important;height:auto !important;}'
-            : 'html,body{background:#f8f5ef !important;color:#111827 !important;margin:0 !important;padding:0 !important;width:100% !important;max-width:100% !important;} body *{color:#111827 !important;} a{color:#0f172a !important;} img,svg,video{max-width:100% !important;height:auto !important;}';
+        const css = getReadiumThemeCss();
         readerView.querySelectorAll('iframe').forEach((iframe) => {
           try {
             const doc = iframe.contentDocument;
             if (!doc) return;
-            let style = doc.getElementById('bms-readium-theme');
-            if (!style) {
-              style = doc.createElement('style');
-              style.id = 'bms-readium-theme';
-              (doc.head || doc.documentElement).appendChild(style);
-            }
-            style.textContent = css;
+            injectReadiumTheme(doc, css);
           } catch {
             // ignore cross-origin
           }
@@ -4192,25 +4207,213 @@ export class AppService {
           textSelected: () => {},
         };
 
+        const readiumPrefsConfig = {
+          iOSPatch: true,
+          iPadOSPatch: true,
+          textNormalization: true,
+          fontSize: 1.0,
+          lineHeight: 1.5,
+          textAlign: 'left',
+          hyphens: false,
+          scroll: false,
+          columnCount: 1,
+          minimalLineLength: 20,
+          optimalLineLength: 55,
+          maximalLineLength: 65,
+        };
+
+        const getReadiumViewportKey = () => {
+          if (!readerView) return '0x0';
+          const rect = readerView.getBoundingClientRect();
+          const width = Math.max(1, Math.round(rect.width));
+          const height = Math.max(1, Math.round(rect.height));
+          const ratio = Math.round((window.devicePixelRatio || 1) * 100) / 100;
+          return width + 'x' + height + '@' + ratio;
+        };
+
+        const getReadiumPositionsCacheKey = (fileId) => {
+          const viewportKey = getReadiumViewportKey();
+          return 'bms.readium.positions.' + fileId + '.' + viewportKey;
+        };
+
+        const loadCachedReadiumPositions = (fileId) => {
+          const cacheKey = getReadiumPositionsCacheKey(fileId);
+          if (readiumPositionsCache.has(cacheKey)) {
+            return readiumPositionsCache.get(cacheKey);
+          }
+          try {
+            const raw = localStorage.getItem(cacheKey);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            const positions = parsed
+              .map((entry) => ReadiumShared.Locator.deserialize(entry))
+              .filter(Boolean);
+            if (positions.length) {
+              readiumPositionsCache.set(cacheKey, positions);
+            }
+            return positions;
+          } catch {
+            return [];
+          }
+        };
+
+        const saveCachedReadiumPositions = (fileId, positions) => {
+          if (!Array.isArray(positions) || !positions.length) return;
+          const cacheKey = getReadiumPositionsCacheKey(fileId);
+          readiumPositionsCache.set(cacheKey, positions);
+          try {
+            const payload = positions.map((locator) =>
+              typeof locator?.serialize === 'function' ? locator.serialize() : locator,
+            );
+            localStorage.setItem(cacheKey, JSON.stringify(payload));
+          } catch {
+            // ignore cache write errors
+          }
+        };
+
+        const buildSyntheticReadiumPositions = async () => {
+          if (!readiumPublication?.readingOrder?.items?.length) return [];
+          if (!readerView) return [];
+          const rect = readerView.getBoundingClientRect();
+          if (!rect.width || !rect.height) return [];
+          const measureContainer = document.createElement('div');
+          measureContainer.style.position = 'absolute';
+          measureContainer.style.left = '-99999px';
+          measureContainer.style.top = '0';
+          measureContainer.style.width = Math.max(320, Math.round(rect.width)) + 'px';
+          measureContainer.style.height = Math.max(240, Math.round(rect.height)) + 'px';
+          measureContainer.style.visibility = 'hidden';
+          measureContainer.style.pointerEvents = 'none';
+          measureContainer.style.overflow = 'hidden';
+          readerView.appendChild(measureContainer);
+
+          const seedPositions = readiumPublication.readingOrder.items
+            .map((link, index) =>
+              ensureReadiumPosition(
+                normalizeReadiumLocator(
+                  new ReadiumShared.Locator({
+                    href: link.href,
+                    type: link.type ?? 'text/html',
+                    title: link.title,
+                    locations: new ReadiumShared.LocatorLocations({ progression: 0 }),
+                  }),
+                ),
+                index + 1,
+              ),
+            )
+            .filter(Boolean);
+
+          const Prefs = ReadiumNavigator.EpubPreferences ?? ReadiumNavigator.WebPubPreferences;
+          const Defaults = ReadiumNavigator.EpubDefaults ?? ReadiumNavigator.WebPubDefaults;
+
+          const measureNav = new ReadiumNavigator.EpubNavigator(
+            measureContainer,
+            readiumPublication,
+            { positionChanged: () => {} },
+            seedPositions,
+            seedPositions[0],
+            {
+              preferences: new Prefs(readiumPrefsConfig),
+              defaults: new Defaults(readiumPrefsConfig),
+            },
+          );
+
+          try {
+            await measureNav.load();
+            try {
+              await measureNav.submitPreferences(new Prefs(readiumPrefsConfig));
+            } catch {
+              // ignore measurement preference errors
+            }
+          } catch (error) {
+            debugReaderLog('readium_measure_load_error', {
+              message: error?.message ?? String(error),
+            });
+            try {
+              measureNav.destroy();
+            } catch {}
+            measureContainer.remove();
+            return [];
+          }
+
+          const positions = [];
+          let positionCounter = 1;
+          const themeCss = getReadiumThemeCss();
+          for (const link of readiumPublication.readingOrder.items) {
+            await new Promise((resolve) => {
+              measureNav.goLink(link, false, () => resolve());
+            });
+            await new Promise((resolve) => setTimeout(resolve, 60));
+            const frame =
+              measureNav?.framePool?._currentFrame?.iframe ||
+              measureContainer.querySelector('iframe');
+            const doc = frame?.contentDocument;
+            if (doc) {
+              try {
+                injectReadiumTheme(doc, themeCss);
+              } catch {}
+            }
+            const scroller = doc?.scrollingElement || doc?.documentElement || doc?.body;
+            const viewportWidth =
+              scroller?.clientWidth || frame?.clientWidth || Math.round(rect.width);
+            const viewportHeight =
+              scroller?.clientHeight || frame?.clientHeight || Math.round(rect.height);
+            let pages = 1;
+            if (scroller && viewportWidth && scroller.scrollWidth > viewportWidth + 1) {
+              pages = Math.max(1, Math.round(scroller.scrollWidth / viewportWidth));
+            } else if (scroller && viewportHeight && scroller.scrollHeight > viewportHeight + 1) {
+              pages = Math.max(1, Math.round(scroller.scrollHeight / viewportHeight));
+            }
+            for (let i = 0; i < pages; i += 1) {
+              const progression = pages <= 1 ? 0 : Math.min(1, i / (pages - 1));
+              const locator = new ReadiumShared.Locator({
+                href: link.href,
+                type: link.type ?? 'text/html',
+                title: link.title,
+                locations: new ReadiumShared.LocatorLocations({ progression }),
+              });
+              positions.push(
+                ensureReadiumPosition(normalizeReadiumLocator(locator), positionCounter),
+              );
+              positionCounter += 1;
+            }
+          }
+
+          try {
+            measureNav.destroy();
+          } catch {}
+          measureContainer.remove();
+          return positions;
+        };
+
         readiumPositions = [];
+        const cachedPositions = loadCachedReadiumPositions(file.id);
+        if (cachedPositions.length) {
+          readiumPositions = cachedPositions
+            .map((locator, index) => ensureReadiumPosition(normalizeReadiumLocator(locator), index + 1))
+            .filter(Boolean);
+        }
         try {
-          const positionHref = findPositionListHref();
-          if (positionHref) {
-            const positionsUrl = resolveHref(positionHref);
-            if (positionsUrl) {
-              const response = await readiumFetch(positionsUrl);
-              if (response.ok) {
-                const json = await response.json();
-                const rawPositions = Array.isArray(json?.positions) ? json.positions : [];
-                const parsed = rawPositions
-                  .map((entry) => ReadiumShared.Locator.deserialize(entry))
-                  .filter(Boolean);
-                if (parsed.length) {
-                  readiumPositions = parsed
-                    .map((locator, index) =>
-                      ensureReadiumPosition(normalizeReadiumLocator(locator), index + 1),
-                    )
+          if (!readiumPositions.length) {
+            const positionHref = findPositionListHref();
+            if (positionHref) {
+              const positionsUrl = resolveHref(positionHref);
+              if (positionsUrl) {
+                const response = await readiumFetch(positionsUrl);
+                if (response.ok) {
+                  const json = await response.json();
+                  const rawPositions = Array.isArray(json?.positions) ? json.positions : [];
+                  const parsed = rawPositions
+                    .map((entry) => ReadiumShared.Locator.deserialize(entry))
                     .filter(Boolean);
+                  if (parsed.length) {
+                    readiumPositions = parsed
+                      .map((locator, index) =>
+                        ensureReadiumPosition(normalizeReadiumLocator(locator), index + 1),
+                      )
+                      .filter(Boolean);
+                  }
                 }
               }
             }
@@ -4236,26 +4439,21 @@ export class AppService {
             });
           }
         }
-        if (!readiumPositions.length && readiumPublication?.readingOrder?.items?.length) {
-          readiumPositions = readiumPublication.readingOrder.items
-            .map((link, index) =>
-              ensureReadiumPosition(
-                normalizeReadiumLocator(
-                  new ReadiumShared.Locator({
-                    href: link.href,
-                    type: link.type ?? 'text/html',
-                    title: link.title,
-                    locations: new ReadiumShared.LocatorLocations({ progression: 0 }),
-                  }),
-                ),
-                index + 1,
-              ),
-            )
-            .filter(Boolean);
+        if (!readiumPositions.length) {
+          try {
+            readiumPositions = await buildSyntheticReadiumPositions();
+          } catch (error) {
+            debugReaderLog('readium_positions_error', {
+              message: error?.message ?? String(error),
+            });
+          }
         }
 
         if (!readiumPositions.length) {
           debugReaderLog('readium_positions_empty');
+        }
+        if (readiumPositions.length) {
+          saveCachedReadiumPositions(file.id, readiumPositions);
         }
         window.__bmsReadiumPositions = readiumPositions;
         if (initialLocator && readiumPositions.length) {
@@ -4279,34 +4477,8 @@ export class AppService {
           readiumPositions,
           initialLocator,
           {
-            preferences: new Prefs({
-              iOSPatch: true,
-              iPadOSPatch: true,
-              textNormalization: true,
-              fontSize: 1.0,
-              lineHeight: 1.5,
-              textAlign: 'left',
-              hyphens: false,
-              scroll: false,
-              columnCount: 1,
-              minimalLineLength: 20,
-              optimalLineLength: 55,
-              maximalLineLength: 65,
-            }),
-            defaults: new Defaults({
-              iOSPatch: true,
-              iPadOSPatch: true,
-              textNormalization: true,
-              fontSize: 1.0,
-              lineHeight: 1.5,
-              textAlign: 'left',
-              hyphens: false,
-              scroll: false,
-              columnCount: 1,
-              minimalLineLength: 20,
-              optimalLineLength: 55,
-              maximalLineLength: 65,
-            }),
+            preferences: new Prefs(readiumPrefsConfig),
+            defaults: new Defaults(readiumPrefsConfig),
           },
         );
         debugReaderLog('readium_nav_ready');

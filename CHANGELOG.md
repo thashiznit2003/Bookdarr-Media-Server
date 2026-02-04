@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.172 — 2026-02-04 16:40 -06:00
+- Center Readium page layout and compute synthetic positions to drive page counts.
+
 ## 1.0.171 — 2026-02-04 17:09 -06:00
 - Pull Readium position list from manifest and use global page positions for counters.
 
