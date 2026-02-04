@@ -33,6 +33,7 @@
 - Readium now extracts link arrays from manifest link collections to ensure all spine items load.
 - Readium EPUB navigation now uses EpubNavigator for in-chapter paging and reliable restart behavior.
 - Readium now builds fallback position lists and logs load errors to keep EpubNavigator stable.
+- Readium now normalizes locator hrefs to relative paths to prevent navigation and resume failures.
 - Login page script no longer references reader settings handlers from the main app shell.
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.165 — 2026-02-04 16:04 -06:00
+- Normalize Readium locator hrefs for navigation, adjust fit sizing, and keep progress stable.
+
 ## 1.0.164 — 2026-02-04 15:52 -06:00
 - Provide Readium positions for EpubNavigator, log load errors, and further reduce default font size to fit the modal.
 

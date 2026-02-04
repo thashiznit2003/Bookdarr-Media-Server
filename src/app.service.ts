@@ -3369,8 +3369,8 @@ export class AppService {
           if (!Prefs) return;
           await readiumNavigator.submitPreferences(
             new Prefs({
-              fontSize: 0.8,
-              lineHeight: 1.35,
+              fontSize: 0.95,
+              lineHeight: 1.4,
               textAlign: 'left',
               hyphens: false,
               textNormalization: true,
@@ -3966,6 +3966,31 @@ export class AppService {
         const manifestBase = manifestSelf.replace(/manifest\.json.*$/i, '');
         debugReaderLog('readium_manifest_self', { self: manifestSelf, base: manifestBase });
 
+        const normalizeReadiumHref = (href) => {
+          if (!href || typeof href !== 'string') return href;
+          if (href.startsWith(manifestBase)) {
+            const trimmed = href.slice(manifestBase.length);
+            return trimmed.replace(/^\\//, '');
+          }
+          return href;
+        };
+        const normalizeReadiumLocator = (locator) => {
+          if (!locator || !locator.href) return locator;
+          const normalizedHref = normalizeReadiumHref(locator.href);
+          if (!normalizedHref || normalizedHref === locator.href) return locator;
+          try {
+            return new ReadiumShared.Locator({
+              href: normalizedHref,
+              type: locator.type ?? 'text/html',
+              title: locator.title,
+              locations: locator.locations,
+              text: locator.text,
+            });
+          } catch {
+            return locator;
+          }
+        };
+
         const allLinks = [];
         const seen = new Set();
         const resolveHref = (href) => {
@@ -4040,6 +4065,7 @@ export class AppService {
         } catch {
           initialLocator = undefined;
         }
+        initialLocator = normalizeReadiumLocator(initialLocator);
 
         const listeners = {
           frameLoaded: () => {
@@ -4052,12 +4078,13 @@ export class AppService {
           },
           positionChanged: (locator) => {
             if (locator) {
-              saveProgress('ebook-epub', file.id, { locator });
-              updateReadiumProgress(locator);
+              const normalized = normalizeReadiumLocator(locator);
+              saveProgress('ebook-epub', file.id, { locator: normalized });
+              updateReadiumProgress(normalized ?? locator);
               debugReaderLog('readium_position_changed', {
-                href: locator?.href ?? null,
-                progression: locator?.locations?.progression ?? null,
-                totalProgression: locator?.locations?.totalProgression ?? null,
+                href: normalized?.href ?? locator?.href ?? null,
+                progression: (normalized ?? locator)?.locations?.progression ?? null,
+                totalProgression: (normalized ?? locator)?.locations?.totalProgression ?? null,
               });
             }
           },
@@ -4108,8 +4135,8 @@ export class AppService {
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              fontSize: 0.8,
-              lineHeight: 1.35,
+              fontSize: 0.95,
+              lineHeight: 1.4,
               textAlign: 'left',
               hyphens: false,
               scroll: false,
@@ -4119,8 +4146,8 @@ export class AppService {
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              fontSize: 0.8,
-              lineHeight: 1.35,
+              fontSize: 0.95,
+              lineHeight: 1.4,
               textAlign: 'left',
               hyphens: false,
               scroll: false,
