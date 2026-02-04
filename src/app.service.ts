@@ -3990,21 +3990,13 @@ export class AppService {
           seen.add(link.href);
           allLinks.push(link);
         };
-        const linkList = Array.isArray(manifest.links)
-          ? manifest.links
-          : manifest.links
-            ? [manifest.links]
-            : [];
-        const readingOrderList = Array.isArray(manifest.readingOrder)
-          ? manifest.readingOrder
-          : manifest.readingOrder
-            ? [manifest.readingOrder]
-            : [];
-        const resourceList = Array.isArray(manifest.resources)
-          ? manifest.resources
-          : manifest.resources
-            ? [manifest.resources]
-            : [];
+        const linkList = Array.isArray(manifest.links?.items) ? manifest.links.items : [];
+        const readingOrderList = Array.isArray(manifest.readingOrder?.items)
+          ? manifest.readingOrder.items
+          : [];
+        const resourceList = Array.isArray(manifest.resources?.items)
+          ? manifest.resources.items
+          : [];
         linkList.forEach(pushLink);
         readingOrderList.forEach(pushLink);
         resourceList.forEach(pushLink);

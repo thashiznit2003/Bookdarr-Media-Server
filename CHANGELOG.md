@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.162 — 2026-02-04 15:32 -06:00
+- Fix Readium link extraction to use manifest link arrays so all spine pages load.
+
 ## 1.0.161 — 2026-02-04 15:22 -06:00
 - Rewrite Readium manifest links away from localhost, preserve query strings, and reduce default zoom to fit the modal.
 
