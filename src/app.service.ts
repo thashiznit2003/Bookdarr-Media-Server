@@ -4053,10 +4053,14 @@ export class AppService {
         };
         const pushLink = (link) => {
           if (!link || !link.href) return;
-          link.href = resolveHref(link.href);
-          if (seen.has(link.href)) return;
-          seen.add(link.href);
-          allLinks.push(link);
+          const resolvedHref = resolveHref(link.href);
+          if (!resolvedHref) return;
+          if (seen.has(resolvedHref)) return;
+          seen.add(resolvedHref);
+          allLinks.push({
+            ...link,
+            href: resolvedHref,
+          });
         };
         const linkList = Array.isArray(manifest.links?.items) ? manifest.links.items : [];
         const readingOrderList = Array.isArray(manifest.readingOrder?.items)

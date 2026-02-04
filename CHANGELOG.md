@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.168 — 2026-02-04 16:36 -06:00
+- Keep Readium manifest readingOrder hrefs relative so EpubNavigator can attach frames.
+
 ## 1.0.167 — 2026-02-04 16:28 -06:00
 - Ensure Readium locators include position indices so EpubNavigator can create frames.
 
