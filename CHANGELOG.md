@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.147 — 2026-02-03 22:12 -06:00
+- Ensure ebook streams emit correct content-type headers (EPUB/PDF) so Readium can open manifests.
+
 ## 1.0.146 — 2026-02-03 22:02 -06:00
 - Fix Readium reader selection: avoid resetting the chosen reader engine to epub.js before open.
 

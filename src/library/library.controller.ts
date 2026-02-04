@@ -22,6 +22,21 @@ import { BookdarrService } from '../bookdarr/bookdarr.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { FileLoggerService } from '../logging/file-logger.service';
 
+const CONTENT_TYPE_BY_EXT: Record<string, string> = {
+  '.epub': 'application/epub+zip',
+  '.pdf': 'application/pdf',
+  '.mobi': 'application/x-mobipocket-ebook',
+  '.azw': 'application/vnd.amazon.ebook',
+  '.azw3': 'application/vnd.amazon.ebook',
+  '.mp3': 'audio/mpeg',
+  '.m4b': 'audio/mp4',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+};
+
 @Controller('library')
 export class LibraryController {
   constructor(
@@ -85,6 +100,7 @@ export class LibraryController {
     upstream.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
+    this.applyContentTypeOverride(res, upstream.headers);
 
     if (!upstream.body) {
       res.end();
@@ -138,6 +154,7 @@ export class LibraryController {
     upstream.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
+    this.applyContentTypeOverride(res, upstream.headers);
     res.end();
     this.logger.info('library_head', {
       fileId: id,
@@ -307,5 +324,28 @@ export class LibraryController {
     if (ext === '.wav') return 'audio/wav';
     if (ext === '.flac') return 'audio/flac';
     return 'application/octet-stream';
+  }
+
+  private applyContentTypeOverride(
+    res: Response,
+    headers: { get: (key: string) => string | null },
+  ) {
+    const contentType = headers.get('content-type') ?? '';
+    if (contentType && contentType !== 'application/octet-stream') {
+      return;
+    }
+    const disposition = headers.get('content-disposition') ?? '';
+    if (!disposition) {
+      return;
+    }
+    const fileNameMatch =
+      disposition.match(/filename\\*=(?:UTF-8'')?([^;]+)/i) ||
+      disposition.match(/filename=\"?([^\";]+)\"?/i);
+    const fileName = fileNameMatch?.[1] ? decodeURIComponent(fileNameMatch[1].trim()) : '';
+    const extension = fileName ? extname(fileName).toLowerCase() : '';
+    const mapped = extension ? CONTENT_TYPE_BY_EXT[extension] : undefined;
+    if (mapped) {
+      res.setHeader('content-type', mapped);
+    }
   }
 }
