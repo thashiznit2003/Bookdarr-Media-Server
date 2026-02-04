@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.157 — 2026-02-04 13:28 -06:00
+- Strip Readium Link headers to avoid proxy 502s on manifest responses.
+
 ## 1.0.156 — 2026-02-04 12:05 -06:00
 - Route Readium manifests through a local internal base to avoid 502s when using a public domain.
 

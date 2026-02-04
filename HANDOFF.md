@@ -149,6 +149,7 @@
 - Added /auth/debug-log plus client-side auth debug events for login/session tracing.
 - Client now logs boot + JS errors to /auth/debug-log to capture early failures.
 - Fixed regex escaping in the Readium manifest link resolver that caused a client JS syntax error.
+- Readium now strips Link headers on manifest responses to avoid proxy header-size 502s.
 - Readium theme no longer forces overflow hidden to avoid blank pages.
 - Readium navigator now normalizes resource links and applies text normalization for better pagination.
 - Added verbose Readium reader logs via /auth/debug-log for rendering diagnostics.

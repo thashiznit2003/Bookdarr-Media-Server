@@ -86,6 +86,33 @@ async function bootstrap() {
   });
   const readiumExpress = (readiumServer as any).expressApp as express.Express;
   readiumExpress.use((req, res, next) => {
+    const originalSetHeader = res.setHeader.bind(res);
+    res.setHeader = (name: string, value: any) => {
+      if (typeof name === 'string' && name.toLowerCase() === 'link') {
+        return res;
+      }
+      return originalSetHeader(name, value);
+    };
+    const originalWriteHead = res.writeHead.bind(res);
+    res.writeHead = ((statusCode: number, statusMessage?: any, headers?: any) => {
+      if (typeof statusMessage === 'object' && statusMessage) {
+        const filtered = { ...statusMessage };
+        delete filtered.Link;
+        delete filtered.link;
+        return originalWriteHead(statusCode, filtered);
+      }
+      if (headers && typeof headers === 'object') {
+        const filtered = { ...headers };
+        delete filtered.Link;
+        delete filtered.link;
+        return originalWriteHead(statusCode, statusMessage, filtered);
+      }
+      return originalWriteHead(statusCode, statusMessage);
+    }) as any;
+    res.removeHeader('Link');
+    next();
+  });
+  readiumExpress.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
       logger.info('readium_request', {
