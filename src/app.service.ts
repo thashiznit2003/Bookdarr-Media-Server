@@ -3628,6 +3628,7 @@ export class AppService {
           return;
         }
         await ensureFreshToken();
+        resetReaderState();
         readerEngine = engine || 'epubjs';
         debugReaderLog('open_reader', {
           fileId: file?.id ?? null,
@@ -3661,7 +3662,6 @@ export class AppService {
           readerDownload.href = withToken(file.streamUrl);
         }
         updateReaderProgress('');
-        resetReaderState();
         readerFile = file;
         loadReaderPageMap(file.id);
         readerView.innerHTML = '<div class="empty">Loading reader...</div>';

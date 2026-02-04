@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.146 — 2026-02-03 22:02 -06:00
+- Fix Readium reader selection: avoid resetting the chosen reader engine to epub.js before open.
+
 ## 1.0.145 — 2026-02-03 21:52 -06:00
 - Add Readium call/result/error logging and guard against missing reader view.
 
