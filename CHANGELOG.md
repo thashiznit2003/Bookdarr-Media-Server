@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.164 — 2026-02-04 15:52 -06:00
+- Provide Readium positions for EpubNavigator, log load errors, and further reduce default font size to fit the modal.
+
 ## 1.0.163 — 2026-02-04 15:43 -06:00
 - Switch Readium EPUB navigation to EpubNavigator for true page turns, restart support, and better fit.
 

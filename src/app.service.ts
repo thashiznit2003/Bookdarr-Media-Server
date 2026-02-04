@@ -3369,8 +3369,8 @@ export class AppService {
           if (!Prefs) return;
           await readiumNavigator.submitPreferences(
             new Prefs({
-              fontSize: 0.9,
-              lineHeight: 1.4,
+              fontSize: 0.8,
+              lineHeight: 1.35,
               textAlign: 'left',
               hyphens: false,
               textNormalization: true,
@@ -4073,21 +4073,43 @@ export class AppService {
           textSelected: () => {},
         };
 
+        let readiumPositions = [];
+        try {
+          const fetched = await readiumPublication.positionsFromManifest();
+          if (Array.isArray(fetched) && fetched.length) {
+            readiumPositions = fetched;
+          }
+        } catch (error) {
+          debugReaderLog('readium_positions_error', {
+            message: error?.message ?? String(error),
+          });
+        }
+        if (!readiumPositions.length && readiumPublication?.readingOrder?.items?.length) {
+          readiumPositions = readiumPublication.readingOrder.items.map((link) =>
+            new ReadiumShared.Locator({
+              href: link.href,
+              type: link.type ?? 'text/html',
+              title: link.title,
+              locations: new ReadiumShared.LocatorLocations({ progression: 0 }),
+            }),
+          );
+        }
+
         const Prefs = ReadiumNavigator.EpubPreferences ?? ReadiumNavigator.WebPubPreferences;
         const Defaults = ReadiumNavigator.EpubDefaults ?? ReadiumNavigator.WebPubDefaults;
         readiumNavigator = new ReadiumNavigator.EpubNavigator(
           container,
           readiumPublication,
           listeners,
-          [],
+          readiumPositions,
           initialLocator,
           {
             preferences: new Prefs({
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              fontSize: 0.9,
-              lineHeight: 1.4,
+              fontSize: 0.8,
+              lineHeight: 1.35,
               textAlign: 'left',
               hyphens: false,
               scroll: false,
@@ -4097,8 +4119,8 @@ export class AppService {
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              fontSize: 0.9,
-              lineHeight: 1.4,
+              fontSize: 0.8,
+              lineHeight: 1.35,
               textAlign: 'left',
               hyphens: false,
               scroll: false,
@@ -4113,8 +4135,10 @@ export class AppService {
           await applyReadiumPreferences();
           applyReadiumTheme();
           debugReaderLog('readium_load_ok');
-        } catch {
-          debugReaderLog('readium_load_error');
+        } catch (error) {
+          debugReaderLog('readium_load_error', {
+            message: error?.message ?? String(error),
+          });
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';
           return false;
         }
