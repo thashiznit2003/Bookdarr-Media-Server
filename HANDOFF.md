@@ -25,6 +25,7 @@
 - Readium manifest fetch now retries once after auth refresh to handle expired access tokens.
 - Readium manifest fetch also refreshes book detail once to update stale stream URLs.
 - Readium now forces its base URL to /readium so resource links don't 404 under /pub.
+- Readium requests hitting /pub are now proxied to the Readium server.
 - Login page script no longer references reader settings handlers from the main app shell.
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.

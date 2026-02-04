@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.153 — 2026-02-03 23:34 -06:00
+- Proxy /pub requests to Readium so EPUB resources resolve correctly.
+
 ## 1.0.152 — 2026-02-03 23:29 -06:00
 - Force Readium to resolve asset URLs under the /readium base to avoid 404s.
 - Remove stray reader settings hook from the login page script.

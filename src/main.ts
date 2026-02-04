@@ -143,6 +143,10 @@ async function bootstrap() {
     });
   });
   app.use('/readium', readiumExpress);
+  app.use('/pub', (req, res, next) => {
+    req.url = '/pub' + req.url;
+    readiumExpress(req, res, next);
+  });
   await app.listen(settings.getSettings().port);
 }
 bootstrap();
