@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.163 — 2026-02-04 15:43 -06:00
+- Switch Readium EPUB navigation to EpubNavigator for true page turns, restart support, and better fit.
+
 ## 1.0.162 — 2026-02-04 15:32 -06:00
 - Fix Readium link extraction to use manifest link arrays so all spine pages load.
 

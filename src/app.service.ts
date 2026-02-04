@@ -2044,9 +2044,11 @@ export class AppService {
           pdfPage = 1;
           renderPdfPage();
         } else if (readerFile.format === '.epub') {
-          if (readiumNavigator && readiumPublication?.readingOrder?.length) {
-            const firstLink = readiumPublication.readingOrder[0];
-            readiumNavigator.goLink(firstLink, false, () => {});
+          if (readiumNavigator && readiumPublication?.readingOrder?.items?.length) {
+            const firstLink = readiumPublication.readingOrder.items[0];
+            if (firstLink) {
+              readiumNavigator.goLink(firstLink, false, () => {});
+            }
           } else if (epubRendition) {
             try {
               epubRendition.display();
@@ -3363,13 +3365,17 @@ export class AppService {
       async function applyReadiumPreferences() {
         if (!readiumNavigator) return;
         try {
+          const Prefs = window.ReadiumNavigator?.EpubPreferences ?? window.ReadiumNavigator?.WebPubPreferences;
+          if (!Prefs) return;
           await readiumNavigator.submitPreferences(
-            new ReadiumNavigator.WebPubPreferences({
-              zoom: 0.9,
+            new Prefs({
+              fontSize: 0.9,
               lineHeight: 1.4,
               textAlign: 'left',
               hyphens: false,
               textNormalization: true,
+              scroll: false,
+              columnCount: 1,
             }),
           );
         } catch {
@@ -4067,29 +4073,36 @@ export class AppService {
           textSelected: () => {},
         };
 
-        readiumNavigator = new ReadiumNavigator.WebPubNavigator(
+        const Prefs = ReadiumNavigator.EpubPreferences ?? ReadiumNavigator.WebPubPreferences;
+        const Defaults = ReadiumNavigator.EpubDefaults ?? ReadiumNavigator.WebPubDefaults;
+        readiumNavigator = new ReadiumNavigator.EpubNavigator(
           container,
           readiumPublication,
           listeners,
+          [],
           initialLocator,
           {
-            preferences: new ReadiumNavigator.WebPubPreferences({
+            preferences: new Prefs({
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              zoom: 0.9,
+              fontSize: 0.9,
               lineHeight: 1.4,
               textAlign: 'left',
               hyphens: false,
+              scroll: false,
+              columnCount: 1,
             }),
-            defaults: new ReadiumNavigator.WebPubDefaults({
+            defaults: new Defaults({
               iOSPatch: true,
               iPadOSPatch: true,
               textNormalization: true,
-              zoom: 0.9,
+              fontSize: 0.9,
               lineHeight: 1.4,
               textAlign: 'left',
               hyphens: false,
+              scroll: false,
+              columnCount: 1,
             }),
           },
         );
