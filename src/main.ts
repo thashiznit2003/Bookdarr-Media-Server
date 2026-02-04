@@ -20,6 +20,7 @@ async function bootstrap() {
   }
   const logger = app.get(FileLoggerService);
   const verboseLogs = process.env.VERBOSE_LOGS === 'true';
+  const forceReadium = process.env.FORCE_READIUM === 'true';
   const requestLogger = new RequestLoggingMiddleware(logger);
   app.use(requestLogger.use.bind(requestLogger));
   app.useGlobalFilters(new HttpExceptionFilter(logger));
@@ -39,6 +40,7 @@ async function bootstrap() {
         bodyKeys,
         ip: req.ip ?? req.socket?.remoteAddress ?? null,
         userAgent: req.headers['user-agent'] ?? null,
+        forceReadium,
       });
 
       res.on('finish', () => {

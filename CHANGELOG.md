@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.143 — 2026-02-03 21:25 -06:00
+- Add explicit Readium start/fallback logs and a FORCE_READIUM diagnostic mode.
+
 ## 1.0.142 — 2026-02-02 23:00 -06:00
 - Fix Settings module DI so reader settings logging doesn't crash the server.
 

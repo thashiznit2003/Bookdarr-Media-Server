@@ -1721,6 +1721,7 @@ export class AppService {
     <script src="/vendor/epub/epub.min.js"></script>
     <script>
       const bootstrap = window.__BMS_BOOTSTRAP__ || null;
+      window.__BMS_FORCE_READIUM = ${process.env.FORCE_READIUM === 'true' ? 'true' : 'false'};
       const state = {
         filter: 'all',
         query: '',
@@ -3628,6 +3629,12 @@ export class AppService {
         }
         await ensureFreshToken();
         readerEngine = engine || 'epubjs';
+        debugReaderLog('open_reader', {
+          fileId: file?.id ?? null,
+          format: file?.format ?? null,
+          engine: readerEngine,
+          streamUrl: file?.streamUrl ?? null,
+        });
         readerModal.classList.add('active');
         readerModal.setAttribute('aria-hidden', 'false');
         readerModal.dataset.readerMode =
@@ -3671,7 +3678,11 @@ export class AppService {
           if (readerEngine === 'readium') {
             openReadiumReader(file).then((ok) => {
               if (!ok) {
-                openEpubReader(file);
+                const forceReadium = window.__BMS_FORCE_READIUM === true;
+                debugReaderLog('readium_fallback', { forceReadium });
+                if (!forceReadium) {
+                  openEpubReader(file);
+                }
               }
             });
           } else {
@@ -3825,6 +3836,7 @@ export class AppService {
         try {
           const response = await readiumFetch(readiumManifestUrl);
           if (!response.ok) {
+            debugReaderLog('readium_manifest_status', { status: response.status });
             throw new Error('Failed to load Readium manifest');
           }
           manifestJson = await response.json();
@@ -3887,6 +3899,7 @@ export class AppService {
         const container = document.createElement('div');
         container.className = 'readium-container';
         readerView.appendChild(container);
+        debugReaderLog('readium_container_ready');
 
         let initialLocator = undefined;
         try {
@@ -3947,6 +3960,7 @@ export class AppService {
             }),
           },
         );
+        debugReaderLog('readium_nav_ready');
 
         try {
           await readiumNavigator.load();
