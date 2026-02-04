@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.144 — 2026-02-03 21:40 -06:00
+- Force no-cache headers on app shell routes so browsers always fetch the latest UI.
+
 ## 1.0.143 — 2026-02-03 21:25 -06:00
 - Add explicit Readium start/fallback logs and a FORCE_READIUM diagnostic mode.
 

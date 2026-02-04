@@ -52,7 +52,7 @@ export class AppController {
     }
     this.logger.info('app_index_bootstrap_ok', { userId: bootstrap?.user?.id ?? null });
     res.setHeader('content-type', 'text/html; charset=utf-8');
-    res.setHeader('cache-control', 'no-store');
+    this.setNoCacheHeaders(res);
     return res.send(this.appService.getIndexHtml(bootstrap));
   }
 
@@ -63,7 +63,7 @@ export class AppController {
       return res.redirect('/');
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
-    res.setHeader('cache-control', 'no-store');
+    this.setNoCacheHeaders(res);
     return res.send(this.appService.getLoginHtml());
   }
 
@@ -74,7 +74,7 @@ export class AppController {
       return res.redirect('/login');
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
-    res.setHeader('cache-control', 'no-store');
+    this.setNoCacheHeaders(res);
     return res.send(this.appService.getIndexHtml(bootstrap));
   }
 
@@ -105,6 +105,13 @@ export class AppController {
       .find((part) => part.startsWith(`${name}=`));
     if (!match) return undefined;
     return decodeURIComponent(match.slice(name.length + 1));
+  }
+
+  private setNoCacheHeaders(res: Response) {
+    res.setHeader('cache-control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('pragma', 'no-cache');
+    res.setHeader('expires', '0');
+    res.setHeader('surrogate-control', 'no-store');
   }
 
   private setAuthCookies(res: Response, accessToken: string, refreshToken?: string) {
