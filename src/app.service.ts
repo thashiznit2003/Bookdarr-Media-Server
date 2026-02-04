@@ -3931,13 +3931,28 @@ export class AppService {
           seen.add(link.href);
           allLinks.push(link);
         };
-        (manifest.links || []).forEach(pushLink);
-        (manifest.readingOrder || []).forEach(pushLink);
-        (manifest.resources || []).forEach(pushLink);
+        const linkList = Array.isArray(manifest.links)
+          ? manifest.links
+          : manifest.links
+            ? [manifest.links]
+            : [];
+        const readingOrderList = Array.isArray(manifest.readingOrder)
+          ? manifest.readingOrder
+          : manifest.readingOrder
+            ? [manifest.readingOrder]
+            : [];
+        const resourceList = Array.isArray(manifest.resources)
+          ? manifest.resources
+          : manifest.resources
+            ? [manifest.resources]
+            : [];
+        linkList.forEach(pushLink);
+        readingOrderList.forEach(pushLink);
+        resourceList.forEach(pushLink);
         debugReaderLog('readium_manifest_links', {
-          links: (manifest.links || []).length,
-          readingOrder: (manifest.readingOrder || []).length,
-          resources: (manifest.resources || []).length,
+          links: linkList.length,
+          readingOrder: readingOrderList.length,
+          resources: resourceList.length,
           total: allLinks.length,
         });
 

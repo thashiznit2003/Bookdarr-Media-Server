@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.154 — 2026-02-03 23:38 -06:00
+- Normalize Readium manifest link arrays to avoid crashing when a single link is returned.
+
 ## 1.0.153 — 2026-02-03 23:34 -06:00
 - Proxy /pub requests to Readium so EPUB resources resolve correctly.
 
