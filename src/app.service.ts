@@ -3846,16 +3846,26 @@ export class AppService {
         });
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
         updateReaderLayout();
-        readiumManifestUrl = getReadiumManifestUrl(file);
-        debugReaderLog('readium_manifest_url', { url: readiumManifestUrl });
-        let manifestJson = null;
-        try {
+        const fetchManifest = async (retry = false) => {
+          readiumManifestUrl = getReadiumManifestUrl(file);
+          debugReaderLog('readium_manifest_url', { url: readiumManifestUrl, retry });
           const response = await readiumFetch(readiumManifestUrl);
           if (!response.ok) {
-            debugReaderLog('readium_manifest_status', { status: response.status });
+            debugReaderLog('readium_manifest_status', { status: response.status, retry });
+            if (!retry && (response.status === 401 || response.status === 403 || response.status >= 500)) {
+              const refreshed = await refreshAuthToken();
+              if (refreshed) {
+                return fetchManifest(true);
+              }
+            }
             throw new Error('Failed to load Readium manifest');
           }
-          manifestJson = await response.json();
+          return response.json();
+        };
+
+        let manifestJson = null;
+        try {
+          manifestJson = await fetchManifest(false);
         } catch {
           debugReaderLog('readium_manifest_error');
           readerView.innerHTML = '<div class="empty">Unable to load EPUB.</div>';

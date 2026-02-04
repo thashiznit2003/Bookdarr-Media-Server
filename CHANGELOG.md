@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.150 — 2026-02-03 22:47 -06:00
+- Retry Readium manifest fetch after refreshing auth when tokens expire mid-open.
+
 ## 1.0.149 — 2026-02-03 22:37 -06:00
 - Invalidate the library cache to force updated stream URLs with file extensions.
 

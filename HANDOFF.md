@@ -22,6 +22,7 @@
 - Ebook stream endpoints now normalize content-type headers from Bookdarr (EPUB/PDF/audio) so Readium can open manifests.
 - Library stream URLs now include the original filename/extension to help Readium detect EPUBs.
 - Library cache version bumped to refresh stored stream URLs after update.
+- Readium manifest fetch now retries once after auth refresh to handle expired access tokens.
 - Added book detail view with Open Library metadata, Bookdarr file listings, and in-browser playback/reading via proxy streams.
 - Prefer Bookdarr cover/overview data with Open Library as a fallback; added per-book refresh metadata action.
 - Login now submits on Enter key in both login flows.
