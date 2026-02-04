@@ -928,6 +928,11 @@ export class AppService {
         border: none;
         display: block;
       }
+      .readium-container .readium-navigator-iframe {
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+      }
 
       .reader-view .epub-container,
       .reader-view .epub-view {
@@ -2075,8 +2080,21 @@ export class AppService {
 
       const goPrev = () => {
         if (readiumNavigator) {
-          if (!goReadiumRelative(-1)) {
+          const before = readiumLastLocator
+            ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
+            : null;
+          const didGo = goReadiumRelative(-1);
+          if (!didGo) {
             readiumNavigator.goBackward(false, () => {});
+          } else {
+            setTimeout(() => {
+              const after = readiumLastLocator
+                ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
+                : null;
+              if (before && after === before) {
+                readiumNavigator.goBackward(false, () => {});
+              }
+            }, 180);
           }
         } else if (epubRendition) {
           readerNavPending = Math.max(readerNavPending - 1, -10);
@@ -2088,8 +2106,21 @@ export class AppService {
       };
       const goNext = () => {
         if (readiumNavigator) {
-          if (!goReadiumRelative(1)) {
+          const before = readiumLastLocator
+            ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
+            : null;
+          const didGo = goReadiumRelative(1);
+          if (!didGo) {
             readiumNavigator.goForward(false, () => {});
+          } else {
+            setTimeout(() => {
+              const after = readiumLastLocator
+                ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
+                : null;
+              if (before && after === before) {
+                readiumNavigator.goForward(false, () => {});
+              }
+            }, 180);
           }
         } else if (epubRendition) {
           readerNavPending = Math.min(readerNavPending + 1, 10);

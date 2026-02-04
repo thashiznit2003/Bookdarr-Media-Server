@@ -42,6 +42,7 @@
 - Readium theme injection now centers pages with flex layout for consistent modal alignment.
 - Readium prev/next now use position-based navigation to avoid multi-page skips.
 - Readium paging now resolves next/prev using locator progression to avoid chapter-only jumps.
+- Readium frames are centered in the modal and next/prev falls back to navigator paging if positions stall.
 - Readium positions are now stored in shared scope to avoid load-time reference errors.
 - Readium now fetches the position list link for accurate total pages and global progress.
 - Login page script no longer references reader settings handlers from the main app shell.

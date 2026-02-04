@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.176 — 2026-02-04 17:24 -06:00
+- Center Readium frames and add fallback when next/prev doesn't advance.
+
 ## 1.0.175 — 2026-02-04 17:18 -06:00
 - Use locator progression to resolve Readium next/prev so page turns stop skipping.
 
