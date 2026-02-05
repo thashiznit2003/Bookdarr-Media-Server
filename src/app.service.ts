@@ -3289,6 +3289,8 @@ export class AppService {
         readerDebug.style.color = '#93c5fd';
         readerDebug.style.marginTop = '2px';
         readerDebug.style.display = 'block';
+        readerDebug.style.userSelect = 'text';
+        readerDebug.style.pointerEvents = 'auto';
         readerDebugOverlay.textContent = text ?? '';
         readerDebugOverlay.style.position = 'absolute';
         readerDebugOverlay.style.top = '72px';
@@ -3300,7 +3302,8 @@ export class AppService {
         readerDebugOverlay.style.fontSize = '0.7rem';
         readerDebugOverlay.style.color = '#93c5fd';
         readerDebugOverlay.style.zIndex = '8';
-        readerDebugOverlay.style.pointerEvents = 'none';
+        readerDebugOverlay.style.pointerEvents = 'auto';
+        readerDebugOverlay.style.userSelect = 'text';
       }
 
       function getReaderViewportSignature() {

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.195 — 2026-02-04 23:49 -06:00
+- Make the EPUB debug overlay selectable/copyable.
+
 ## 1.0.194 — 2026-02-04 23:43 -06:00
 - Add always-visible EPUB debug overlay inside the reader modal.
 
