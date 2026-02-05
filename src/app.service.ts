@@ -4728,7 +4728,20 @@ export class AppService {
                 const viewWidth = view?.iframe?.clientWidth ?? 0;
                 const viewHeight = view?.iframe?.clientHeight ?? 0;
                 updateReaderDebug(
-                  `EPUB debug: text=${text.length} img=${imgCount} svg=${svgCount} body=${bodyWidth}x${bodyHeight} view=${viewWidth}x${viewHeight}`,
+                  'EPUB debug: text=' +
+                    text.length +
+                    ' img=' +
+                    imgCount +
+                    ' svg=' +
+                    svgCount +
+                    ' body=' +
+                    bodyWidth +
+                    'x' +
+                    bodyHeight +
+                    ' view=' +
+                    viewWidth +
+                    'x' +
+                    viewHeight,
                 );
               }
             } catch {

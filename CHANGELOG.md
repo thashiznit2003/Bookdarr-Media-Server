@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.193 — 2026-02-04 23:34 -06:00
+- Fix EPUB debug overlay build by removing template literal in embedded script.
+
 ## 1.0.192 — 2026-02-04 23:28 -06:00
 - Add EPUB debug overlay to show page render metrics for blank-page diagnosis.
 
