@@ -929,8 +929,11 @@ export class AppService {
         display: block;
       }
       .readium-container .readium-navigator-iframe {
+        width: min(100%, 900px) !important;
         left: 50% !important;
         right: auto !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
         transform: translateX(-50%) !important;
       }
 
@@ -2016,86 +2019,9 @@ export class AppService {
         }
       });
 
-      const goReadiumRelative = (delta) => {
-        if (!readiumNavigator || !readiumPositions?.length) return false;
-        const normalizeHref = (href) => {
-          if (!href) return href;
-          return href.replace(/^https?:\\/\\/[^/]+\\//, '').replace(/^\\//, '');
-        };
-        const locator = readiumLastLocator || readiumNavigator.currentLocator || null;
-        let index = -1;
-        const normalizedHref = locator?.href ? normalizeHref(locator.href) : null;
-        const progression =
-          typeof locator?.locations?.progression === 'number'
-            ? locator.locations.progression
-            : null;
-        if (normalizedHref) {
-          const candidates = [];
-          for (let i = 0; i < readiumPositions.length; i += 1) {
-            const entry = readiumPositions[i];
-            if (normalizeHref(entry?.href) === normalizedHref) {
-              candidates.push({ index: i, locator: entry });
-            }
-          }
-          if (candidates.length) {
-            if (typeof progression === 'number') {
-              let bestIndex = candidates[0].index;
-              let bestDiff = Math.abs(
-                (candidates[0].locator?.locations?.progression ?? 0) - progression,
-              );
-              for (const candidate of candidates) {
-                const diff = Math.abs(
-                  (candidate.locator?.locations?.progression ?? 0) - progression,
-                );
-                if (diff < bestDiff) {
-                  bestDiff = diff;
-                  bestIndex = candidate.index;
-                }
-              }
-              index = bestIndex;
-            } else {
-              index = candidates[0].index;
-            }
-          }
-        }
-        if (index < 0 && typeof locator?.locations?.position === 'number') {
-          const positionValue = locator.locations.position;
-          index = Math.min(Math.max(positionValue - 1, 0), readiumPositions.length - 1);
-        }
-        if (index < 0) index = 0;
-        const nextIndex = Math.min(
-          Math.max(index + delta, 0),
-          Math.max(readiumPositions.length - 1, 0),
-        );
-        const target = readiumPositions[nextIndex];
-        if (!target) return false;
-        try {
-          readiumLastLocator = target;
-          readiumNavigator.go(target, false, () => {});
-          return true;
-        } catch {
-          return false;
-        }
-      };
-
       const goPrev = () => {
         if (readiumNavigator) {
-          const before = readiumLastLocator
-            ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
-            : null;
-          const didGo = goReadiumRelative(-1);
-          if (!didGo) {
-            readiumNavigator.goBackward(false, () => {});
-          } else {
-            setTimeout(() => {
-              const after = readiumLastLocator
-                ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
-                : null;
-              if (before && after === before) {
-                readiumNavigator.goBackward(false, () => {});
-              }
-            }, 180);
-          }
+          readiumNavigator.goBackward(false, () => {});
         } else if (epubRendition) {
           readerNavPending = Math.max(readerNavPending - 1, -10);
           epubRendition.prev();
@@ -2106,22 +2032,7 @@ export class AppService {
       };
       const goNext = () => {
         if (readiumNavigator) {
-          const before = readiumLastLocator
-            ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
-            : null;
-          const didGo = goReadiumRelative(1);
-          if (!didGo) {
-            readiumNavigator.goForward(false, () => {});
-          } else {
-            setTimeout(() => {
-              const after = readiumLastLocator
-                ? readiumLastLocator.href + ':' + (readiumLastLocator.locations?.position ?? 'x')
-                : null;
-              if (before && after === before) {
-                readiumNavigator.goForward(false, () => {});
-              }
-            }, 180);
-          }
+          readiumNavigator.goForward(false, () => {});
         } else if (epubRendition) {
           readerNavPending = Math.min(readerNavPending + 1, 10);
           epubRendition.next();

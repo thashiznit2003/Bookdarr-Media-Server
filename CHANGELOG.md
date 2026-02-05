@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.177 — 2026-02-04 20:16 -06:00
+- Force Readium iframe centering and revert to navigator paging to avoid skipped pages.
+
 ## 1.0.176 — 2026-02-04 17:24 -06:00
 - Center Readium frames and add fallback when next/prev doesn't advance.
 
