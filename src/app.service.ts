@@ -4713,6 +4713,37 @@ export class AppService {
             displayPromise.then(() => {
               syncEpubLocation();
               try {
+                const iframe = readerView?.querySelector?.('iframe');
+                const doc = iframe?.contentDocument;
+                if (doc?.body) {
+                  const text = doc.body.innerText?.trim?.() ?? '';
+                  const imgCount = doc.body.querySelectorAll?.('img').length ?? 0;
+                  const svgCount = doc.body.querySelectorAll?.('svg').length ?? 0;
+                  const bodyHeight = doc.body.scrollHeight ?? 0;
+                  const bodyWidth = doc.body.scrollWidth ?? 0;
+                  const viewWidth = iframe?.clientWidth ?? 0;
+                  const viewHeight = iframe?.clientHeight ?? 0;
+                  updateReaderDebug(
+                    'EPUB debug: text=' +
+                      text.length +
+                      ' img=' +
+                      imgCount +
+                      ' svg=' +
+                      svgCount +
+                      ' body=' +
+                      bodyWidth +
+                      'x' +
+                      bodyHeight +
+                      ' view=' +
+                      viewWidth +
+                      'x' +
+                      viewHeight,
+                  );
+                }
+              } catch {
+                // ignore debug errors
+              }
+              try {
                 epubRendition.resize();
               } catch {
                 // ignore
@@ -4819,6 +4850,36 @@ export class AppService {
                 // ignore
               }
               attachSwipeToIframe(iframeEl);
+            }
+            try {
+              const doc = iframeEl?.contentDocument;
+              if (doc?.body) {
+                const text = doc.body.innerText?.trim?.() ?? '';
+                const imgCount = doc.body.querySelectorAll?.('img').length ?? 0;
+                const svgCount = doc.body.querySelectorAll?.('svg').length ?? 0;
+                const bodyHeight = doc.body.scrollHeight ?? 0;
+                const bodyWidth = doc.body.scrollWidth ?? 0;
+                const viewWidth = iframeEl?.clientWidth ?? 0;
+                const viewHeight = iframeEl?.clientHeight ?? 0;
+                updateReaderDebug(
+                  'EPUB debug: text=' +
+                    text.length +
+                    ' img=' +
+                    imgCount +
+                    ' svg=' +
+                    svgCount +
+                    ' body=' +
+                    bodyWidth +
+                    'x' +
+                    bodyHeight +
+                    ' view=' +
+                    viewWidth +
+                    'x' +
+                    viewHeight,
+                );
+              }
+            } catch {
+              // ignore debug errors
             }
             applyReaderTheme(readerTheme, false);
             scanReaderIframes();

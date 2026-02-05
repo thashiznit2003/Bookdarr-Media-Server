@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.196 — 2026-02-04 23:56 -06:00
+- Update EPUB debug overlay on render/display so it doesn't stay pending.
+
 ## 1.0.195 — 2026-02-04 23:49 -06:00
 - Make the EPUB debug overlay selectable/copyable.
 
