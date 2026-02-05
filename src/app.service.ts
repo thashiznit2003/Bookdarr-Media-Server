@@ -4680,6 +4680,17 @@ export class AppService {
             }
           }
           applyReaderTheme(readerTheme, false);
+          try {
+            if (epubRendition?.themes?.override) {
+              epubRendition.themes.override('column-count', '1');
+              epubRendition.themes.override('column-gap', '0');
+              epubRendition.themes.override('column-width', 'auto');
+              epubRendition.themes.override('width', '100%');
+              epubRendition.themes.override('max-width', '100%');
+            }
+          } catch {
+            // ignore
+          }
           if (!readerResizeBound) {
             readerResizeBound = true;
             window.addEventListener('resize', () => {
@@ -4856,6 +4867,8 @@ export class AppService {
                   doc.documentElement.style.maxWidth = '100%';
                   doc.documentElement.style.columnGap = '0px';
                   doc.documentElement.style.columnFill = 'auto';
+                  doc.documentElement.style.columnCount = '1';
+                  doc.documentElement.style.columnWidth = 'auto';
                 }
                 if (doc?.body) {
                   doc.body.style.margin = '0';
@@ -4866,6 +4879,8 @@ export class AppService {
                   doc.body.style.boxSizing = 'border-box';
                   doc.body.style.columnGap = '0px';
                   doc.body.style.columnFill = 'auto';
+                  doc.body.style.columnCount = '1';
+                  doc.body.style.columnWidth = 'auto';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.198 — 2026-02-05 00:11 -06:00
+- Force EPUB single-column layout and theme overrides to prevent hidden pages.
+
 ## 1.0.197 — 2026-02-05 00:04 -06:00
 - Clamp EPUB iframe/container widths and expand debug info with page/section.
 
