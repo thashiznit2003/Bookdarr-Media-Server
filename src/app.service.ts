@@ -894,6 +894,14 @@ export class AppService {
         height: 100%;
       }
 
+      /* Give the EPUB viewport a small inset border + padding so lines don't clip at the edges. */
+      .reader-modal[data-reader-mode="epub"] .reader-view {
+        padding: 10px;
+        box-sizing: border-box;
+        border-radius: 14px;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+      }
+
       .reader-modal.touch-fullscreen .reader-view {
         padding: 0;
         overflow: hidden;
