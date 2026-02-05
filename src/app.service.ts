@@ -2021,7 +2021,9 @@ export class AppService {
 
       const goPrev = () => {
         if (readiumNavigator) {
-          readiumNavigator.goBackward(false, () => {});
+          if (!goReadiumPositionStep(-1)) {
+            readiumNavigator.goBackward(false, () => {});
+          }
         } else if (epubRendition) {
           readerNavPending = Math.max(readerNavPending - 1, -10);
           epubRendition.prev();
@@ -2032,13 +2034,40 @@ export class AppService {
       };
       const goNext = () => {
         if (readiumNavigator) {
-          readiumNavigator.goForward(false, () => {});
+          if (!goReadiumPositionStep(1)) {
+            readiumNavigator.goForward(false, () => {});
+          }
         } else if (epubRendition) {
           readerNavPending = Math.min(readerNavPending + 1, 10);
           epubRendition.next();
         } else if (pdfDoc) {
           pdfPage = Math.min(pdfDoc.numPages, pdfPage + 1);
           renderPdfPage();
+        }
+      };
+
+      const goReadiumPositionStep = (delta) => {
+        if (!readiumNavigator || !readiumPositions?.length) return false;
+        const viewportPositions = readiumNavigator.viewport?.positions;
+        const currentPos =
+          Array.isArray(viewportPositions) && viewportPositions.length
+            ? viewportPositions[0]
+            : readiumLastLocator?.locations?.position;
+        if (!currentPos || !Number.isFinite(currentPos)) return false;
+        const targetPos = Math.min(
+          Math.max(currentPos + delta, 1),
+          Math.max(readiumPositions.length, 1),
+        );
+        const target = readiumPositions.find(
+          (entry) => entry?.locations?.position === targetPos,
+        );
+        if (!target) return false;
+        try {
+          readiumLastLocator = target;
+          readiumNavigator.go(target, false, () => {});
+          return true;
+        } catch {
+          return false;
         }
       };
 
@@ -3357,8 +3386,10 @@ export class AppService {
 
       function getReadiumThemeCss() {
         const base =
-          'html{width:100% !important;text-align:center !important;} ' +
-          'body{display:inline-block !important;text-align:left !important;margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;}';
+          'html{width:100% !important;} ' +
+          'body{margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;text-align:center !important;} ' +
+          'body > *{margin-left:auto !important;margin-right:auto !important;} ' +
+          'p,li,div,section,article,blockquote,pre{ text-align:left !important; }';
         return readerTheme === 'dark'
           ? 'html,body{background:#0f1115 !important;color:#e5e7eb !important;} ' +
               base +

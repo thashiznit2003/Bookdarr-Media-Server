@@ -44,6 +44,7 @@
 - Readium paging now resolves next/prev using locator progression to avoid chapter-only jumps.
 - Readium frames are centered in the modal and next/prev falls back to navigator paging if positions stall.
 - Readium next/prev now use navigator paging only; iframe centering constrained to 900px.
+- Readium page turns now use navigator viewport positions for precise stepping.
 - Readium positions are now stored in shared scope to avoid load-time reference errors.
 - Readium now fetches the position list link for accurate total pages and global progress.
 - Login page script no longer references reader settings handlers from the main app shell.
