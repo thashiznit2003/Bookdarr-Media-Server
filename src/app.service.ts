@@ -3352,24 +3352,9 @@ export class AppService {
               'html, body': {
                 background: '#0f1115 !important',
                 color: '#e5e7eb !important',
-                margin: '0 auto !important',
-                padding: '24px 28px !important',
-                maxWidth: '60ch',
-                width: '100%',
-                boxSizing: 'border-box',
-                columnCount: '1',
-                columnWidth: 'auto',
-                columnGap: '0px',
-                WebkitColumnCount: '1',
-                WebkitColumnWidth: 'auto',
-                WebkitColumnGap: '0px',
-              },
-              body: {
-                columnFill: 'auto',
-                columnGap: '0px',
-                columnWidth: 'auto',
-                columnCount: 1,
-                columnRule: 'none',
+                margin: '0 !important',
+                padding: '0 !important',
+                overflow: 'hidden !important',
               },
               'body *': {
                 color: '#e5e7eb !important',
@@ -3382,24 +3367,9 @@ export class AppService {
               'html, body': {
                 background: '#f8f5ef !important',
                 color: '#111827 !important',
-                margin: '0 auto !important',
-                padding: '24px 28px !important',
-                maxWidth: '60ch',
-                width: '100%',
-                boxSizing: 'border-box',
-                columnCount: '1',
-                columnWidth: 'auto',
-                columnGap: '0px',
-                WebkitColumnCount: '1',
-                WebkitColumnWidth: 'auto',
-                WebkitColumnGap: '0px',
-              },
-              body: {
-                columnFill: 'auto',
-                columnGap: '0px',
-                columnWidth: 'auto',
-                columnCount: 1,
-                columnRule: 'none',
+                margin: '0 !important',
+                padding: '0 !important',
+                overflow: 'hidden !important',
               },
               'body *': {
                 color: '#111827 !important',
@@ -4625,9 +4595,8 @@ export class AppService {
           readerView.innerHTML = '';
           const width = readerView.clientWidth || readerView.offsetWidth;
           const height = readerView.clientHeight || readerView.offsetHeight;
-          const pageWidth = Math.min(width || 800, 760);
           epubRendition = book.renderTo(readerView, {
-            width: pageWidth || '100%',
+            width: width || '100%',
             height: height || '100%',
             manager: 'default',
             flow: 'paginated',
@@ -4743,33 +4712,13 @@ export class AppService {
             if (iframeEl) {
               try {
                 const doc = iframeEl.contentDocument;
+                if (doc?.documentElement) {
+                  doc.documentElement.style.overflow = 'hidden';
+                }
                 if (doc?.body) {
-                  doc.body.style.margin = '0 auto';
-                  doc.body.style.padding = '24px 28px';
-                  doc.body.style.maxWidth = '60ch';
-                  doc.body.style.width = '100%';
-                  doc.body.style.boxSizing = 'border-box';
-                  doc.body.style.columnFill = 'auto';
-                  doc.body.style.columnGap = '0px';
-                  doc.body.style.columnWidth = 'auto';
-                  doc.body.style.columnCount = '1';
-                  doc.body.style.columnRule = 'none';
-                  doc.body.style.webkitColumnCount = '1';
-                  doc.body.style.webkitColumnWidth = 'auto';
-                  doc.body.style.webkitColumnGap = '0px';
-                }
-                let style = doc?.getElementById?.('bms-epub-fix');
-                if (!style && doc) {
-                  style = doc.createElement('style');
-                  style.id = 'bms-epub-fix';
-                  (doc.head || doc.documentElement).appendChild(style);
-                }
-                if (style) {
-                  style.textContent =
-                    'html,body{height:100% !important;}' +
-                    'body{column-fill:auto !important;column-gap:0px !important;column-width:auto !important;column-count:1 !important;column-rule:none !important;-webkit-column-count:1 !important;-webkit-column-width:auto !important;-webkit-column-gap:0px !important;}' +
-                    '*{column-count:1 !important;column-width:auto !important;column-gap:0px !important;-webkit-column-count:1 !important;-webkit-column-width:auto !important;-webkit-column-gap:0px !important;}' +
-                    'body > *{margin-left:auto !important;margin-right:auto !important;}';
+                  doc.body.style.margin = '0';
+                  doc.body.style.padding = '0';
+                  doc.body.style.overflow = 'hidden';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.189 — 2026-02-04 22:43 -06:00
+- Reset EPUB.js to default paginated layout and remove column overrides.
+
 ## 1.0.188 — 2026-02-04 22:31 -06:00
 - Revert to paginated EPUB.js with enforced single-page spreads and column overrides.
 
