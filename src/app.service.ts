@@ -3345,11 +3345,17 @@ export class AppService {
                 maxWidth: '60ch',
                 width: '100%',
                 boxSizing: 'border-box',
+                columnCount: '1',
+                columnWidth: 'auto',
+                columnGap: '0px',
+                WebkitColumnCount: '1',
+                WebkitColumnWidth: 'auto',
+                WebkitColumnGap: '0px',
               },
               body: {
                 columnFill: 'auto',
-                columnGap: '40px',
-                columnWidth: '100%',
+                columnGap: '0px',
+                columnWidth: 'auto',
                 columnCount: 1,
                 columnRule: 'none',
               },
@@ -3369,11 +3375,17 @@ export class AppService {
                 maxWidth: '60ch',
                 width: '100%',
                 boxSizing: 'border-box',
+                columnCount: '1',
+                columnWidth: 'auto',
+                columnGap: '0px',
+                WebkitColumnCount: '1',
+                WebkitColumnWidth: 'auto',
+                WebkitColumnGap: '0px',
               },
               body: {
                 columnFill: 'auto',
-                columnGap: '40px',
-                columnWidth: '100%',
+                columnGap: '0px',
+                columnWidth: 'auto',
                 columnCount: 1,
                 columnRule: 'none',
               },
@@ -4719,10 +4731,13 @@ export class AppService {
                   doc.body.style.width = '100%';
                   doc.body.style.boxSizing = 'border-box';
                   doc.body.style.columnFill = 'auto';
-                  doc.body.style.columnGap = '40px';
-                  doc.body.style.columnWidth = '100%';
+                  doc.body.style.columnGap = '0px';
+                  doc.body.style.columnWidth = 'auto';
                   doc.body.style.columnCount = '1';
                   doc.body.style.columnRule = 'none';
+                  doc.body.style.webkitColumnCount = '1';
+                  doc.body.style.webkitColumnWidth = 'auto';
+                  doc.body.style.webkitColumnGap = '0px';
                 }
                 let style = doc?.getElementById?.('bms-epub-fix');
                 if (!style && doc) {
@@ -4733,7 +4748,8 @@ export class AppService {
                 if (style) {
                   style.textContent =
                     'html,body{height:100% !important;}' +
-                    'body{column-fill:auto !important;column-gap:40px !important;column-width:100% !important;column-count:1 !important;column-rule:none !important;}' +
+                    'body{column-fill:auto !important;column-gap:0px !important;column-width:auto !important;column-count:1 !important;column-rule:none !important;-webkit-column-count:1 !important;-webkit-column-width:auto !important;-webkit-column-gap:0px !important;}' +
+                    '*{column-count:1 !important;column-width:auto !important;column-gap:0px !important;-webkit-column-count:1 !important;-webkit-column-width:auto !important;-webkit-column-gap:0px !important;}' +
                     'body > *{margin-left:auto !important;margin-right:auto !important;}';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);

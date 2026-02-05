@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.185 — 2026-02-04 22:07 -06:00
+- Force EPUB.js to single-column CSS across content to stop split-page cutoffs.
+
 ## 1.0.184 — 2026-02-04 21:31 -06:00
 - Switch EPUB.js to scrolled-doc layout to avoid split-page rendering.
 
