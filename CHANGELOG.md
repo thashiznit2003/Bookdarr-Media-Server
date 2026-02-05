@@ -19,6 +19,9 @@
 ## 1.0.206 — 2026-02-05 16:13 -06:00
 - Make `.epub-stage` an absolutely positioned inset (10px on all sides) so the rendered page is actually smaller and stops clipping.
 
+## 1.0.207 — 2026-02-05 16:22 -06:00
+- Reduce epub.js viewport height by a small safety margin to prevent half-line clipping at the bottom of pages.
+
 ## 1.0.200 — 2026-02-05 14:26 -06:00
 - Stop forcing single-column EPUB layout; enforce column-fill auto + viewport column width so pages paginate correctly.
 - Debug overlay now includes page/total, section index, and computed column settings.

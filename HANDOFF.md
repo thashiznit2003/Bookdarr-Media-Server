@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.
 - EPUB reader: render now mounts into a padded `.epub-stage` wrapper so insets actually affect the page viewport.
 - EPUB reader: added 10px viewport padding + inset border to prevent bottom-line clipping.

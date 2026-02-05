@@ -1984,6 +1984,8 @@ export class AppService {
       let epubNavLocked = false;
       let epubNavQueue = 0;
       let epubNavUnlockTimer = null;
+      // Small safety margin to avoid baseline rounding clipping the last line.
+      const EPUB_VIEWPORT_FUDGE_PX = 14;
       let readerEngine = 'epubjs';
       const readerPageMapVersion = 3;
 
@@ -4714,7 +4716,7 @@ export class AppService {
           const height = stage.clientHeight || stage.offsetHeight;
           epubRendition = book.renderTo(stage, {
             width: width || '100%',
-            height: height || '100%',
+            height: height ? Math.max(0, height - EPUB_VIEWPORT_FUDGE_PX) : '100%',
             manager: 'default',
             flow: 'paginated',
             spread: 'none',
@@ -4763,7 +4765,14 @@ export class AppService {
               updateReaderLayout();
               if (epubRendition) {
                 try {
-                  epubRendition.resize();
+                  const stage = document.getElementById('epub-stage');
+                  const w = stage?.clientWidth || stage?.offsetWidth;
+                  const h = stage?.clientHeight || stage?.offsetHeight;
+                  if (w && h) {
+                    epubRendition.resize(w, Math.max(0, h - EPUB_VIEWPORT_FUDGE_PX));
+                  } else {
+                    epubRendition.resize();
+                  }
                 } catch {
                   // ignore
                 }
@@ -4773,7 +4782,14 @@ export class AppService {
               updateReaderLayout();
               if (epubRendition) {
                 try {
-                  epubRendition.resize();
+                  const stage = document.getElementById('epub-stage');
+                  const w = stage?.clientWidth || stage?.offsetWidth;
+                  const h = stage?.clientHeight || stage?.offsetHeight;
+                  if (w && h) {
+                    epubRendition.resize(w, Math.max(0, h - EPUB_VIEWPORT_FUDGE_PX));
+                  } else {
+                    epubRendition.resize();
+                  }
                 } catch {
                   // ignore
                 }
