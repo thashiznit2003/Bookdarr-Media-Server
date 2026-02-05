@@ -77,6 +77,7 @@ Use the configured SSH host + key:
 - EPUB page numbering now enforces monotonic increases to avoid backward jumps.
 - EPUB page numbering now rebases on the first visible page and uses nav direction to avoid early jumps.
 - EPUB page numbers now follow explicit page-turn actions to prevent fast-swipe drift.
+- EPUB.js pagination is sensitive: do not force `overflow: hidden` on the EPUB iframe `html/body` and do not clamp/override CSS columns (`column-count`, `column-width`, `max-width`) inside the rendered document. Those overrides caused intra-chapter pages to be skipped (chapters looked like ~2 pages). Keep custom reader CSS limited to the outer container and let epub.js manage internal pagination.
 - Reader progress is stored in DB via /reader/progress; Sync reconciles latest progress and Restart clears it.
 - Readium (beta) is wired via r2-streamer-js + @readium/navigator/@readium/shared; EPUB details include a Readium button.
 - Legacy epub.js reader is hidden unless enabled in Settings → Reader Compatibility.

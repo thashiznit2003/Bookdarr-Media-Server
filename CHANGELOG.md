@@ -7,6 +7,9 @@
 ## 1.0.202 — 2026-02-05 15:14 -06:00
 - Remove CSS overrides that interfered with epub.js pagination (overflow and column sizing) to stop intra-chapter page skipping.
 
+## 1.0.203 — 2026-02-05 15:24 -06:00
+- Document epub.js pagination constraints in AGENTS.md to prevent regressions.
+
 ## 1.0.200 — 2026-02-05 14:26 -06:00
 - Stop forcing single-column EPUB layout; enforce column-fill auto + viewport column width so pages paginate correctly.
 - Debug overlay now includes page/total, section index, and computed column settings.
