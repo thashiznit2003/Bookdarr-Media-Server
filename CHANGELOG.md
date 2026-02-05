@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.180 — 2026-02-04 20:56 -06:00
+- Adjust EPUB.js rendering to reduce blank pages and center content.
+
 ## 1.0.179 — 2026-02-04 20:48 -06:00
 - Web now defaults to EPUB.js and hides Readium options (Readium mobile-only).
 

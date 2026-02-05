@@ -3340,9 +3340,15 @@ export class AppService {
               'html, body': {
                 background: '#0f1115 !important',
                 color: '#e5e7eb !important',
-                margin: '0 !important',
-                padding: '0 !important',
-                overflow: 'hidden !important',
+                margin: '0 auto !important',
+                padding: '24px 28px !important',
+                maxWidth: '72ch',
+                width: '100%',
+                boxSizing: 'border-box',
+              },
+              body: {
+                columnFill: 'auto',
+                columnGap: '40px',
               },
               'body *': {
                 color: '#e5e7eb !important',
@@ -3355,9 +3361,15 @@ export class AppService {
               'html, body': {
                 background: '#f8f5ef !important',
                 color: '#111827 !important',
-                margin: '0 !important',
-                padding: '0 !important',
-                overflow: 'hidden !important',
+                margin: '0 auto !important',
+                padding: '24px 28px !important',
+                maxWidth: '72ch',
+                width: '100%',
+                boxSizing: 'border-box',
+              },
+              body: {
+                columnFill: 'auto',
+                columnGap: '40px',
               },
               'body *': {
                 color: '#111827 !important',
@@ -4586,6 +4598,10 @@ export class AppService {
           epubRendition = book.renderTo(readerView, {
             width: width || '100%',
             height: height || '100%',
+            manager: 'default',
+            flow: 'paginated',
+            spread: 'none',
+            snap: true,
           });
           if (epubRendition.flow) {
             try {
@@ -4675,8 +4691,25 @@ export class AppService {
               try {
                 const doc = iframeEl.contentDocument;
                 if (doc?.body) {
-                  doc.body.style.margin = '0';
-                  doc.body.style.padding = '0';
+                  doc.body.style.margin = '0 auto';
+                  doc.body.style.padding = '24px 28px';
+                  doc.body.style.maxWidth = '72ch';
+                  doc.body.style.width = '100%';
+                  doc.body.style.boxSizing = 'border-box';
+                  doc.body.style.columnFill = 'auto';
+                  doc.body.style.columnGap = '40px';
+                }
+                let style = doc?.getElementById?.('bms-epub-fix');
+                if (!style && doc) {
+                  style = doc.createElement('style');
+                  style.id = 'bms-epub-fix';
+                  (doc.head || doc.documentElement).appendChild(style);
+                }
+                if (style) {
+                  style.textContent =
+                    'html,body{height:100% !important;}' +
+                    'body{column-fill:auto !important;column-gap:40px !important;}' +
+                    'body > *{margin-left:auto !important;margin-right:auto !important;}';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {
