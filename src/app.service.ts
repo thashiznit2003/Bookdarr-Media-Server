@@ -4682,14 +4682,11 @@ export class AppService {
           applyReaderTheme(readerTheme, false);
           try {
             if (epubRendition?.themes?.override) {
-              epubRendition.themes.override('column-count', '1');
+              // Ensure columns flow sequentially (avoid "balanced" blank columns).
+              epubRendition.themes.override('column-fill', 'auto');
+              epubRendition.themes.override('-webkit-column-fill', 'auto');
               epubRendition.themes.override('column-gap', '0');
-              epubRendition.themes.override('column-width', 'auto');
-              epubRendition.themes.override('width', '100%');
-              epubRendition.themes.override('max-width', '100%');
-              epubRendition.themes.override('-webkit-column-count', '1');
               epubRendition.themes.override('-webkit-column-gap', '0');
-              epubRendition.themes.override('-webkit-column-width', 'auto');
             }
           } catch {
             // ignore
@@ -4872,11 +4869,13 @@ export class AppService {
                   doc.documentElement.style.maxWidth = '100%';
                   doc.documentElement.style.columnGap = '0px';
                   doc.documentElement.style.columnFill = 'auto';
-                  doc.documentElement.style.columnCount = '1';
                   doc.documentElement.style.columnWidth = columnWidth;
-                  doc.documentElement.style.webkitColumnCount = '1';
                   doc.documentElement.style.webkitColumnGap = '0px';
+                  doc.documentElement.style.webkitColumnFill = 'auto';
                   doc.documentElement.style.webkitColumnWidth = columnWidth;
+                  // Clear any previously forced single-column state.
+                  doc.documentElement.style.columnCount = '';
+                  doc.documentElement.style.webkitColumnCount = '';
                 }
                 if (doc?.body) {
                   doc.body.style.margin = '0';
@@ -4887,11 +4886,13 @@ export class AppService {
                   doc.body.style.boxSizing = 'border-box';
                   doc.body.style.columnGap = '0px';
                   doc.body.style.columnFill = 'auto';
-                  doc.body.style.columnCount = '1';
                   doc.body.style.columnWidth = columnWidth;
-                  doc.body.style.webkitColumnCount = '1';
                   doc.body.style.webkitColumnGap = '0px';
+                  doc.body.style.webkitColumnFill = 'auto';
                   doc.body.style.webkitColumnWidth = columnWidth;
+                  // Clear any previously forced single-column state.
+                  doc.body.style.columnCount = '';
+                  doc.body.style.webkitColumnCount = '';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {
@@ -4909,9 +4910,36 @@ export class AppService {
                 const bodyWidth = doc.body.scrollWidth ?? 0;
                 const viewWidth = iframeEl?.clientWidth ?? 0;
                 const viewHeight = iframeEl?.clientHeight ?? 0;
+                const loc = epubRendition?.currentLocation?.();
+                const page = loc?.start?.displayed?.page ?? '-';
+                const total = loc?.start?.displayed?.total ?? '-';
+                const section = loc?.start?.index ?? '-';
+                let colInfo = '';
+                try {
+                  const win = doc.defaultView;
+                  const cs = win?.getComputedStyle?.(doc.body);
+                  if (cs) {
+                    colInfo =
+                      ' col=' +
+                      (cs.columnCount || '-') +
+                      ' w=' +
+                      (cs.columnWidth || '-') +
+                      ' fill=' +
+                      (cs.columnFill || '-');
+                  }
+                } catch {
+                  // ignore
+                }
                 updateReaderDebug(
-                  'EPUB debug: text=' +
+                  'EPUB debug: p=' +
+                    page +
+                    '/' +
+                    total +
+                    ' s=' +
+                    section +
+                    ' text=' +
                     text.length +
+                    colInfo +
                     ' img=' +
                     imgCount +
                     ' svg=' +

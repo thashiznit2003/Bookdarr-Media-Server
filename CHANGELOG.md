@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.200 — 2026-02-05 14:26 -06:00
+- Stop forcing single-column EPUB layout; enforce column-fill auto + viewport column width so pages paginate correctly.
+- Debug overlay now includes page/total, section index, and computed column settings.
+
 ## 1.0.199 — 2026-02-05 00:16 -06:00
 - Force EPUB column width to the viewport to prevent hidden columns.
 
