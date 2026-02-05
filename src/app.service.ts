@@ -894,18 +894,23 @@ export class AppService {
         height: 100%;
       }
 
-      /* EPUB: inset the actual render stage (epub.js absolute layout ignores padding on the parent). */
+      /* EPUB: inset the actual render stage (epub.js uses absolute layout; parent padding can be ignored). */
       .epub-stage {
-        width: 100%;
-        height: 100%;
-        padding: 10px;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
         box-sizing: border-box;
         border-radius: 14px;
         overflow: hidden;
         box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
       }
       .reader-modal.touch-fullscreen .epub-stage {
-        padding: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         border-radius: 0;
         box-shadow: none;
       }

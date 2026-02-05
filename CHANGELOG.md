@@ -16,6 +16,9 @@
 ## 1.0.205 — 2026-02-05 16:00 -06:00
 - Apply EPUB inset padding/border to a dedicated `.epub-stage` wrapper (epub.js absolute layout ignores parent padding).
 
+## 1.0.206 — 2026-02-05 16:13 -06:00
+- Make `.epub-stage` an absolutely positioned inset (10px on all sides) so the rendered page is actually smaller and stops clipping.
+
 ## 1.0.200 — 2026-02-05 14:26 -06:00
 - Stop forcing single-column EPUB layout; enforce column-fill auto + viewport column width so pages paginate correctly.
 - Debug overlay now includes page/total, section index, and computed column settings.
