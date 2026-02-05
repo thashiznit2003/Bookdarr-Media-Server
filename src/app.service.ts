@@ -1892,6 +1892,8 @@ export class AppService {
       const readerTitle = document.getElementById('reader-title');
       const readerProgress = document.getElementById('reader-progress');
       const readerProgressOverlay = document.getElementById('reader-progress-overlay');
+      const readerHeaderLeft = document.querySelector('.reader-header-left');
+      const readerDebug = document.createElement('div');
       const readerPrev = document.getElementById('reader-prev');
       const readerNext = document.getElementById('reader-next');
       const readerSync = document.getElementById('reader-sync');
@@ -3278,6 +3280,14 @@ export class AppService {
         }
       }
 
+      function updateReaderDebug(text) {
+        if (!readerDebug || !readerHeaderLeft) return;
+        readerDebug.textContent = text ?? '';
+        readerDebug.style.fontSize = '0.72rem';
+        readerDebug.style.color = '#93c5fd';
+        readerDebug.style.marginTop = '2px';
+      }
+
       function getReaderViewportSignature() {
         if (!readerView) return null;
         const width = readerView.clientWidth || 0;
@@ -3783,6 +3793,9 @@ export class AppService {
         }
         if (readerTitle) {
           readerTitle.textContent = title ?? 'Reader';
+        }
+        if (readerHeaderLeft && readerDebug && !readerDebug.isConnected) {
+          readerHeaderLeft.appendChild(readerDebug);
         }
         if (readerDownload) {
           readerDownload.href = withToken(file.streamUrl);
@@ -4702,6 +4715,25 @@ export class AppService {
               saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
             }
             updateEpubPageNumbers(location);
+            try {
+              const view = epubRendition?.manager?.views?.[0];
+              const contents = view?.contents?.();
+              const doc = contents?.document;
+              if (doc?.body) {
+                const text = doc.body.innerText?.trim?.() ?? '';
+                const imgCount = doc.body.querySelectorAll?.('img').length ?? 0;
+                const svgCount = doc.body.querySelectorAll?.('svg').length ?? 0;
+                const bodyHeight = doc.body.scrollHeight ?? 0;
+                const bodyWidth = doc.body.scrollWidth ?? 0;
+                const viewWidth = view?.iframe?.clientWidth ?? 0;
+                const viewHeight = view?.iframe?.clientHeight ?? 0;
+                updateReaderDebug(
+                  `EPUB debug: text=${text.length} img=${imgCount} svg=${svgCount} body=${bodyWidth}x${bodyHeight} view=${viewWidth}x${viewHeight}`,
+                );
+              }
+            } catch {
+              // ignore debug errors
+            }
             try {
               if (epubBlankRetryGuard > 0) {
                 epubBlankRetryGuard -= 1;
