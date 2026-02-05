@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.187 — 2026-02-04 22:22 -06:00
+- Hide EPUB.js scrollbars and enforce hidden overflow for single-page viewport.
+
 ## 1.0.186 — 2026-02-04 22:15 -06:00
 - Switch EPUB.js to true single-page viewport by scrolling one screen at a time.
 

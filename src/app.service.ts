@@ -913,6 +913,17 @@ export class AppService {
         border: none;
         display: block;
       }
+      .reader-modal[data-reader-mode="epub"] .reader-view,
+      .reader-modal[data-reader-mode="epub"] .reader-view iframe,
+      .reader-modal[data-reader-mode="epub"] .reader-view iframe html,
+      .reader-modal[data-reader-mode="epub"] .reader-view iframe body {
+        overflow: hidden !important;
+        scrollbar-width: none;
+      }
+      .reader-modal[data-reader-mode="epub"] .reader-view iframe::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0 !important;
+      }
       .readium-container {
         width: 100%;
         height: 100%;
@@ -2070,18 +2081,19 @@ export class AppService {
         }
       };
 
-      const scrollEpubBy = (direction) => {
-        if (!epubRendition) return;
-        try {
-          const view = epubRendition?.manager?.views?.[0];
-          const iframeEl = view?.iframe ?? view?.element?.querySelector?.('iframe');
-          const doc = iframeEl?.contentDocument;
-          const scroller = doc?.scrollingElement || doc?.documentElement || doc?.body;
-          if (!scroller || !iframeEl) return;
-          const pageHeight = iframeEl.clientHeight || readerView?.clientHeight || 600;
-          const currentTop = scroller.scrollTop || 0;
-          const target = Math.max(0, currentTop + direction * pageHeight);
-          scroller.scrollTo({ top: target, behavior: 'instant' });
+        const scrollEpubBy = (direction) => {
+          if (!epubRendition) return;
+          try {
+            const view = epubRendition?.manager?.views?.[0];
+            const iframeEl = view?.iframe ?? view?.element?.querySelector?.('iframe');
+            const doc = iframeEl?.contentDocument;
+            const scroller = doc?.scrollingElement || doc?.documentElement || doc?.body;
+            if (!scroller || !iframeEl) return;
+            scroller.style.overflow = 'hidden';
+            const pageHeight = iframeEl.clientHeight || readerView?.clientHeight || 600;
+            const currentTop = scroller.scrollTop || 0;
+            const target = Math.max(0, currentTop + direction * pageHeight);
+            scroller.scrollTo({ top: target, behavior: 'instant' });
           if (epubRendition.location) {
             epubRendition.location().then((loc) => {
               if (loc?.start?.cfi) {
