@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- EPUB reader now clamps iframe/container widths and includes page/section in debug overlay.
 - EPUB debug overlay now updates on display/render so it doesn't stay pending.
 - EPUB debug overlay is now selectable for copy/paste.
 - Added an always-visible EPUB debug overlay in the reader modal for blank page diagnostics.

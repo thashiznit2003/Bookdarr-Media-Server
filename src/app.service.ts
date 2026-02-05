@@ -908,8 +908,9 @@ export class AppService {
       }
 
       .reader-view iframe {
-        width: 100%;
-        height: 100%;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
         border: none;
         display: block;
       }
@@ -951,7 +952,10 @@ export class AppService {
       .reader-view .epub-container,
       .reader-view .epub-view {
         width: 100%;
+        max-width: 100% !important;
         height: 100%;
+        overflow: hidden;
+        margin: 0 auto;
       }
 
       .reader-view.page-turn-next {
@@ -4780,8 +4784,17 @@ export class AppService {
                 const bodyWidth = doc.body.scrollWidth ?? 0;
                 const viewWidth = view?.iframe?.clientWidth ?? 0;
                 const viewHeight = view?.iframe?.clientHeight ?? 0;
+                const page = location?.start?.displayed?.page ?? '-';
+                const total = location?.start?.displayed?.total ?? '-';
+                const section = location?.start?.index ?? '-';
                 updateReaderDebug(
-                  'EPUB debug: text=' +
+                  'EPUB debug: p=' +
+                    page +
+                    '/' +
+                    total +
+                    ' s=' +
+                    section +
+                    ' text=' +
                     text.length +
                     ' img=' +
                     imgCount +
@@ -4839,11 +4852,20 @@ export class AppService {
                 const doc = iframeEl.contentDocument;
                 if (doc?.documentElement) {
                   doc.documentElement.style.overflow = 'hidden';
+                  doc.documentElement.style.width = '100%';
+                  doc.documentElement.style.maxWidth = '100%';
+                  doc.documentElement.style.columnGap = '0px';
+                  doc.documentElement.style.columnFill = 'auto';
                 }
                 if (doc?.body) {
                   doc.body.style.margin = '0';
                   doc.body.style.padding = '0';
                   doc.body.style.overflow = 'hidden';
+                  doc.body.style.width = '100%';
+                  doc.body.style.maxWidth = '100%';
+                  doc.body.style.boxSizing = 'border-box';
+                  doc.body.style.columnGap = '0px';
+                  doc.body.style.columnFill = 'auto';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {

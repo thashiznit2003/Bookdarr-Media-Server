@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.197 — 2026-02-05 00:04 -06:00
+- Clamp EPUB iframe/container widths and expand debug info with page/section.
+
 ## 1.0.196 — 2026-02-04 23:56 -06:00
 - Update EPUB debug overlay on render/display so it doesn't stay pending.
 
