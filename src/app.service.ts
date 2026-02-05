@@ -1894,6 +1894,8 @@ export class AppService {
       const readerProgressOverlay = document.getElementById('reader-progress-overlay');
       const readerHeaderLeft = document.querySelector('.reader-header-left');
       const readerDebug = document.createElement('div');
+      const readerCard = document.querySelector('.reader-card');
+      const readerDebugOverlay = document.createElement('div');
       const readerPrev = document.getElementById('reader-prev');
       const readerNext = document.getElementById('reader-next');
       const readerSync = document.getElementById('reader-sync');
@@ -3286,6 +3288,19 @@ export class AppService {
         readerDebug.style.fontSize = '0.72rem';
         readerDebug.style.color = '#93c5fd';
         readerDebug.style.marginTop = '2px';
+        readerDebug.style.display = 'block';
+        readerDebugOverlay.textContent = text ?? '';
+        readerDebugOverlay.style.position = 'absolute';
+        readerDebugOverlay.style.top = '72px';
+        readerDebugOverlay.style.right = '20px';
+        readerDebugOverlay.style.padding = '6px 10px';
+        readerDebugOverlay.style.borderRadius = '10px';
+        readerDebugOverlay.style.background = 'rgba(15, 23, 42, 0.9)';
+        readerDebugOverlay.style.border = '1px solid rgba(148, 163, 184, 0.35)';
+        readerDebugOverlay.style.fontSize = '0.7rem';
+        readerDebugOverlay.style.color = '#93c5fd';
+        readerDebugOverlay.style.zIndex = '8';
+        readerDebugOverlay.style.pointerEvents = 'none';
       }
 
       function getReaderViewportSignature() {
@@ -3796,6 +3811,10 @@ export class AppService {
         }
         if (readerHeaderLeft && readerDebug && !readerDebug.isConnected) {
           readerHeaderLeft.appendChild(readerDebug);
+          updateReaderDebug('EPUB debug: pending');
+        }
+        if (readerCard && readerDebugOverlay && !readerDebugOverlay.isConnected) {
+          readerCard.appendChild(readerDebugOverlay);
         }
         if (readerDownload) {
           readerDownload.href = withToken(file.streamUrl);

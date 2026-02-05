@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.194 — 2026-02-04 23:43 -06:00
+- Add always-visible EPUB debug overlay inside the reader modal.
+
 ## 1.0.193 — 2026-02-04 23:34 -06:00
 - Fix EPUB debug overlay build by removing template literal in embedded script.
 

@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- Added an always-visible EPUB debug overlay in the reader modal for blank page diagnostics.
 - Fixed EPUB debug overlay string building to avoid template literal build failures.
 - Repo initialized with NestJS scaffold.
 - Docs updated for new agent handoff.
