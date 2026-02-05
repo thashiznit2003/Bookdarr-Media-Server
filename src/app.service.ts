@@ -3342,7 +3342,7 @@ export class AppService {
                 color: '#e5e7eb !important',
                 margin: '0 auto !important',
                 padding: '24px 28px !important',
-                maxWidth: '72ch',
+                maxWidth: '60ch',
                 width: '100%',
                 boxSizing: 'border-box',
               },
@@ -3366,7 +3366,7 @@ export class AppService {
                 color: '#111827 !important',
                 margin: '0 auto !important',
                 padding: '24px 28px !important',
-                maxWidth: '72ch',
+                maxWidth: '60ch',
                 width: '100%',
                 boxSizing: 'border-box',
               },
@@ -3395,7 +3395,7 @@ export class AppService {
       function getReadiumThemeCss() {
         const base =
           'html{width:100% !important;} ' +
-          'body{margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:72ch !important;box-sizing:border-box !important;text-align:center !important;} ' +
+          'body{margin:0 auto !important;padding:24px 28px !important;width:100% !important;max-width:60ch !important;box-sizing:border-box !important;text-align:center !important;} ' +
           'body > *{margin-left:auto !important;margin-right:auto !important;} ' +
           'p,li,div,section,article,blockquote,pre{ text-align:left !important; }';
         return readerTheme === 'dark'
@@ -4601,13 +4601,15 @@ export class AppService {
           readerView.innerHTML = '';
           const width = readerView.clientWidth || readerView.offsetWidth;
           const height = readerView.clientHeight || readerView.offsetHeight;
+          const pageWidth = Math.min(width || 800, 760);
           epubRendition = book.renderTo(readerView, {
-            width: width || '100%',
+            width: pageWidth || '100%',
             height: height || '100%',
             manager: 'default',
             flow: 'paginated',
             spread: 'none',
             snap: true,
+            minSpreadWidth: 99999,
           });
           try {
             if (epubRendition.spread) {

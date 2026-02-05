@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.183 — 2026-02-04 21:20 -06:00
+- Narrow EPUB.js page width and lock spread width to avoid multi-page splits.
+
 ## 1.0.182 — 2026-02-04 21:09 -06:00
 - Force EPUB.js spread/page settings to prevent double-page split views.
 
