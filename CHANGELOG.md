@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.181 — 2026-02-04 21:03 -06:00
+- Force single-column EPUB.js layout to eliminate split-page rendering.
+
 ## 1.0.180 — 2026-02-04 20:56 -06:00
 - Adjust EPUB.js rendering to reduce blank pages and center content.
 

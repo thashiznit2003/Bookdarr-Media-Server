@@ -3349,6 +3349,9 @@ export class AppService {
               body: {
                 columnFill: 'auto',
                 columnGap: '40px',
+                columnWidth: '100%',
+                columnCount: 1,
+                columnRule: 'none',
               },
               'body *': {
                 color: '#e5e7eb !important',
@@ -3370,6 +3373,9 @@ export class AppService {
               body: {
                 columnFill: 'auto',
                 columnGap: '40px',
+                columnWidth: '100%',
+                columnCount: 1,
+                columnRule: 'none',
               },
               'body *': {
                 color: '#111827 !important',
@@ -4698,6 +4704,9 @@ export class AppService {
                   doc.body.style.boxSizing = 'border-box';
                   doc.body.style.columnFill = 'auto';
                   doc.body.style.columnGap = '40px';
+                  doc.body.style.columnWidth = '100%';
+                  doc.body.style.columnCount = '1';
+                  doc.body.style.columnRule = 'none';
                 }
                 let style = doc?.getElementById?.('bms-epub-fix');
                 if (!style && doc) {
@@ -4708,7 +4717,7 @@ export class AppService {
                 if (style) {
                   style.textContent =
                     'html,body{height:100% !important;}' +
-                    'body{column-fill:auto !important;column-gap:40px !important;}' +
+                    'body{column-fill:auto !important;column-gap:40px !important;column-width:100% !important;column-count:1 !important;column-rule:none !important;}' +
                     'body > *{margin-left:auto !important;margin-right:auto !important;}';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
