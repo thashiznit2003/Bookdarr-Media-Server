@@ -142,47 +142,6 @@ export class LibraryController {
     Readable.fromWeb(upstream.body as any).pipe(res);
   }
 
-  @Get('readium/manifest')
-  @UseGuards(AuthGuard)
-  async readiumManifest(
-    @Query('pub') pub: string | undefined,
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
-    if (!pub) {
-      res.status(400).json({ message: 'Readium pub is required.' });
-      return;
-    }
-
-    const token = this.extractAccessToken(req);
-    if (!token) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    const port = this.settingsService.getSettings().port;
-    const url = `http://127.0.0.1:${port}/readium/pub/${pub}/manifest.json`;
-    const upstream = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    res.status(upstream.status);
-    const contentType = upstream.headers.get('content-type');
-    if (contentType) {
-      res.setHeader('content-type', contentType);
-    }
-    res.setHeader('cache-control', 'no-store');
-
-    if (!upstream.body) {
-      res.end();
-      return;
-    }
-
-    Readable.fromWeb(upstream.body as any).pipe(res);
-  }
-
   @Get(':id')
   @UseGuards(AuthGuard)
   async getLibraryDetail(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {

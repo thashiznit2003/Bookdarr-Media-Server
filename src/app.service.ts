@@ -1748,17 +1748,10 @@ export class AppService {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
       window.pdfjsLib = pdfjsLib;
     </script>
-    <script type="module">
-      import * as ReadiumNavigator from '/vendor/readium-navigator/index.js';
-      import * as ReadiumShared from '/vendor/readium-shared/index.js';
-      window.ReadiumNavigator = ReadiumNavigator;
-      window.ReadiumShared = ReadiumShared;
-    </script>
     <script src="/vendor/jszip/jszip.min.js"></script>
     <script src="/vendor/epub/epub.min.js"></script>
     <script>
       const bootstrap = window.__BMS_BOOTSTRAP__ || null;
-      window.__BMS_FORCE_READIUM = ${process.env.FORCE_READIUM === 'true' ? 'true' : 'false'};
       const state = {
         filter: 'all',
         query: '',

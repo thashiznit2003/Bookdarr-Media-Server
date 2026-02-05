@@ -1,26 +1,31 @@
 # Changelog — Bookdarr Media Server (BMS)
 
-## 1.0.201 — 2026-02-05 14:40 -06:00
-- Serialize epub.js page turns (lock + queue) to prevent multi-page jumps from rapid/double-fired events.
-- Debug overlay now includes nav lock state and queued turns.
+## 1.0.208 — 2026-02-05 16:43 -06:00
+- Remove Readium server/web integration and dependencies (r2-streamer-js / @readium/*), eliminating request-based audit vulns and SSH update warnings.
+- Remove the `/library/readium/manifest` endpoint to remediate the critical CodeQL SSRF alert.
+- `npm audit` now reports 0 vulnerabilities.
 
-## 1.0.202 — 2026-02-05 15:14 -06:00
-- Remove CSS overrides that interfered with epub.js pagination (overflow and column sizing) to stop intra-chapter page skipping.
-
-## 1.0.203 — 2026-02-05 15:24 -06:00
-- Document epub.js pagination constraints in AGENTS.md to prevent regressions.
-
-## 1.0.204 — 2026-02-05 15:51 -06:00
-- Add an inset border and 10px padding to the EPUB viewport to prevent bottom-line clipping.
-
-## 1.0.205 — 2026-02-05 16:00 -06:00
-- Apply EPUB inset padding/border to a dedicated `.epub-stage` wrapper (epub.js absolute layout ignores parent padding).
+## 1.0.207 — 2026-02-05 16:22 -06:00
+- Reduce epub.js viewport height by a small safety margin to prevent half-line clipping at the bottom of pages.
 
 ## 1.0.206 — 2026-02-05 16:13 -06:00
 - Make `.epub-stage` an absolutely positioned inset (10px on all sides) so the rendered page is actually smaller and stops clipping.
 
-## 1.0.207 — 2026-02-05 16:22 -06:00
-- Reduce epub.js viewport height by a small safety margin to prevent half-line clipping at the bottom of pages.
+## 1.0.205 — 2026-02-05 16:00 -06:00
+- Apply EPUB inset padding/border to a dedicated `.epub-stage` wrapper (epub.js absolute layout ignores parent padding).
+
+## 1.0.204 — 2026-02-05 15:51 -06:00
+- Add an inset border and 10px padding to the EPUB viewport to prevent bottom-line clipping.
+
+## 1.0.203 — 2026-02-05 15:24 -06:00
+- Document epub.js pagination constraints in AGENTS.md to prevent regressions.
+
+## 1.0.202 — 2026-02-05 15:14 -06:00
+- Remove CSS overrides that interfered with epub.js pagination (overflow and column sizing) to stop intra-chapter page skipping.
+
+## 1.0.201 — 2026-02-05 14:40 -06:00
+- Serialize epub.js page turns (lock + queue) to prevent multi-page jumps from rapid/double-fired events.
+- Debug overlay now includes nav lock state and queued turns.
 
 ## 1.0.200 — 2026-02-05 14:26 -06:00
 - Stop forcing single-column EPUB layout; enforce column-fill auto + viewport column width so pages paginate correctly.
