@@ -1475,20 +1475,10 @@ export class AppService {
           </div>
 
           <div class="panel" style="margin-top: 20px;">
-            <h3 style="margin-top: 0;">Reader Compatibility</h3>
-            <div class="status-grid form-grid">
-              <div>
-                <span class="nav-title">Legacy EPUB (epub.js)</span>
-                <div class="checkbox-field">
-                  <input id="settings-reader-legacy" type="checkbox" />
-                  <span class="checkbox-label">Show legacy Read button for compatibility</span>
-                </div>
-              </div>
+            <h3 style="margin-top: 0;">Web Reader</h3>
+            <div style="color: var(--muted);">
+              Web uses EPUB.js for stability. Readium is reserved for the future mobile app.
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 12px;">
-              <button id="save-reader-settings">Save Reader Settings</button>
-            </div>
-            <div id="settings-reader-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
         </div>
 
@@ -3749,6 +3739,9 @@ export class AppService {
         }
         await ensureFreshToken();
         resetReaderState();
+        if (file?.format === '.epub' && engine === 'readium') {
+          engine = 'epubjs';
+        }
         readerEngine = engine || 'epubjs';
         debugReaderLog('open_reader', {
           fileId: file?.id ?? null,
@@ -4886,20 +4879,12 @@ export class AppService {
             readButton.textContent = 'Read';
             readButton.addEventListener('click', () => {
               if (file.format === '.epub') {
-                openReader(file, detailTitle?.textContent, 'readium');
+                openReader(file, detailTitle?.textContent, 'epubjs');
               } else {
                 openReader(file, detailTitle?.textContent, 'epubjs');
               }
             });
             actions.appendChild(readButton);
-            if (file.format === '.epub' && legacyEpubEnabled) {
-              const legacyButton = document.createElement('button');
-              legacyButton.textContent = 'Legacy Read';
-              legacyButton.addEventListener('click', () => {
-                openReader(file, detailTitle?.textContent, 'epubjs');
-              });
-              actions.appendChild(legacyButton);
-            }
           }
 
           const link = document.createElement('a');

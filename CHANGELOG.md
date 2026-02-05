@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.179 — 2026-02-04 20:48 -06:00
+- Web now defaults to EPUB.js and hides Readium options (Readium mobile-only).
+
 ## 1.0.178 — 2026-02-04 20:25 -06:00
 - Center Readium content within the iframe and use viewport positions for page stepping.
 
