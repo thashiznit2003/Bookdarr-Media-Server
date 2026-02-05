@@ -1919,6 +1919,7 @@ export class AppService {
       let epubBook = null;
       let epubRendition = null;
       let epubObjectUrl = null;
+      let epubScrollMode = false;
       let readiumNavigator = null;
       let readiumPublication = null;
       let readiumManifestUrl = null;
@@ -2015,6 +2016,10 @@ export class AppService {
             readiumNavigator.goBackward(false, () => {});
           }
         } else if (epubRendition) {
+          if (epubScrollMode) {
+            scrollEpubBy(-1);
+            return;
+          }
           readerNavPending = Math.max(readerNavPending - 1, -10);
           epubRendition.prev();
         } else if (pdfDoc) {
@@ -2028,6 +2033,10 @@ export class AppService {
             readiumNavigator.goForward(false, () => {});
           }
         } else if (epubRendition) {
+          if (epubScrollMode) {
+            scrollEpubBy(1);
+            return;
+          }
           readerNavPending = Math.min(readerNavPending + 1, 10);
           epubRendition.next();
         } else if (pdfDoc) {
@@ -2058,6 +2067,30 @@ export class AppService {
           return true;
         } catch {
           return false;
+        }
+      };
+
+      const scrollEpubBy = (direction) => {
+        if (!epubRendition) return;
+        try {
+          const view = epubRendition?.manager?.views?.[0];
+          const iframeEl = view?.iframe ?? view?.element?.querySelector?.('iframe');
+          const doc = iframeEl?.contentDocument;
+          const scroller = doc?.scrollingElement || doc?.documentElement || doc?.body;
+          if (!scroller || !iframeEl) return;
+          const pageHeight = iframeEl.clientHeight || readerView?.clientHeight || 600;
+          const currentTop = scroller.scrollTop || 0;
+          const target = Math.max(0, currentTop + direction * pageHeight);
+          scroller.scrollTo({ top: target, behavior: 'instant' });
+          if (epubRendition.location) {
+            epubRendition.location().then((loc) => {
+              if (loc?.start?.cfi) {
+                saveProgress('ebook-epub', readerFile?.id, { cfi: loc.start.cfi });
+              }
+            }).catch(() => {});
+          }
+        } catch {
+          // ignore
         }
       };
 
@@ -3251,6 +3284,7 @@ export class AppService {
         readerPageMapKey = null;
         readerNavPending = 0;
         readerEngine = 'epubjs';
+        epubScrollMode = false;
         if (readerView) {
           readerView.innerHTML = '';
         }
@@ -4623,6 +4657,7 @@ export class AppService {
             snap: true,
             minSpreadWidth: 99999,
           });
+          epubScrollMode = true;
           try {
             if (epubRendition.spread) {
               epubRendition.spread('none');
@@ -4727,7 +4762,7 @@ export class AppService {
                 if (doc?.body) {
                   doc.body.style.margin = '0 auto';
                   doc.body.style.padding = '24px 28px';
-                  doc.body.style.maxWidth = '72ch';
+                  doc.body.style.maxWidth = '60ch';
                   doc.body.style.width = '100%';
                   doc.body.style.boxSizing = 'border-box';
                   doc.body.style.columnFill = 'auto';
@@ -4738,6 +4773,23 @@ export class AppService {
                   doc.body.style.webkitColumnCount = '1';
                   doc.body.style.webkitColumnWidth = 'auto';
                   doc.body.style.webkitColumnGap = '0px';
+                  if (!doc.body.__bmsScrollBound) {
+                    doc.body.__bmsScrollBound = true;
+                    const scroller = doc.scrollingElement || doc.documentElement || doc.body;
+                    let scrollTimer = null;
+                    scroller?.addEventListener('scroll', () => {
+                      if (scrollTimer) clearTimeout(scrollTimer);
+                      scrollTimer = setTimeout(() => {
+                        if (!epubRendition) return;
+                        epubRendition.location().then((loc) => {
+                          if (loc?.start?.cfi) {
+                            saveProgress('ebook-epub', readerFile?.id, { cfi: loc.start.cfi });
+                          }
+                          updateEpubPageNumbers(loc);
+                        }).catch(() => {});
+                      }, 200);
+                    });
+                  }
                 }
                 let style = doc?.getElementById?.('bms-epub-fix');
                 if (!style && doc) {

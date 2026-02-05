@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.186 — 2026-02-04 22:15 -06:00
+- Switch EPUB.js to true single-page viewport by scrolling one screen at a time.
+
 ## 1.0.185 — 2026-02-04 22:07 -06:00
 - Force EPUB.js to single-column CSS across content to stop split-page cutoffs.
 
