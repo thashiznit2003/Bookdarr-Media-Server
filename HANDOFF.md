@@ -57,6 +57,7 @@
 - EPUB.js is back to paginated mode with forced single-page spreads and column overrides.
 - EPUB.js now uses default paginated layout without column overrides.
 - EPUB.js now auto-skips empty pages between chapters.
+- EPUB.js now retries empty page renders instead of skipping.
 - Readium positions are now stored in shared scope to avoid load-time reference errors.
 - Readium now fetches the position list link for accurate total pages and global progress.
 - Login page script no longer references reader settings handlers from the main app shell.

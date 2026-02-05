@@ -1930,7 +1930,7 @@ export class AppService {
       let epubBook = null;
       let epubRendition = null;
       let epubObjectUrl = null;
-      let epubSkipBlankGuard = 0;
+      let epubBlankRetryGuard = 0;
       let readiumNavigator = null;
       let readiumPublication = null;
       let readiumManifestUrl = null;
@@ -4703,8 +4703,8 @@ export class AppService {
             }
             updateEpubPageNumbers(location);
             try {
-              if (epubSkipBlankGuard > 0) {
-                epubSkipBlankGuard -= 1;
+              if (epubBlankRetryGuard > 0) {
+                epubBlankRetryGuard -= 1;
               } else {
                 const view = epubRendition?.manager?.views?.[0];
                 const contents = view?.contents?.();
@@ -4712,18 +4712,21 @@ export class AppService {
                 if (doc?.body) {
                   const text = doc.body.innerText?.trim?.() ?? '';
                   const hasImages = doc.body.querySelectorAll?.('img, svg, figure').length > 0;
-                  if (!text && !hasImages) {
-                    epubSkipBlankGuard = 4;
-                    if (readerNavPending < 0) {
-                      epubRendition.prev();
-                    } else {
-                      epubRendition.next();
-                    }
+                  if (!text && !hasImages && location?.start?.cfi) {
+                    epubBlankRetryGuard = 2;
+                    setTimeout(() => {
+                      try {
+                        epubRendition.display(location.start.cfi);
+                        epubRendition.resize();
+                      } catch {
+                        // ignore retry errors
+                      }
+                    }, 120);
                   }
                 }
               }
             } catch {
-              // ignore blank-page skip errors
+              // ignore blank-page retry errors
             }
             try {
               epubRendition.resize();

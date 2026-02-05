@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.191 — 2026-02-04 23:16 -06:00
+- Retry rendering empty EPUB pages instead of skipping them.
+
 ## 1.0.190 — 2026-02-04 22:56 -06:00
 - Auto-skip blank EPUB pages between chapters without changing layout.
 
