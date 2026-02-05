@@ -54,6 +54,7 @@
 - EPUB.js now overrides column CSS across content to ensure single-column pages.
 - EPUB.js now scrolls by one viewport per page to enforce a single-page view.
 - EPUB.js now hides scrollbars and forces overflow hidden for the reader iframe.
+- EPUB.js is back to paginated mode with forced single-page spreads and column overrides.
 - Readium positions are now stored in shared scope to avoid load-time reference errors.
 - Readium now fetches the position list link for accurate total pages and global progress.
 - Login page script no longer references reader settings handlers from the main app shell.

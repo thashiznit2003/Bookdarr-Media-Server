@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.188 — 2026-02-04 22:31 -06:00
+- Revert to paginated EPUB.js with enforced single-page spreads and column overrides.
+
 ## 1.0.187 — 2026-02-04 22:22 -06:00
 - Hide EPUB.js scrollbars and enforce hidden overflow for single-page viewport.
 
