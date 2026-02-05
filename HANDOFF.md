@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- EPUB reader now forces column width to the viewport (including webkit columns).
 - EPUB reader now forces single-column layout via theme overrides and iframe styles.
 - EPUB reader now clamps iframe/container widths and includes page/section in debug overlay.
 - EPUB debug overlay now updates on display/render so it doesn't stay pending.

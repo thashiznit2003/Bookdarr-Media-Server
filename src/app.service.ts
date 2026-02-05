@@ -4687,6 +4687,9 @@ export class AppService {
               epubRendition.themes.override('column-width', 'auto');
               epubRendition.themes.override('width', '100%');
               epubRendition.themes.override('max-width', '100%');
+              epubRendition.themes.override('-webkit-column-count', '1');
+              epubRendition.themes.override('-webkit-column-gap', '0');
+              epubRendition.themes.override('-webkit-column-width', 'auto');
             }
           } catch {
             // ignore
@@ -4861,6 +4864,8 @@ export class AppService {
             if (iframeEl) {
               try {
                 const doc = iframeEl.contentDocument;
+                const viewWidth = iframeEl.clientWidth || iframeEl.offsetWidth || 0;
+                const columnWidth = viewWidth ? viewWidth + 'px' : '100%';
                 if (doc?.documentElement) {
                   doc.documentElement.style.overflow = 'hidden';
                   doc.documentElement.style.width = '100%';
@@ -4868,7 +4873,10 @@ export class AppService {
                   doc.documentElement.style.columnGap = '0px';
                   doc.documentElement.style.columnFill = 'auto';
                   doc.documentElement.style.columnCount = '1';
-                  doc.documentElement.style.columnWidth = 'auto';
+                  doc.documentElement.style.columnWidth = columnWidth;
+                  doc.documentElement.style.webkitColumnCount = '1';
+                  doc.documentElement.style.webkitColumnGap = '0px';
+                  doc.documentElement.style.webkitColumnWidth = columnWidth;
                 }
                 if (doc?.body) {
                   doc.body.style.margin = '0';
@@ -4880,7 +4888,10 @@ export class AppService {
                   doc.body.style.columnGap = '0px';
                   doc.body.style.columnFill = 'auto';
                   doc.body.style.columnCount = '1';
-                  doc.body.style.columnWidth = 'auto';
+                  doc.body.style.columnWidth = columnWidth;
+                  doc.body.style.webkitColumnCount = '1';
+                  doc.body.style.webkitColumnGap = '0px';
+                  doc.body.style.webkitColumnWidth = columnWidth;
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {
