@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- EPUB reader now serializes epub.js page turns (lock + queue) to prevent multi-page jumps.
 - EPUB pagination: removed forced single-column; enforce column-fill auto + viewport column width to prevent blank/balanced columns.
 - EPUB reader now forces column width to the viewport (including webkit columns).
 - EPUB reader now forces single-column layout via theme overrides and iframe styles.

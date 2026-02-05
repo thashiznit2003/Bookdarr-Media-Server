@@ -1962,6 +1962,10 @@ export class AppService {
       let readerLastGlobalPage = null;
       let readerPageMapKey = null;
       let readerNavPending = 0;
+      // Prevent multi-step turns from double-firing events or rapid clicks.
+      let epubNavLocked = false;
+      let epubNavQueue = 0;
+      let epubNavUnlockTimer = null;
       let readerEngine = 'epubjs';
       const readerPageMapVersion = 3;
 
@@ -2035,8 +2039,7 @@ export class AppService {
             readiumNavigator.goBackward(false, () => {});
           }
         } else if (epubRendition) {
-          readerNavPending = Math.max(readerNavPending - 1, -10);
-          epubRendition.prev();
+          queueEpubTurn(-1);
         } else if (pdfDoc) {
           pdfPage = Math.max(1, pdfPage - 1);
           renderPdfPage();
@@ -2048,13 +2051,67 @@ export class AppService {
             readiumNavigator.goForward(false, () => {});
           }
         } else if (epubRendition) {
-          readerNavPending = Math.min(readerNavPending + 1, 10);
-          epubRendition.next();
+          queueEpubTurn(1);
         } else if (pdfDoc) {
           pdfPage = Math.min(pdfDoc.numPages, pdfPage + 1);
           renderPdfPage();
         }
       };
+
+      function setEpubNavDisabled(disabled) {
+        if (readerPrev) readerPrev.disabled = Boolean(disabled);
+        if (readerNext) readerNext.disabled = Boolean(disabled);
+        if (readerPrevArrow) readerPrevArrow.disabled = Boolean(disabled);
+        if (readerNextArrow) readerNextArrow.disabled = Boolean(disabled);
+      }
+
+      function unlockEpubNavSoon(ms = 1200) {
+        try {
+          if (epubNavUnlockTimer) {
+            clearTimeout(epubNavUnlockTimer);
+          }
+        } catch {}
+        epubNavUnlockTimer = setTimeout(() => {
+          epubNavLocked = false;
+          setEpubNavDisabled(false);
+          if (epubNavQueue !== 0) {
+            processEpubTurnQueue();
+          }
+        }, ms);
+      }
+
+      function processEpubTurnQueue() {
+        if (!epubRendition) {
+          epubNavQueue = 0;
+          epubNavLocked = false;
+          setEpubNavDisabled(false);
+          return;
+        }
+        if (epubNavLocked) return;
+        if (epubNavQueue === 0) return;
+        const step = epubNavQueue > 0 ? 1 : -1;
+        epubNavQueue -= step;
+        epubNavLocked = true;
+        setEpubNavDisabled(true);
+        readerNavPending = Math.max(-10, Math.min(10, readerNavPending + step));
+        try {
+          if (step > 0) {
+            epubRendition.next();
+          } else {
+            epubRendition.prev();
+          }
+        } catch {
+          epubNavLocked = false;
+          setEpubNavDisabled(false);
+        }
+        // Fallback unlock if relocated doesn't fire (prevents permanent lock).
+        unlockEpubNavSoon();
+      }
+
+      function queueEpubTurn(delta) {
+        epubNavQueue = Math.max(-25, Math.min(25, epubNavQueue + (delta > 0 ? 1 : -1)));
+        processEpubTurnQueue();
+      }
 
       const goReadiumPositionStep = (delta) => {
         if (!readiumNavigator || !readiumPositions?.length) return false;
@@ -4779,6 +4836,19 @@ export class AppService {
             });
           }
           epubRendition.on('relocated', (location) => {
+            epubNavLocked = false;
+            setEpubNavDisabled(false);
+            try {
+              if (epubNavUnlockTimer) {
+                clearTimeout(epubNavUnlockTimer);
+                epubNavUnlockTimer = null;
+              }
+            } catch {}
+            if (epubNavQueue !== 0) {
+              setTimeout(() => {
+                processEpubTurnQueue();
+              }, 0);
+            }
             if (location?.start?.cfi) {
               saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
             }
@@ -4937,6 +5007,10 @@ export class AppService {
                     total +
                     ' s=' +
                     section +
+                    ' nav=' +
+                    (epubNavLocked ? '1' : '0') +
+                    ' q=' +
+                    epubNavQueue +
                     ' text=' +
                     text.length +
                     colInfo +
