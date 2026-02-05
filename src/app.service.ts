@@ -908,17 +908,17 @@ export class AppService {
       }
 
       .reader-view iframe {
-        width: 100% !important;
-        max-width: 100% !important;
-        height: 100% !important;
+        width: 100%;
+        height: 100%;
         border: none;
         display: block;
       }
       .reader-modal[data-reader-mode="epub"] .reader-view,
-      .reader-modal[data-reader-mode="epub"] .reader-view iframe,
       .reader-modal[data-reader-mode="epub"] .reader-view iframe html,
       .reader-modal[data-reader-mode="epub"] .reader-view iframe body {
-        overflow: hidden !important;
+        scrollbar-width: none;
+      }
+      .reader-modal[data-reader-mode="epub"] .reader-view iframe {
         scrollbar-width: none;
       }
       .reader-modal[data-reader-mode="epub"] .reader-view iframe::-webkit-scrollbar {
@@ -952,10 +952,7 @@ export class AppService {
       .reader-view .epub-container,
       .reader-view .epub-view {
         width: 100%;
-        max-width: 100% !important;
         height: 100%;
-        overflow: hidden;
-        margin: 0 auto;
       }
 
       .reader-view.page-turn-next {
@@ -3444,7 +3441,6 @@ export class AppService {
                 color: '#e5e7eb !important',
                 margin: '0 !important',
                 padding: '0 !important',
-                overflow: 'hidden !important',
               },
               'body *': {
                 color: '#e5e7eb !important',
@@ -3459,7 +3455,6 @@ export class AppService {
                 color: '#111827 !important',
                 margin: '0 !important',
                 padding: '0 !important',
-                overflow: 'hidden !important',
               },
               'body *': {
                 color: '#111827 !important',
@@ -4737,17 +4732,6 @@ export class AppService {
             }
           }
           applyReaderTheme(readerTheme, false);
-          try {
-            if (epubRendition?.themes?.override) {
-              // Ensure columns flow sequentially (avoid "balanced" blank columns).
-              epubRendition.themes.override('column-fill', 'auto');
-              epubRendition.themes.override('-webkit-column-fill', 'auto');
-              epubRendition.themes.override('column-gap', '0');
-              epubRendition.themes.override('-webkit-column-gap', '0');
-            }
-          } catch {
-            // ignore
-          }
           if (!readerResizeBound) {
             readerResizeBound = true;
             window.addEventListener('resize', () => {
@@ -4931,38 +4915,12 @@ export class AppService {
             if (iframeEl) {
               try {
                 const doc = iframeEl.contentDocument;
-                const viewWidth = iframeEl.clientWidth || iframeEl.offsetWidth || 0;
-                const columnWidth = viewWidth ? viewWidth + 'px' : '100%';
                 if (doc?.documentElement) {
-                  doc.documentElement.style.overflow = 'hidden';
                   doc.documentElement.style.width = '100%';
-                  doc.documentElement.style.maxWidth = '100%';
-                  doc.documentElement.style.columnGap = '0px';
-                  doc.documentElement.style.columnFill = 'auto';
-                  doc.documentElement.style.columnWidth = columnWidth;
-                  doc.documentElement.style.webkitColumnGap = '0px';
-                  doc.documentElement.style.webkitColumnFill = 'auto';
-                  doc.documentElement.style.webkitColumnWidth = columnWidth;
-                  // Clear any previously forced single-column state.
-                  doc.documentElement.style.columnCount = '';
-                  doc.documentElement.style.webkitColumnCount = '';
                 }
                 if (doc?.body) {
                   doc.body.style.margin = '0';
                   doc.body.style.padding = '0';
-                  doc.body.style.overflow = 'hidden';
-                  doc.body.style.width = '100%';
-                  doc.body.style.maxWidth = '100%';
-                  doc.body.style.boxSizing = 'border-box';
-                  doc.body.style.columnGap = '0px';
-                  doc.body.style.columnFill = 'auto';
-                  doc.body.style.columnWidth = columnWidth;
-                  doc.body.style.webkitColumnGap = '0px';
-                  doc.body.style.webkitColumnFill = 'auto';
-                  doc.body.style.webkitColumnWidth = columnWidth;
-                  // Clear any previously forced single-column state.
-                  doc.body.style.columnCount = '';
-                  doc.body.style.webkitColumnCount = '';
                 }
                 attachSwipeTarget(doc?.body || doc?.documentElement);
               } catch {
