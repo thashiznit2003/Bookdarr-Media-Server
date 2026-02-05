@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.184 — 2026-02-04 21:31 -06:00
+- Switch EPUB.js to scrolled-doc layout to avoid split-page rendering.
+
 ## 1.0.183 — 2026-02-04 21:20 -06:00
 - Narrow EPUB.js page width and lock spread width to avoid multi-page splits.
 

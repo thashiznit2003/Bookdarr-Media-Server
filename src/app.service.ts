@@ -4605,8 +4605,8 @@ export class AppService {
           epubRendition = book.renderTo(readerView, {
             width: pageWidth || '100%',
             height: height || '100%',
-            manager: 'default',
-            flow: 'paginated',
+            manager: 'continuous',
+            flow: 'scrolled-doc',
             spread: 'none',
             snap: true,
             minSpreadWidth: 99999,
@@ -4616,18 +4616,18 @@ export class AppService {
               epubRendition.spread('none');
             }
             if (epubRendition.flow) {
-              epubRendition.flow('paginated');
+              epubRendition.flow('scrolled-doc');
             }
             if (epubRendition.settings) {
               epubRendition.settings.spread = 'none';
-              epubRendition.settings.flow = 'paginated';
+              epubRendition.settings.flow = 'scrolled-doc';
             }
           } catch {
             // ignore
           }
           if (epubRendition.flow) {
             try {
-              epubRendition.flow('paginated');
+              epubRendition.flow('scrolled-doc');
             } catch {
               // ignore
             }
