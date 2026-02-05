@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.190 — 2026-02-04 22:56 -06:00
+- Auto-skip blank EPUB pages between chapters without changing layout.
+
 ## 1.0.189 — 2026-02-04 22:43 -06:00
 - Reset EPUB.js to default paginated layout and remove column overrides.
 

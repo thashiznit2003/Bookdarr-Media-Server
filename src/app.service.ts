@@ -1930,6 +1930,7 @@ export class AppService {
       let epubBook = null;
       let epubRendition = null;
       let epubObjectUrl = null;
+      let epubSkipBlankGuard = 0;
       let readiumNavigator = null;
       let readiumPublication = null;
       let readiumManifestUrl = null;
@@ -4701,6 +4702,29 @@ export class AppService {
               saveProgress('ebook-epub', file.id, { cfi: location.start.cfi });
             }
             updateEpubPageNumbers(location);
+            try {
+              if (epubSkipBlankGuard > 0) {
+                epubSkipBlankGuard -= 1;
+              } else {
+                const view = epubRendition?.manager?.views?.[0];
+                const contents = view?.contents?.();
+                const doc = contents?.document;
+                if (doc?.body) {
+                  const text = doc.body.innerText?.trim?.() ?? '';
+                  const hasImages = doc.body.querySelectorAll?.('img, svg, figure').length > 0;
+                  if (!text && !hasImages) {
+                    epubSkipBlankGuard = 4;
+                    if (readerNavPending < 0) {
+                      epubRendition.prev();
+                    } else {
+                      epubRendition.next();
+                    }
+                  }
+                }
+              }
+            } catch {
+              // ignore blank-page skip errors
+            }
             try {
               epubRendition.resize();
             } catch {
