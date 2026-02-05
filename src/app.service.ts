@@ -894,12 +894,20 @@ export class AppService {
         height: 100%;
       }
 
-      /* Give the EPUB viewport a small inset border + padding so lines don't clip at the edges. */
-      .reader-modal[data-reader-mode="epub"] .reader-view {
+      /* EPUB: inset the actual render stage (epub.js absolute layout ignores padding on the parent). */
+      .epub-stage {
+        width: 100%;
+        height: 100%;
         padding: 10px;
         box-sizing: border-box;
         border-radius: 14px;
+        overflow: hidden;
         box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+      }
+      .reader-modal.touch-fullscreen .epub-stage {
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
       }
 
       .reader-modal.touch-fullscreen .reader-view {
@@ -4693,9 +4701,13 @@ export class AppService {
             return;
           }
           readerView.innerHTML = '';
-          const width = readerView.clientWidth || readerView.offsetWidth;
-          const height = readerView.clientHeight || readerView.offsetHeight;
-          epubRendition = book.renderTo(readerView, {
+          const stage = document.createElement('div');
+          stage.id = 'epub-stage';
+          stage.className = 'epub-stage';
+          readerView.appendChild(stage);
+          const width = stage.clientWidth || stage.offsetWidth;
+          const height = stage.clientHeight || stage.offsetHeight;
+          epubRendition = book.renderTo(stage, {
             width: width || '100%',
             height: height || '100%',
             manager: 'default',

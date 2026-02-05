@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- EPUB reader: render now mounts into a padded `.epub-stage` wrapper so insets actually affect the page viewport.
 - EPUB reader: added 10px viewport padding + inset border to prevent bottom-line clipping.
 - Added an AGENTS.md guardrail documenting epub.js pagination constraints (avoid overriding iframe html/body overflow and CSS columns).
 - EPUB reader: removed CSS overrides that were fighting epub.js pagination (overflow / column sizing).
