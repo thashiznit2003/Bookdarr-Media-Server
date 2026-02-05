@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.209 — 2026-02-05 17:05 -06:00
+- Upgrade epub.js to `0.5.0-alpha.3` to remove the deprecated `@types/localforage` install warning (SSH updates now run clean with `npm ci`).
+- Fix the Jest smoke test to validate the HTML shell without requiring the full Nest controller dependency graph.
+
 ## 1.0.208 — 2026-02-05 16:43 -06:00
 - Remove Readium server/web integration and dependencies (r2-streamer-js / @readium/*), eliminating request-based audit vulns and SSH update warnings.
 - Remove the `/library/readium/manifest` endpoint to remediate the critical CodeQL SSRF alert.

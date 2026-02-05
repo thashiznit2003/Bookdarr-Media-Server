@@ -42,6 +42,7 @@ Each GitHub push increments the patch version (x.x.n+1) and adds a changelog ent
 After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the latest build.
 Use the configured SSH host + key:
 - `ssh bms-vm "git -C /opt/bookdarr-media-server pull --ff-only; npm --prefix /opt/bookdarr-media-server ci; npm --prefix /opt/bookdarr-media-server run build; sudo systemctl restart bookdarr-media-server"`
+If SSH updates show npm deprecation warnings, fix them in the dependency graph (preferred) rather than silencing logs; epub.js `0.3.x` pulled in deprecated `@types/localforage`, so keep epub.js on `0.5.x alpha` or later.
 2FA reset command (for Docker/env usage):
 - `RESET_2FA_ALL=true npm run reset-2fa` or `RESET_2FA_USER=user1,user2 npm run reset-2fa`
 

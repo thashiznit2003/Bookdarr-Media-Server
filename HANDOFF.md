@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- Upgraded epub.js to `0.5.0-alpha.3` to remove the deprecated `@types/localforage` install warning during SSH updates.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.
 - EPUB reader: render now mounts into a padded `.epub-stage` wrapper so insets actually affect the page viewport.
