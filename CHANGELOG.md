@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.182 — 2026-02-04 21:09 -06:00
+- Force EPUB.js spread/page settings to prevent double-page split views.
+
 ## 1.0.181 — 2026-02-04 21:03 -06:00
 - Force single-column EPUB.js layout to eliminate split-page rendering.
 

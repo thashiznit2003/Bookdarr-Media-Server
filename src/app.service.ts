@@ -4609,6 +4609,20 @@ export class AppService {
             spread: 'none',
             snap: true,
           });
+          try {
+            if (epubRendition.spread) {
+              epubRendition.spread('none');
+            }
+            if (epubRendition.flow) {
+              epubRendition.flow('paginated');
+            }
+            if (epubRendition.settings) {
+              epubRendition.settings.spread = 'none';
+              epubRendition.settings.flow = 'paginated';
+            }
+          } catch {
+            // ignore
+          }
           if (epubRendition.flow) {
             try {
               epubRendition.flow('paginated');

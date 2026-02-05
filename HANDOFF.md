@@ -48,6 +48,7 @@
 - Web reader now uses EPUB.js by default; Readium is reserved for the mobile app.
 - EPUB.js rendering now centers content and forces column-fill auto to avoid blank pages.
 - EPUB.js rendering now forces single-column layout to prevent split-page overlap.
+- EPUB.js now forces spread and flow settings on rendition to avoid two-page splits.
 - Readium positions are now stored in shared scope to avoid load-time reference errors.
 - Readium now fetches the position list link for accurate total pages and global progress.
 - Login page script no longer references reader settings handlers from the main app shell.
