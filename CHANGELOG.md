@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.224 — 2026-02-06 16:14 -06:00
+- Fix missing lowercase `s` in some browsers by detecting a zero-width `s` glyph at runtime and falling back to a known-good font stack for the description field only.
+
 ## 1.0.223 — 2026-02-06 15:46 -06:00
 - Harden description typography to avoid a WebKit/Chrome glyph rendering issue where lowercase `s` appears blank in the book description modal (explicit Helvetica/Arial stack + disable ligatures + stronger font smoothing).
 
