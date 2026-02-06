@@ -519,6 +519,8 @@ export class AppService {
         display: flex;
         flex-direction: column;
         position: relative;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
       }
 
       .detail-scroll {
@@ -598,7 +600,9 @@ export class AppService {
         line-height: 1.6;
         margin: 0 0 12px;
         white-space: pre-line;
-        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+        font-variant-ligatures: none;
+        font-feature-settings: "liga" 0, "clig" 0;
       }
 
       .detail-toggle {
