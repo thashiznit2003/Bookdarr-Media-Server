@@ -4694,12 +4694,18 @@ export class AppService {
 
       async function openEpubReader(file) {
         if (!readerView) return;
-        if (!window['ePub'] || !window['JSZip']) {
+        if (!window['ePub']) {
           readerView.innerHTML = '<div class="empty">EPUB reader unavailable.</div>';
           return;
         }
 
         readerView.innerHTML = '<div class="empty">Loading EPUB...</div>';
+        debugReaderLog('epub_open_start', {
+          fileId: file?.id ?? null,
+          streamUrl: typeof file?.streamUrl === 'string' ? file.streamUrl.split('?')[0] : null,
+          ePubType: typeof window['ePub'],
+          hasJSZip: Boolean(window['JSZip']),
+        });
         updateReaderLayout();
         const timeout = setTimeout(() => {
           if (!epubRendition && readerView) {
@@ -5055,6 +5061,10 @@ export class AppService {
 
         const openFromUrl = async (url) => {
           try {
+            if (typeof window['ePub'] !== 'function') {
+              throw new Error('Unsupported epub.js build (window.ePub is not a function)');
+            }
+            debugReaderLog('epub_open_url', { url: String(url).split('?')[0] });
             epubBook = window['ePub'](url, { openAs: 'epub' });
             if (epubBook?.ready) {
               await epubBook.ready;
@@ -5078,8 +5088,13 @@ export class AppService {
             epubObjectUrl = null;
           }
 
+          if (typeof window['ePub'] !== 'function') {
+            throw new Error('Unsupported epub.js build (window.ePub is not a function)');
+          }
+
           const response = await fetchWithAuth(file.streamUrl);
           if (!response.ok) {
+            debugReaderLog('epub_fetch_failed', { status: response.status });
             const fallbackOk = await openFromUrl(withToken(file.streamUrl));
             if (!fallbackOk) {
               throw new Error('Failed to load EPUB');
@@ -5087,9 +5102,11 @@ export class AppService {
             loadAndApplyServerProgress('ebook-epub', file.id);
             return;
           }
-          const blob = await response.blob();
-          epubObjectUrl = URL.createObjectURL(blob);
-          epubBook = window['ePub'](epubObjectUrl, { openAs: 'epub' });
+          const buffer = await response.arrayBuffer();
+          debugReaderLog('epub_fetch_ok', { bytes: buffer?.byteLength ?? null });
+          // Pass binary directly to epub.js so it treats it as an archived EPUB
+          // and doesn't rely on blob: URL extensions.
+          epubBook = window['ePub'](buffer, { openAs: 'binary' });
           if (epubBook.ready) {
             await epubBook.ready;
           }
@@ -5097,7 +5114,8 @@ export class AppService {
           mountRendition(epubBook);
           prepareEpubLocations();
           loadAndApplyServerProgress('ebook-epub', file.id);
-        } catch {
+        } catch (error) {
+          debugReaderLog('epub_open_error', { message: error?.message ?? String(error) });
           const fallbackOk = await openFromUrl(withToken(file.streamUrl));
           if (fallbackOk) {
             loadAndApplyServerProgress('ebook-epub', file.id);

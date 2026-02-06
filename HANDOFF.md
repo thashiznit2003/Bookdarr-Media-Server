@@ -1,9 +1,9 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
-- EPUB reader: epub.js `0.5.x` UMD build expects `window.xmldom`; we provide a browser shim backed by native DOMParser before loading epub.js.
+- EPUB reader: browser uses a vendored epub.js build at `vendor/epub/epub.min.js`, served from `/vendor/epub/` (no npm dependency).
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.
-- Upgraded epub.js to `0.5.0-alpha.3` to remove the deprecated `@types/localforage` install warning during SSH updates.
+- EPUB open prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.
 - EPUB reader: render now mounts into a padded `.epub-stage` wrapper so insets actually affect the page viewport.

@@ -52,7 +52,10 @@ async function bootstrap() {
     });
   }
 
-  const epubPath = join(process.cwd(), 'node_modules', 'epubjs', 'dist');
+  // EPUB reader is browser-only; keep it vendored so npm installs stay clean and predictable.
+  const epubVendorPath = join(process.cwd(), 'vendor', 'epub');
+  const epubNodeModulesPath = join(process.cwd(), 'node_modules', 'epubjs', 'dist');
+  const epubPath = existsSync(epubVendorPath) ? epubVendorPath : epubNodeModulesPath;
   if (existsSync(epubPath)) {
     app.use('/vendor/epub', express.static(epubPath));
   }

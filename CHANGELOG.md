@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.212 — 2026-02-05 21:49 -06:00
+- Fix “Unable to load EPUB” by removing the incompatible epub.js `0.5.x alpha` dependency path; the browser reader is now vendored at `vendor/epub/epub.min.js` and served from `/vendor/epub/`.
+- EPUB open now prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
+- `npm ci` now runs clean (no deprecated warnings) and `npm audit` reports 0 vulnerabilities.
+
 ## 1.0.211 — 2026-02-05 21:04 -06:00
 - Stop appending `?token=...` to same-origin media/image URLs when cookie auth is available (prevents token leakage in URLs and avoids stale token URL issues after refresh).
 

@@ -42,7 +42,7 @@ Each GitHub push increments the patch version (x.x.n+1) and adds a changelog ent
 After each GitHub push, update the Ubuntu VM via SSH so the UI reflects the latest build.
 Use the configured SSH host + key:
 - `ssh bms-vm "git -C /opt/bookdarr-media-server pull --ff-only; npm --prefix /opt/bookdarr-media-server ci; npm --prefix /opt/bookdarr-media-server run build; sudo systemctl restart bookdarr-media-server"`
-If SSH updates show npm deprecation warnings, fix them in the dependency graph (preferred) rather than silencing logs; epub.js `0.3.x` pulled in deprecated `@types/localforage`, so keep epub.js on `0.5.x alpha` or later.
+If SSH updates show npm deprecation warnings, fix them in the dependency graph (preferred) rather than silencing logs. The EPUB reader is vendored (see note below), so `npm ci` should stay clean.
 2FA reset command (for Docker/env usage):
 - `RESET_2FA_ALL=true npm run reset-2fa` or `RESET_2FA_USER=user1,user2 npm run reset-2fa`
 
@@ -79,7 +79,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - EPUB page numbering now rebases on the first visible page and uses nav direction to avoid early jumps.
 - EPUB page numbers now follow explicit page-turn actions to prevent fast-swipe drift.
 - EPUB.js pagination is sensitive: do not force `overflow: hidden` on the EPUB iframe `html/body` and do not clamp/override CSS columns (`column-count`, `column-width`, `max-width`) inside the rendered document. Those overrides caused intra-chapter pages to be skipped (chapters looked like ~2 pages). Keep custom reader CSS limited to the outer container and let epub.js manage internal pagination.
-- epub.js `0.5.x alpha` UMD builds expect `window.xmldom` in browsers; we shim it using native `DOMParser` before loading `/vendor/epub/epub.min.js`.
+- EPUB reader JS is vendored under `vendor/epub/epub.min.js` and served from `/vendor/epub/`. Do not re-introduce the `epubjs` npm dependency without re-verifying archived `.epub` support and `npm audit` cleanliness.
 - Do not append access tokens into media/image URLs when cookie auth is available; otherwise the URL token can go stale after refresh and can leak into logs/history.
 - Reader progress is stored in DB via /reader/progress; Sync reconciles latest progress and Restart clears it.
 - Readium is not used in the BMS web UI/server (removed due to dependency security issues). Web reading uses epub.js; the future mobile apps should use Readium native SDKs.
