@@ -4,7 +4,7 @@
 - EPUB reader: browser uses a vendored epub.js build at `vendor/epub/epub.min.js`, served from `/vendor/epub/` (no npm dependency).
 - EPUB reader dependency: JSZip is vendored at `vendor/jszip/jszip.min.js`, served from `/vendor/jszip/`.
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.
-- Device-side offline caching (PWA): Service Worker lives at `public/sw.js` and caches checked-out book streams per-device using `GET /library/:id/offline-manifest` (requires HTTPS / secure context). Logout clears device caches via SW `CLEAR_ALL`.
+- Device-side caching (PWA): Service Worker lives at `public/sw.js` and can cache a per-device copy using `GET /library/:id/offline-manifest` (requires HTTPS / secure context). This is manual via the book detail modal toggle ("Download offline"). Logout clears device caches via SW `CLEAR_ALL`.
 - Offline audio seeking support: large audiobook streams are cached in chunks and served as `206 Partial Content` responses by the Service Worker for Range requests.
 - CI: GitHub Actions workflow at `.github/workflows/ci.yml` runs install/test/build/audit on pushes/PRs.
 - Device offline caching: SW retries once on `401` by calling `/auth/refresh` (cookie-based refresh supported) and then re-fetching the chunk/url.

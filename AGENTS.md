@@ -88,8 +88,8 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - Book cover URLs must point to image files (jpg/png/webp/gif); otherwise fall back to Open Library.
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.
-- Checkout now queues server-side offline downloads per user (cached under `data/offline`) and My Library cards show an App Store-style progress ring until ready.
-- Device-side offline caching (PWA) is also available on supported browsers: the Service Worker caches checked-out book streams per-device and pushes progress to the UI. This requires HTTPS (secure context); it will not work on plain LAN `http://<ip>:9797` (except `localhost`).
+- Checkout now queues server-side offline downloads per user (cached under `data/offline`) and My Library cards show an App Store-style progress ring until ready (this ring reflects VM caching only).
+- Device-side caching (PWA) is optional and manual: use the book detail modal toggle ("Download offline") to cache a per-device copy. This requires HTTPS (secure context); it will not work on plain LAN `http://<ip>:9797` (except `localhost`).
 - Offline audio needs HTTP Range support for seeking; the SW caches large audiobook streams in fixed-size chunks and serves `206` responses from cache.
 - If device offline caching fails with `Device offline: Failed`, suspect expired auth during a long download; SW auto-refreshes on 401 and retries once.
 - SW `OFFLINE_STATUS` messages can be per-file (includes `fileId`) or per-book (final). The UI must not mark a book as failed on a per-file failure; this produces false "Failed" even when other files complete. Book-level failure is only when *all* files fail; otherwise show `Partial` and offer retry.

@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.220 — 2026-02-06 01:59 -06:00
+- My Library progress ring now reflects server-side downloads only (avoids confusing device/PWA status with VM caching).
+- Device-side caching is now manual (via the book detail "Download offline" toggle) instead of auto-starting on checkout; prevents misleading device failure messages when server caching succeeds.
+- Rename UI label from "Device offline" to "Device copy" to clarify it's per-device PWA caching.
+
 ## 1.0.219 — 2026-02-06 01:37 -06:00
 - Fix false `Device offline: Failed` reports: per-file failures no longer mark the entire book as failed; the UI shows `Partial` and re-queries the SW for the final state.
 - Improve device offline audiobook throughput by downloading cached audio chunks in parallel (bounded concurrency).

@@ -2283,7 +2283,7 @@ export class AppService {
 
         if (optedOut || !hasCopy) {
           if (detailDeviceDownloadStatus) {
-            detailDeviceDownloadStatus.textContent = 'Device offline: Queued';
+            detailDeviceDownloadStatus.textContent = 'Device copy: Queued';
           }
           setOfflineOptOut(bookId, false);
           startDeviceOfflineCacheForBook(bookId).then(() => {
@@ -2293,7 +2293,7 @@ export class AppService {
         }
 
         if (detailDeviceDownloadStatus) {
-          detailDeviceDownloadStatus.textContent = 'Device offline: Clearing...';
+          detailDeviceDownloadStatus.textContent = 'Device copy: Clearing...';
         }
         setOfflineOptOut(bookId, true);
         deviceOfflineByBookId.delete(bookId);
@@ -3081,7 +3081,10 @@ export class AppService {
 
         grid.innerHTML = filtered.map((item) => {
           const coverSrc = item.coverUrl ? withToken(item.coverUrl) : null;
-          const downloadStatus = showDownloads ? getEffectiveDownloadStatus(item) : null;
+          // My Library's progress ring represents server-side caching (what BMS downloads
+          // onto the VM). Device-side caching is optional and shown separately in the
+          // book detail modal.
+          const downloadStatus = showDownloads ? (item.downloadStatus || null) : null;
           const downloadInfo = getDownloadProgress(downloadStatus);
           const showDownloadOverlay =
             downloadStatus &&
@@ -3139,9 +3142,9 @@ export class AppService {
           if (!card) return;
           const cover = card.querySelector('.cover');
           if (!cover) return;
-          const downloadInfo = getDownloadProgress(getEffectiveDownloadStatus(item));
+          const downloadInfo = getDownloadProgress(item.downloadStatus || null);
           const showDownloadOverlay =
-            getEffectiveDownloadStatus(item) &&
+            (item.downloadStatus || null) &&
             (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading' || downloadInfo.state === 'partial') &&
             downloadInfo.progress < 1;
           let overlay = cover.querySelector('.download-overlay');
@@ -3370,7 +3373,6 @@ export class AppService {
                 .then((results) => {
                   applyDeviceOfflineResults(results);
                   updateDownloadOverlays(state.myLibrary, myLibraryGrid);
-                  autoCacheMyLibrary(state.myLibrary);
                 })
                 .catch(() => {});
             }
@@ -3439,14 +3441,14 @@ export class AppService {
         if (!offlineSupported) return '';
         const entry = deviceOfflineByBookId.get(String(bookId));
         if (!entry || !entry.status || entry.status === 'not_started') {
-          return isOfflineOptedOut(bookId) ? 'Device offline: Disabled' : 'Device offline: Not downloaded';
+          return isOfflineOptedOut(bookId) ? 'Device copy: Disabled' : 'Device copy: Not downloaded';
         }
-        if (entry.status === 'ready') return 'Device offline: Ready';
-        if (entry.status === 'failed') return 'Device offline: Failed';
-        if (entry.status === 'partial') return 'Device offline: Partial (retry)';
+        if (entry.status === 'ready') return 'Device copy: Ready';
+        if (entry.status === 'failed') return 'Device copy: Failed';
+        if (entry.status === 'partial') return 'Device copy: Partial (retry)';
         const percent = Math.round(Number(entry.progress || 0) * 100);
-        if (entry.status === 'queued') return 'Device offline: Queued';
-        return 'Device offline: Downloading ' + percent + '%';
+        if (entry.status === 'queued') return 'Device copy: Queued';
+        return 'Device copy: Downloading ' + percent + '%';
       }
 
       function reconcileDeviceOfflineStatus(bookId) {
@@ -5789,13 +5791,7 @@ export class AppService {
           if (!eligible) {
             detailDeviceDownloadStatus.textContent = '';
           } else {
-            const device = deviceOfflineByBookId.get(String(data?.id ?? ''));
-            const serverReady = data?.downloadStatus?.status === 'ready';
-            const base = formatDeviceOfflineStatus(data?.id);
-            detailDeviceDownloadStatus.textContent =
-              device?.status === 'failed' && serverReady
-                ? base + ' (server cached)'
-                : base;
+            detailDeviceDownloadStatus.textContent = formatDeviceOfflineStatus(data?.id);
           }
         }
       }
@@ -5905,14 +5901,6 @@ export class AppService {
         if (action === 'checkout') {
           // Make the UI feel immediate: show queued state before the round-trip completes.
           ensureMinRing(pendingBookId, 900);
-          if (offlineSupported) {
-            deviceOfflineByBookId.set(pendingBookId, {
-              status: 'queued',
-              progress: 0,
-              bytesTotal: 0,
-              bytesDownloaded: 0,
-            });
-          }
           if (activePage === 'my-library') {
             updateDownloadOverlays(state.myLibrary, myLibraryGrid);
           }
@@ -5986,9 +5974,6 @@ export class AppService {
                 deviceOfflineByBookId.delete(bookId);
                 setOfflineOptOut(bookId, false);
                 sendSwMessage('CLEAR_BOOK', { bookId }).catch(() => {});
-              } else {
-                ensureMinRing(bookId, 900);
-                startDeviceOfflineCacheForBook(bookId).catch(() => {});
               }
             }
           })
