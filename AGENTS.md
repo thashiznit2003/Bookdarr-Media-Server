@@ -92,6 +92,8 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - Device-side offline caching (PWA) is also available on supported browsers: the Service Worker caches checked-out book streams per-device and pushes progress to the UI. This requires HTTPS (secure context); it will not work on plain LAN `http://<ip>:9797` (except `localhost`).
 - Offline audio needs HTTP Range support for seeking; the SW caches large audiobook streams in fixed-size chunks and serves `206` responses from cache.
 - If device offline caching fails with `Device offline: Failed`, suspect expired auth during a long download; SW auto-refreshes on 401 and retries once.
+- SW `OFFLINE_STATUS` messages can be per-file (includes `fileId`) or per-book (final). The UI must not mark a book as failed on a per-file failure; this produces false "Failed" even when other files complete. Book-level failure is only when *all* files fail; otherwise show `Partial` and offer retry.
+- Audiobook chunk caching uses bounded parallel fetch (chunk concurrency) for higher throughput on LAN without saturating mobile devices.
 - CI: GitHub Actions runs `npm ci`, `npm test`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
 - Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.
 - Downloads are surfaced only inside My Library; `/downloads` redirects to `/my-library`.

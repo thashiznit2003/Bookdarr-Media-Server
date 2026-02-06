@@ -35,6 +35,9 @@ let processingQueue = false;
 const AUDIO_CHUNK_THRESHOLD_BYTES = 25 * 1024 * 1024;
 // Bigger chunks reduce per-request overhead (TLS + headers) while still being safe on memory.
 const AUDIO_CHUNK_SIZE_BYTES = 10 * 1024 * 1024;
+// Parallel chunk downloads dramatically increase throughput on LAN while keeping
+// memory bounded and avoiding too many concurrent TCP streams on mobile.
+const AUDIO_CHUNK_CONCURRENCY = 4;
 
 async function refreshAuth(signal) {
   try {
@@ -308,7 +311,7 @@ async function resolveTotalBytes(normalizedUrl, expectedBytes, signal) {
       signal,
     );
     const cr = probe.headers.get("content-range") || "";
-    const match = cr.match(/bytes\\s+\\d+-\\d+\\/(\\d+)/i);
+    const match = cr.match(/bytes\s+\d+-\d+\/(\d+)/i);
     if (match && match[1]) {
       const total = Number.parseInt(match[1], 10);
       if (!Number.isNaN(total) && total > 0) return total;
@@ -355,48 +358,75 @@ async function cacheUrlChunked(url, opts) {
   let downloaded = 0;
   let contentType = null;
 
-  for (let i = 0; i < chunks; i += 1) {
-    const start = i * chunkSize;
-    const end = Math.min(start + chunkSize - 1, total - 1);
-    const chunkUrl = buildChunkUrl(normalizedUrl, i, chunkSize);
+  let next = 0;
+  const worker = async () => {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const i = next;
+      next += 1;
+      if (i >= chunks) return;
 
-    try {
-      const hit = await cache.match(chunkUrl);
-      if (hit) {
-        downloaded += end - start + 1;
-        if (onProgress) onProgress(downloaded, total);
-        continue;
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize - 1, total - 1);
+      const chunkUrl = buildChunkUrl(normalizedUrl, i, chunkSize);
+
+      try {
+        const hit = await cache.match(chunkUrl);
+        if (hit) {
+          downloaded += end - start + 1;
+          if (onProgress) onProgress(downloaded, total);
+          continue;
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
 
-    const res = await fetchWithAuthRetry(
-      normalizedUrl,
-      {
-      method: "GET",
-      headers: { Range: `bytes=${start}-${end}` },
-      },
-      controller.signal,
-    );
-    if (!res.ok) {
-      throw new Error(`Chunk fetch failed (${res.status})`);
-    }
-    if (!contentType) {
-      contentType = res.headers.get("content-type");
-    }
-    const buf = await res.arrayBuffer();
-    downloaded += buf.byteLength;
-    if (onProgress) onProgress(downloaded, total);
+      let res;
+      try {
+        res = await fetchWithAuthRetry(
+          normalizedUrl,
+          {
+            method: "GET",
+            headers: { Range: `bytes=${start}-${end}` },
+          },
+          controller.signal,
+        );
+      } catch (err) {
+        try {
+          controller.abort();
+        } catch {
+          // ignore
+        }
+        throw err;
+      }
 
-    const headers = new Headers();
-    if (contentType) headers.set("content-type", contentType);
-    headers.set("content-length", String(buf.byteLength));
-    headers.set("x-bms-chunk", String(i));
-    headers.set("x-bms-chunk-size", String(chunkSize));
-    headers.set("x-bms-total-bytes", String(total));
-    await cache.put(chunkUrl, new Response(buf, { status: 200, headers }));
-  }
+      if (!res || !res.ok) {
+        try {
+          controller.abort();
+        } catch {
+          // ignore
+        }
+        throw new Error(`Chunk fetch failed (${res ? res.status : "no_response"})`);
+      }
+      if (!contentType) {
+        contentType = res.headers.get("content-type");
+      }
+      const buf = await res.arrayBuffer();
+      downloaded += buf.byteLength;
+      if (onProgress) onProgress(downloaded, total);
+
+      const headers = new Headers();
+      if (contentType) headers.set("content-type", contentType);
+      headers.set("content-length", String(buf.byteLength));
+      headers.set("x-bms-chunk", String(i));
+      headers.set("x-bms-chunk-size", String(chunkSize));
+      headers.set("x-bms-total-bytes", String(total));
+      await cache.put(chunkUrl, new Response(buf, { status: 200, headers }));
+    }
+  };
+
+  const concurrency = Math.min(Math.max(AUDIO_CHUNK_CONCURRENCY, 1), chunks);
+  await Promise.all(Array.from({ length: concurrency }).map(() => worker()));
 
   await dbUrlPut({
     url: normalizedUrl,
@@ -574,7 +604,12 @@ async function cacheBookNow(bookId) {
   record.updatedAt = Date.now();
   await dbPut(record);
 
-  postToAllClients({ type: OUT_STATUS, bookId, status: "downloading" });
+  postToAllClients({
+    type: OUT_STATUS,
+    bookId,
+    status: "downloading",
+    fileCount: record.files.length,
+  });
 
   // Download sequentially.
   for (const f of record.files) {
@@ -680,9 +715,28 @@ async function cacheBookNow(bookId) {
     }
   }
 
-  const allReady = record.files.length > 0 && record.files.every((f) => f.status === "ready");
-  const anyFailed = record.files.some((f) => f.status === "failed");
-  postToAllClients({ type: OUT_STATUS, bookId, status: allReady ? "ready" : anyFailed ? "failed" : "partial" });
+  const fileCount = record.files.length;
+  const readyCount = record.files.filter((f) => f.status === "ready").length;
+  const failedCount = record.files.filter((f) => f.status === "failed").length;
+  const allReady = fileCount > 0 && readyCount === fileCount;
+  const someReady = readyCount > 0;
+  const anyFailed = failedCount > 0;
+
+  // Important: don't treat "some files failed" as a total failure. Users commonly
+  // consider the operation successful if (for example) the EPUB cached but the
+  // audiobook didn't. The UI can surface partial state and offer retry.
+  let status = "partial";
+  if (allReady) status = "ready";
+  else if (anyFailed && !someReady) status = "failed";
+
+  if (allReady) {
+    // Clear stale error messages from prior partial failures.
+    delete record.error;
+    record.updatedAt = Date.now();
+    await dbPut(record);
+  }
+
+  postToAllClients({ type: OUT_STATUS, bookId, status, fileCount, readyCount, failedCount });
 }
 
 async function cacheBook(payload) {
@@ -823,7 +877,7 @@ async function queryBooks(payload, source) {
   for (const id of ids) {
     const record = await dbGet(id);
     if (!record) {
-      results[id] = { status: "not_started", progress: 0 };
+      results[id] = { status: "not_started", progress: 0, fileCount: 0, readyCount: 0, failedCount: 0 };
       continue;
     }
     let bytesTotal = 0;
@@ -861,11 +915,12 @@ async function queryBooks(payload, source) {
     const allReady = readyCount === fileCount && fileCount > 0;
     let status = "partial";
     if (allReady) status = "ready";
-    else if (hasFailed) status = "failed";
+    else if (hasFailed && readyCount === 0) status = "failed";
     else if (hasDownloading) status = "downloading";
     else if (hasQueued) status = "queued";
 
-    results[id] = { status, progress, bytesTotal, bytesDownloaded };
+    const failedCount = files.filter((f) => f && f.status === "failed").length;
+    results[id] = { status, progress, bytesTotal, bytesDownloaded, fileCount, readyCount, failedCount };
   }
 
   try {

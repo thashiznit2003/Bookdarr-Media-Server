@@ -8,6 +8,8 @@
 - Offline audio seeking support: large audiobook streams are cached in chunks and served as `206 Partial Content` responses by the Service Worker for Range requests.
 - CI: GitHub Actions workflow at `.github/workflows/ci.yml` runs install/test/build/audit on pushes/PRs.
 - Device offline caching: SW retries once on `401` by calling `/auth/refresh` (cookie-based refresh supported) and then re-fetching the chunk/url.
+- Device offline caching status is per-device. The SW emits `OFFLINE_STATUS` for both individual file failures (includes `fileId`) and final book state; treat per-file failures as `Partial` and only show `Failed` when all files fail.
+- Device offline audiobook caching uses chunked Range requests with bounded parallel chunk downloads for LAN throughput.
 - EPUB open prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.

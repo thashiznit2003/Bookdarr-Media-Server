@@ -419,6 +419,13 @@ export class AppService {
         justify-content: center;
       }
 
+      .download-ring.partial {
+        background: conic-gradient(
+          var(--warning) calc(var(--progress, 0) * 1turn),
+          rgba(255, 255, 255, 0.12) 0
+        );
+      }
+
       .download-ring-inner {
         width: 52px;
         height: 52px;
@@ -2099,21 +2106,51 @@ export class AppService {
           const bookId = data.bookId ? String(data.bookId) : null;
           if (!bookId) return;
           const status = String(data.status || '');
+          const fileCount = Number(data.fileCount || 0);
+          const readyCount = Number(data.readyCount || 0);
+          const failedCount = Number(data.failedCount || 0);
           if (status === 'ready') {
-            deviceOfflineByBookId.set(bookId, { status: 'ready', progress: 1 });
+            deviceOfflineByBookId.set(bookId, { status: 'ready', progress: 1, fileCount, readyCount, failedCount });
           } else if (status === 'queued') {
-            deviceOfflineByBookId.set(bookId, { status: 'queued', progress: 0 });
+            deviceOfflineByBookId.set(bookId, { status: 'queued', progress: 0, fileCount, readyCount, failedCount });
           } else if (status === 'downloading') {
             const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
-            deviceOfflineByBookId.set(bookId, { status: 'downloading', progress: current.progress ?? 0 });
+            deviceOfflineByBookId.set(bookId, {
+              status: 'downloading',
+              progress: current.progress ?? 0,
+              fileCount: fileCount || Number(current.fileCount || 0),
+              readyCount: readyCount || Number(current.readyCount || 0),
+              failedCount: failedCount || Number(current.failedCount || 0),
+            });
           } else if (status === 'partial') {
             const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
-            deviceOfflineByBookId.set(bookId, { status: 'downloading', progress: current.progress ?? 0 });
+            deviceOfflineByBookId.set(bookId, {
+              status: 'partial',
+              progress: current.progress ?? 0,
+              fileCount: fileCount || Number(current.fileCount || 0),
+              readyCount: readyCount || Number(current.readyCount || 0),
+              failedCount: failedCount || Number(current.failedCount || 0),
+            });
           } else if (status === 'cleared') {
             deviceOfflineByBookId.delete(bookId);
           } else if (status === 'failed') {
-            deviceOfflineByBookId.set(bookId, { status: 'failed', progress: 0 });
-            reconcileDeviceOfflineStatus(bookId);
+            // SW sends per-file failures (includes fileId) as well as overall book failures.
+            // Don't immediately mark the whole book as failed on a per-file error: other
+            // files may still complete and the overall state may be "partial".
+            if (data.fileId) {
+              const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
+              deviceOfflineByBookId.set(bookId, {
+                status: 'partial',
+                progress: current.progress ?? 0,
+                fileCount: fileCount || Number(current.fileCount || 0),
+                readyCount: readyCount || Number(current.readyCount || 0),
+                failedCount: Math.max(1, failedCount || Number(current.failedCount || 0)),
+              });
+              reconcileDeviceOfflineStatus(bookId);
+            } else {
+              deviceOfflineByBookId.set(bookId, { status: 'failed', progress: 0, fileCount, readyCount, failedCount });
+              reconcileDeviceOfflineStatus(bookId);
+            }
           }
           if (activePage === 'my-library') {
             updateDownloadOverlays(state.myLibrary, myLibraryGrid);
@@ -3009,9 +3046,9 @@ export class AppService {
             bytesTotal: Number(entry.bytesTotal || 0),
             bytesDownloaded: Number(entry.bytesDownloaded || 0),
             progress: Math.min(Math.max(Number(entry.progress || 0), 0), 0.99),
-            fileCount: 0,
-            readyCount: 0,
-            failedCount: 0,
+            fileCount: Number(entry.fileCount || 0),
+            readyCount: Number(entry.readyCount || 0),
+            failedCount: Number(entry.failedCount || 0),
           };
         }
         return {
@@ -3019,9 +3056,9 @@ export class AppService {
           bytesTotal: Number(entry.bytesTotal || 0),
           bytesDownloaded: Number(entry.bytesDownloaded || 0),
           progress: Number(entry.progress || 0),
-          fileCount: 0,
-          readyCount: entry.status === 'ready' ? 1 : 0,
-          failedCount: entry.status === 'failed' ? 1 : 0,
+          fileCount: Number(entry.fileCount || 0),
+          readyCount: Number(entry.readyCount || 0),
+          failedCount: Number(entry.failedCount || 0),
         };
       }
 
@@ -3048,7 +3085,7 @@ export class AppService {
           const downloadInfo = getDownloadProgress(downloadStatus);
           const showDownloadOverlay =
             downloadStatus &&
-            (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading') &&
+            (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading' || downloadInfo.state === 'partial') &&
             downloadInfo.progress < 1;
           const progressPercent = Math.round(downloadInfo.progress * 100);
 
@@ -3058,7 +3095,7 @@ export class AppService {
           const overlay = showDownloadOverlay
             ? (
               '<div class="download-overlay">' +
-                '<div class="download-ring" style="--progress: ' + downloadInfo.progress + '">' +
+                '<div class="download-ring' + (downloadInfo.state === 'partial' ? ' partial' : '') + '" style="--progress: ' + downloadInfo.progress + '">' +
                   '<div class="download-ring-inner">' + progressPercent + '%</div>' +
                 '</div>' +
               '</div>'
@@ -3105,7 +3142,7 @@ export class AppService {
           const downloadInfo = getDownloadProgress(getEffectiveDownloadStatus(item));
           const showDownloadOverlay =
             getEffectiveDownloadStatus(item) &&
-            (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading') &&
+            (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading' || downloadInfo.state === 'partial') &&
             downloadInfo.progress < 1;
           let overlay = cover.querySelector('.download-overlay');
           if (showDownloadOverlay) {
@@ -3120,7 +3157,11 @@ export class AppService {
               cover.appendChild(overlay);
             }
             const ring = overlay.querySelector('.download-ring');
-            if (ring) ring.style.setProperty('--progress', String(downloadInfo.progress));
+            if (ring) {
+              ring.style.setProperty('--progress', String(downloadInfo.progress));
+              if (downloadInfo.state === 'partial') ring.classList.add('partial');
+              else ring.classList.remove('partial');
+            }
             const inner = overlay.querySelector('.download-ring-inner');
             if (inner) inner.textContent = progressPercent + '%';
             cover.classList.add('is-downloading');
@@ -3215,7 +3256,6 @@ export class AppService {
           const entry = results[bookId];
           if (!entry) return;
           let status = String(entry.status || 'not_started');
-          if (status === 'partial') status = 'downloading';
           const progress = Number(entry.progress || 0);
           if (status === 'not_started') {
             deviceOfflineByBookId.delete(String(bookId));
@@ -3226,6 +3266,9 @@ export class AppService {
             progress: Math.min(Math.max(progress, 0), 1),
             bytesTotal: Number(entry.bytesTotal || 0),
             bytesDownloaded: Number(entry.bytesDownloaded || 0),
+            fileCount: Number(entry.fileCount || 0),
+            readyCount: Number(entry.readyCount || 0),
+            failedCount: Number(entry.failedCount || 0),
           });
         });
       }
@@ -3400,6 +3443,7 @@ export class AppService {
         }
         if (entry.status === 'ready') return 'Device offline: Ready';
         if (entry.status === 'failed') return 'Device offline: Failed';
+        if (entry.status === 'partial') return 'Device offline: Partial (retry)';
         const percent = Math.round(Number(entry.progress || 0) * 100);
         if (entry.status === 'queued') return 'Device offline: Queued';
         return 'Device offline: Downloading ' + percent + '%';

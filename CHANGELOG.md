@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.219 — 2026-02-06 01:37 -06:00
+- Fix false `Device offline: Failed` reports: per-file failures no longer mark the entire book as failed; the UI shows `Partial` and re-queries the SW for the final state.
+- Improve device offline audiobook throughput by downloading cached audio chunks in parallel (bounded concurrency).
+- Expose device offline `fileCount/readyCount/failedCount` so partial vs failed states are represented accurately in the UI.
+
 ## 1.0.218 — 2026-02-06 01:17 -06:00
 - My Library download progress ring now appears immediately on checkout (optimistic queued state + short minimum visibility so fast downloads still show feedback).
 - Reduce false `Device offline: Failed` reports by reconciling device status via SW queries and by treating SW DB status as the source of truth (no more "chunk 0 exists = ready").
