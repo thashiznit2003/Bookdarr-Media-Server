@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.210 — 2026-02-05 20:50 -06:00
+- Fix “Unable to load EPUB” regression after epub.js upgrade by providing a browser `xmldom` shim (epub.js UMD expects `window.xmldom` even though browsers already have DOMParser).
+
 ## 1.0.209 — 2026-02-05 17:05 -06:00
 - Upgrade epub.js to `0.5.0-alpha.3` to remove the deprecated `@types/localforage` install warning (SSH updates now run clean with `npm ci`).
 - Fix the Jest smoke test to validate the HTML shell without requiring the full Nest controller dependency graph.

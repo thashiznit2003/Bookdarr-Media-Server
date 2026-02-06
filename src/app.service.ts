@@ -1749,6 +1749,18 @@ export class AppService {
       window.pdfjsLib = pdfjsLib;
     </script>
     <script src="/vendor/jszip/jszip.min.js"></script>
+    <script>
+      (function () {
+        // epub.js UMD expects a global "xmldom" in browsers, even though the browser
+        // already provides DOMParser/XMLSerializer natively.
+        if (window.xmldom) return;
+        if (typeof DOMParser !== 'function') return;
+        window.xmldom = {
+          DOMParser: DOMParser,
+          XMLSerializer: typeof XMLSerializer === 'function' ? XMLSerializer : undefined,
+        };
+      })();
+    </script>
     <script src="/vendor/epub/epub.min.js"></script>
     <script>
       const bootstrap = window.__BMS_BOOTSTRAP__ || null;
