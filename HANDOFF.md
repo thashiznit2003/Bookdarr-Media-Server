@@ -5,6 +5,7 @@
 - EPUB reader dependency: JSZip is vendored at `vendor/jszip/jszip.min.js`, served from `/vendor/jszip/`.
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.
 - Device-side offline caching (PWA): Service Worker lives at `public/sw.js` and caches checked-out book streams per-device using `GET /library/:id/offline-manifest` (requires HTTPS / secure context). Logout clears device caches via SW `CLEAR_ALL`.
+- Offline audio seeking support: large audiobook streams are cached in chunks and served as `206 Partial Content` responses by the Service Worker for Range requests.
 - EPUB open prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.215 — 2026-02-05 23:46 -06:00
+- Add Range support for device-side offline audiobook playback: large audiobook streams are cached in 5MB chunks and served back as `206 Partial Content` from the Service Worker so `<audio>` seeking works offline.
+
 ## 1.0.214 — 2026-02-05 23:16 -06:00
 - Add device-side offline caching foundation (Service Worker) for My Library: checked-out books automatically cache their ebook/audiobook streams on supported browsers (HTTPS only), with progress ring updates driven by SW progress events.
 - Add `GET /library/:id/offline-manifest` to provide a minimal authenticated file list for device caching.
