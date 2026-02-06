@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.222 — 2026-02-06 15:34 -06:00
+- Force a sane system font stack for the app + login page to eliminate glyph rendering issues (fixes the missing lowercase `s` in some environments).
+
 ## 1.0.221 — 2026-02-06 15:14 -06:00
 - Fix book descriptions showing raw HTML tags and missing letters by normalizing Bookdarr/OpenLibrary description HTML to safe plain text (tags stripped, entities decoded, whitespace normalized).
 - Preserve line breaks in the description UI (rendered as `pre-line`).

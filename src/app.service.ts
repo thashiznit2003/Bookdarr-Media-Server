@@ -49,7 +49,7 @@ export class AppService {
 
       body {
         margin: 0;
-        font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
         background: radial-gradient(circle at top left, #222838 0%, #0f1115 55%) fixed;
         color: var(--text);
       }
@@ -598,6 +598,7 @@ export class AppService {
         line-height: 1.6;
         margin: 0 0 12px;
         white-space: pre-line;
+        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
       }
 
       .detail-toggle {
@@ -6958,7 +6959,7 @@ export class AppService {
         justify-content: center;
         background: radial-gradient(circle at top left, #222838 0%, #0f1115 55%) fixed;
         color: var(--text);
-        font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
       }
 
       .login-shell {
