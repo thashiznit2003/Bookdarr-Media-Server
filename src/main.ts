@@ -15,6 +15,23 @@ async function bootstrap() {
   if (httpServer?.disable) {
     httpServer.disable('etag');
   }
+  const publicPath = join(process.cwd(), 'public');
+  if (existsSync(publicPath)) {
+    app.use(
+      express.static(publicPath, {
+        fallthrough: true,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('sw.js')) {
+            // Ensure SW updates are picked up quickly.
+            res.setHeader('cache-control', 'no-store');
+            res.setHeader('service-worker-allowed', '/');
+          } else if (filePath.endsWith('.webmanifest')) {
+            res.setHeader('cache-control', 'no-cache');
+          }
+        },
+      }),
+    );
+  }
   const logger = app.get(FileLoggerService);
   const verboseLogs = process.env.VERBOSE_LOGS === 'true';
   const requestLogger = new RequestLoggingMiddleware(logger);
@@ -25,9 +42,11 @@ async function bootstrap() {
       const start = Date.now();
       const path = req.originalUrl ?? req.url ?? '';
       const queryKeys = req.query ? Object.keys(req.query) : [];
-      const body = (req as any).body;
+      const body = req.body;
       const bodyKeys =
-        body && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body) : [];
+        body && typeof body === 'object' && !Array.isArray(body)
+          ? Object.keys(body)
+          : [];
 
       logger.info('http_verbose_request', {
         method: req.method,
@@ -39,7 +58,7 @@ async function bootstrap() {
       });
 
       res.on('finish', () => {
-        const userId = (req as any).user?.userId ?? null;
+        const userId = req.user?.userId ?? null;
         logger.info('http_verbose_response', {
           method: req.method,
           path,
@@ -54,15 +73,29 @@ async function bootstrap() {
 
   // EPUB reader is browser-only; keep it vendored so npm installs stay clean and predictable.
   const epubVendorPath = join(process.cwd(), 'vendor', 'epub');
-  const epubNodeModulesPath = join(process.cwd(), 'node_modules', 'epubjs', 'dist');
-  const epubPath = existsSync(epubVendorPath) ? epubVendorPath : epubNodeModulesPath;
+  const epubNodeModulesPath = join(
+    process.cwd(),
+    'node_modules',
+    'epubjs',
+    'dist',
+  );
+  const epubPath = existsSync(epubVendorPath)
+    ? epubVendorPath
+    : epubNodeModulesPath;
   if (existsSync(epubPath)) {
     app.use('/vendor/epub', express.static(epubPath));
   }
   // JSZip is required by the browser-only epub.js build.
   const jszipVendorPath = join(process.cwd(), 'vendor', 'jszip');
-  const jszipNodeModulesPath = join(process.cwd(), 'node_modules', 'jszip', 'dist');
-  const jszipPath = existsSync(jszipVendorPath) ? jszipVendorPath : jszipNodeModulesPath;
+  const jszipNodeModulesPath = join(
+    process.cwd(),
+    'node_modules',
+    'jszip',
+    'dist',
+  );
+  const jszipPath = existsSync(jszipVendorPath)
+    ? jszipVendorPath
+    : jszipNodeModulesPath;
   if (existsSync(jszipPath)) {
     app.use('/vendor/jszip', express.static(jszipPath));
   }

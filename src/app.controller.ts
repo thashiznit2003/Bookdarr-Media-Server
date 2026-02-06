@@ -18,10 +18,16 @@ export class AppController {
 
   @Get()
   async getIndex(@Req() req: Request, @Res() res: Response) {
-    const queryAccessRaw = typeof req.query?.access === 'string' ? req.query.access : undefined;
-    const queryRefreshRaw = typeof req.query?.refresh === 'string' ? req.query.refresh : undefined;
-    const queryAccess = queryAccessRaw ? decodeURIComponent(queryAccessRaw) : undefined;
-    const queryRefresh = queryRefreshRaw ? decodeURIComponent(queryRefreshRaw) : undefined;
+    const queryAccessRaw =
+      typeof req.query?.access === 'string' ? req.query.access : undefined;
+    const queryRefreshRaw =
+      typeof req.query?.refresh === 'string' ? req.query.refresh : undefined;
+    const queryAccess = queryAccessRaw
+      ? decodeURIComponent(queryAccessRaw)
+      : undefined;
+    const queryRefresh = queryRefreshRaw
+      ? decodeURIComponent(queryRefreshRaw)
+      : undefined;
     this.logger.info('app_index_enter', {
       authParam: req.query?.auth ?? null,
       hasQueryAccess: Boolean(queryAccess),
@@ -31,7 +37,11 @@ export class AppController {
     });
     if (queryAccess) {
       this.setAuthCookies(res, queryAccess, queryRefresh);
-      const bootstrap = await this.buildBootstrap(req, queryAccess, queryRefresh);
+      const bootstrap = await this.buildBootstrap(
+        req,
+        queryAccess,
+        queryRefresh,
+      );
       this.logger.info('app_index_auth_bootstrap', {
         hasUser: Boolean(bootstrap?.user),
       });
@@ -50,7 +60,9 @@ export class AppController {
       this.logger.info('app_index_redirect_login', { authParam });
       return res.redirect('/login');
     }
-    this.logger.info('app_index_bootstrap_ok', { userId: bootstrap?.user?.id ?? null });
+    this.logger.info('app_index_bootstrap_ok', {
+      userId: bootstrap?.user?.id ?? null,
+    });
     res.setHeader('content-type', 'text/html; charset=utf-8');
     this.setNoCacheHeaders(res);
     return res.send(this.appService.getIndexHtml(bootstrap));
@@ -108,13 +120,20 @@ export class AppController {
   }
 
   private setNoCacheHeaders(res: Response) {
-    res.setHeader('cache-control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader(
+      'cache-control',
+      'no-store, no-cache, must-revalidate, proxy-revalidate',
+    );
     res.setHeader('pragma', 'no-cache');
     res.setHeader('expires', '0');
     res.setHeader('surrogate-control', 'no-store');
   }
 
-  private setAuthCookies(res: Response, accessToken: string, refreshToken?: string) {
+  private setAuthCookies(
+    res: Response,
+    accessToken: string,
+    refreshToken?: string,
+  ) {
     const options = {
       httpOnly: false,
       sameSite: 'lax' as const,
@@ -128,9 +147,15 @@ export class AppController {
     res.cookie('bmsLoggedIn', '1', options);
   }
 
-  private async buildBootstrap(req: Request, accessOverride?: string, refreshOverride?: string) {
-    const accessToken = accessOverride ?? this.readCookie(req, 'bmsAccessToken');
-    const refreshToken = refreshOverride ?? this.readCookie(req, 'bmsRefreshToken');
+  private async buildBootstrap(
+    req: Request,
+    accessOverride?: string,
+    refreshOverride?: string,
+  ) {
+    const accessToken =
+      accessOverride ?? this.readCookie(req, 'bmsAccessToken');
+    const refreshToken =
+      refreshOverride ?? this.readCookie(req, 'bmsRefreshToken');
     if (!accessToken) {
       return { token: null, refreshToken: null, user: null };
     }

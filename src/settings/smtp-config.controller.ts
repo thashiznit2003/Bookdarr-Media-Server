@@ -1,4 +1,11 @@
-import { BadRequestException, Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { SettingsService } from './settings.service';
@@ -29,7 +36,9 @@ export class SmtpConfigController {
     }
     const settings = this.settingsService.getSettings();
     const smtp = settings.smtp;
-    const configured = Boolean(smtp.host && smtp.port && smtp.user && smtp.pass);
+    const configured = Boolean(
+      smtp.host && smtp.port && smtp.user && smtp.pass,
+    );
     return {
       configured,
       host: smtp.host,
@@ -162,7 +171,10 @@ export class SmtpConfigController {
     return { ok: true };
   }
 
-  private formatFromAddress(fromName?: string | null, fromEmail?: string | null) {
+  private formatFromAddress(
+    fromName?: string | null,
+    fromEmail?: string | null,
+  ) {
     const email = (fromEmail || '').trim();
     if (!email) {
       return undefined;

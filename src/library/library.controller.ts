@@ -144,21 +144,30 @@ export class LibraryController {
 
   @Get(':id')
   @UseGuards(AuthGuard)
-  async getLibraryDetail(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+  async getLibraryDetail(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
     const userId = (req as any).user?.userId as string | undefined;
     return this.libraryService.getLibraryDetail(id, userId);
   }
 
   @Post(':id/refresh')
   @UseGuards(AuthGuard)
-  async refreshMetadata(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+  async refreshMetadata(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
     const userId = (req as any).user?.userId as string | undefined;
     return this.libraryService.refreshMetadata(id, userId);
   }
 
   @Post(':id/checkout')
   @UseGuards(AuthGuard)
-  async checkoutBook(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+  async checkoutBook(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
     const userId = (req as any).user?.userId as string | undefined;
     if (!userId) {
       return { status: 'unauthorized' };
@@ -174,6 +183,20 @@ export class LibraryController {
       return { status: 'unauthorized' };
     }
     return this.libraryService.returnBook(userId, id);
+  }
+
+  // Minimal file manifest for device-side offline caching (Service Worker / PWA).
+  @Get(':id/offline-manifest')
+  @UseGuards(AuthGuard)
+  async getOfflineManifest(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
+    const userId = (req as any).user?.userId as string | undefined;
+    if (!userId) {
+      return { status: 'unauthorized' };
+    }
+    return this.libraryService.getOfflineManifest(userId, id);
   }
 
   @Post(':id/read')
@@ -288,7 +311,9 @@ export class LibraryController {
     const fileNameMatch =
       disposition.match(/filename\\*=(?:UTF-8'')?([^;]+)/i) ||
       disposition.match(/filename=\"?([^\";]+)\"?/i);
-    const fileName = fileNameMatch?.[1] ? decodeURIComponent(fileNameMatch[1].trim()) : '';
+    const fileName = fileNameMatch?.[1]
+      ? decodeURIComponent(fileNameMatch[1].trim())
+      : '';
     const extension = fileName ? extname(fileName).toLowerCase() : '';
     const mapped = extension ? CONTENT_TYPE_BY_EXT[extension] : undefined;
     if (mapped) {
@@ -298,7 +323,10 @@ export class LibraryController {
 
   private extractAccessToken(req: Request) {
     const authHeader = req.headers.authorization;
-    if (typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
+    if (
+      typeof authHeader === 'string' &&
+      authHeader.toLowerCase().startsWith('bearer ')
+    ) {
       return authHeader.slice(7);
     }
     const queryToken = req.query?.token ?? req.query?.accessToken;
@@ -315,25 +343,40 @@ export class LibraryController {
     return decodeURIComponent(token.slice('bmsAccessToken='.length));
   }
 
-  private async handleStream(id: number, req: Request, res: Response, method: 'GET' | 'HEAD') {
+  private async handleStream(
+    id: number,
+    req: Request,
+    res: Response,
+    method: 'GET' | 'HEAD',
+  ) {
     const start = Date.now();
     const userId = (req as any).user?.userId as string | undefined;
     if (userId) {
-      const cachedPath = await this.offlineDownloadService.getCachedFilePath(userId, id);
+      const cachedPath = await this.offlineDownloadService.getCachedFilePath(
+        userId,
+        id,
+      );
       if (cachedPath) {
         await this.sendCachedFile(cachedPath, req, res, method);
-        this.logger.info(method === 'GET' ? 'library_stream_cached' : 'library_head_cached', {
-          fileId: id,
-          userId,
-          range: req.headers.range ?? null,
-          durationMs: Date.now() - start,
-        });
+        this.logger.info(
+          method === 'GET' ? 'library_stream_cached' : 'library_head_cached',
+          {
+            fileId: id,
+            userId,
+            range: req.headers.range ?? null,
+            durationMs: Date.now() - start,
+          },
+        );
         return;
       }
     }
 
     const range = req.headers.range;
-    const upstream = await this.bookdarrService.streamBookFile(id, range, method);
+    const upstream = await this.bookdarrService.streamBookFile(
+      id,
+      range,
+      method,
+    );
 
     res.status(upstream.status);
     upstream.headers.forEach((value, key) => {

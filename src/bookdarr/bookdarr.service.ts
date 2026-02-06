@@ -67,7 +67,9 @@ export class BookdarrService {
     return (await response.json()) as BookdarrBookPoolResponse;
   }
 
-  async getBookResource(bookId: number): Promise<BookdarrBookResource | undefined> {
+  async getBookResource(
+    bookId: number,
+  ): Promise<BookdarrBookResource | undefined> {
     const { apiUrl, apiKey } = await this.getApiConfig();
     const url = this.joinUrl(apiUrl, `/api/v1/book?bookIds=${bookId}`);
     const response = await fetch(url, {

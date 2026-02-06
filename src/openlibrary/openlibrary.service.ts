@@ -48,7 +48,10 @@ export class OpenLibraryService {
     };
   }
 
-  buildCoverUrl(coverId?: number, size: 'S' | 'M' | 'L' = 'L'): string | undefined {
+  buildCoverUrl(
+    coverId?: number,
+    size: 'S' | 'M' | 'L' = 'L',
+  ): string | undefined {
     if (!coverId) {
       return undefined;
     }
@@ -56,7 +59,9 @@ export class OpenLibraryService {
     return `${baseUrl.replace(/\/$/, '')}/b/id/${coverId}-${size}.jpg`;
   }
 
-  async lookupDetails(match?: OpenLibraryMatch): Promise<OpenLibraryDetails | undefined> {
+  async lookupDetails(
+    match?: OpenLibraryMatch,
+  ): Promise<OpenLibraryDetails | undefined> {
     if (!match?.key && !match?.editionKey) {
       return undefined;
     }
@@ -67,7 +72,9 @@ export class OpenLibraryService {
     if (match.editionKey) {
       path = `/books/${match.editionKey}.json`;
     } else if (match.key) {
-      path = match.key.startsWith('/') ? `${match.key}.json` : `/works/${match.key}.json`;
+      path = match.key.startsWith('/')
+        ? `${match.key}.json`
+        : `/works/${match.key}.json`;
     }
 
     if (!path) {

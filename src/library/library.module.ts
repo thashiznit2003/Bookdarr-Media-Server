@@ -23,7 +23,11 @@ import { ReaderProgressController } from './reader-progress.controller';
     forwardRef(() => AuthModule),
     forwardRef(() => SettingsModule),
     LoggingModule,
-    TypeOrmModule.forFeature([UserLibraryEntity, OfflineDownloadEntity, ReaderProgressEntity]),
+    TypeOrmModule.forFeature([
+      UserLibraryEntity,
+      OfflineDownloadEntity,
+      ReaderProgressEntity,
+    ]),
   ],
   controllers: [LibraryController, ReaderProgressController],
   providers: [

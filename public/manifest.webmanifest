@@ -1,0 +1,10 @@
+{
+  "name": "Bookdarr Media Server",
+  "short_name": "BMS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": []
+}
+

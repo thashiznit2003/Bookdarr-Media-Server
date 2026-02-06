@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthGuard } from './auth.guard';
 import { AdminGuard } from './admin.guard';
@@ -15,8 +23,13 @@ export class UsersController {
   }
 
   private getBaseUrl(req: Request) {
-    const proto = (req.headers['x-forwarded-proto'] as string | undefined) ?? req.protocol ?? 'http';
-    const host = (req.headers['x-forwarded-host'] as string | undefined) ?? req.get('host');
+    const proto =
+      (req.headers['x-forwarded-proto'] as string | undefined) ??
+      req.protocol ??
+      'http';
+    const host =
+      (req.headers['x-forwarded-host'] as string | undefined) ??
+      req.get('host');
     if (!host) return undefined;
     return `${proto}://${host}`;
   }
@@ -24,9 +37,18 @@ export class UsersController {
   @Post()
   create(
     @Req() req: Request,
-    @Body() body: { username: string; email: string; password: string; isAdmin?: boolean },
+    @Body()
+    body: {
+      username: string;
+      email: string;
+      password: string;
+      isAdmin?: boolean;
+    },
   ) {
-    return this.authService.createUser({ ...body, baseUrl: this.getBaseUrl(req) });
+    return this.authService.createUser({
+      ...body,
+      baseUrl: this.getBaseUrl(req),
+    });
   }
 
   @Post(':id/reset-2fa')
@@ -35,7 +57,10 @@ export class UsersController {
   }
 
   @Post(':id/reset-password')
-  resetPassword(@Param('id') id: string, @Body() body: { newPassword: string }) {
+  resetPassword(
+    @Param('id') id: string,
+    @Body() body: { newPassword: string },
+  ) {
     return this.authService.adminResetPassword(id, body?.newPassword ?? '');
   }
 }

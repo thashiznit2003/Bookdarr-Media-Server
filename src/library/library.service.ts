@@ -1,8 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { basename, extname } from 'path';
 import { BookdarrService } from '../bookdarr/bookdarr.service';
 import { OpenLibraryService } from '../openlibrary/openlibrary.service';
-import { LibraryDetail, LibraryFile, LibraryItem, LibraryMediaType } from './library.types';
+import {
+  LibraryDetail,
+  LibraryFile,
+  LibraryItem,
+  LibraryMediaType,
+} from './library.types';
 import type { BookdarrBookFileResource } from '../bookdarr/bookdarr.types';
 import { LibraryCacheService } from './library-cache.service';
 import { UserLibraryService } from './user-library.service';
@@ -32,7 +41,9 @@ export class LibraryService {
     }
 
     const checkouts = await this.userLibraryService.getActiveForUser(userId);
-    const checkoutMap = new Map(checkouts.map((entry) => [entry.bookId, entry]));
+    const checkoutMap = new Map(
+      checkouts.map((entry) => [entry.bookId, entry]),
+    );
     const readMap = await this.userLibraryService.getReadMap(userId);
     const downloadMap = await this.offlineDownloadService.getStatusMap(
       userId,
@@ -67,7 +78,9 @@ export class LibraryService {
       return items;
     }
     const checkouts = await this.userLibraryService.getActiveForUser(userId);
-    const checkoutMap = new Map(checkouts.map((entry) => [entry.bookId, entry]));
+    const checkoutMap = new Map(
+      checkouts.map((entry) => [entry.bookId, entry]),
+    );
     const readMap = await this.userLibraryService.getReadMap(userId);
     const downloadMap = await this.offlineDownloadService.getStatusMap(
       userId,
@@ -88,7 +101,10 @@ export class LibraryService {
     });
   }
 
-  async getLibraryDetail(bookId: number, userId?: string): Promise<LibraryDetail> {
+  async getLibraryDetail(
+    bookId: number,
+    userId?: string,
+  ): Promise<LibraryDetail> {
     const bookPool = await this.bookdarrService.getBookPool();
     const item = bookPool.find((entry) => entry.bookId === bookId);
 
@@ -106,8 +122,13 @@ export class LibraryService {
     const bookdarrCoverRaw = this.pickCoverPath(item.book?.images, item.bookId);
     let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
     if (!bookdarrCover) {
-      const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-      const resourceCoverRaw = this.pickCoverPath(bookResource?.images, item.bookId);
+      const bookResource = await this.bookdarrService.getBookResource(
+        item.bookId,
+      );
+      const resourceCoverRaw = this.pickCoverPath(
+        bookResource?.images,
+        item.bookId,
+      );
       bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
     }
     let bookdarrOverview: string | undefined;
@@ -117,15 +138,17 @@ export class LibraryService {
       bookdarrOverview = undefined;
     }
     const overview = item.book?.overview || bookdarrOverview;
-    const needsMetadata =
-      !overview || overview.trim().length === 0;
+    const needsMetadata = !overview || overview.trim().length === 0;
     const needsCover = !bookdarrCover;
 
     let match;
     let details;
     if (needsMetadata || needsCover) {
       try {
-        match = await this.openLibraryService.lookupByTitleAuthor(title, author);
+        match = await this.openLibraryService.lookupByTitleAuthor(
+          title,
+          author,
+        );
       } catch {
         match = undefined;
       }
@@ -136,7 +159,9 @@ export class LibraryService {
       }
     }
 
-    const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
+    const openLibraryCover = this.openLibraryService.buildCoverUrl(
+      match?.coverId,
+    );
     const coverUrl = bookdarrCover ?? openLibraryCover;
 
     let files: LibraryFile[] = [];
@@ -147,13 +172,17 @@ export class LibraryService {
       files = [];
     }
 
-    const audiobookFiles = files.filter((file) => file.mediaType === 'audiobook');
+    const audiobookFiles = files.filter(
+      (file) => file.mediaType === 'audiobook',
+    );
     const ebookFiles = files.filter((file) => file.mediaType === 'ebook');
 
     const checkout = userId
       ? await this.userLibraryService.getActiveByBookId(userId, bookId)
       : null;
-    const readAt = userId ? await this.userLibraryService.getReadStatus(userId, bookId) : null;
+    const readAt = userId
+      ? await this.userLibraryService.getReadStatus(userId, bookId)
+      : null;
     const downloadStatus = userId
       ? await this.offlineDownloadService.getStatusForBook(userId, bookId)
       : null;
@@ -184,7 +213,10 @@ export class LibraryService {
     };
   }
 
-  async refreshMetadata(bookId: number, userId?: string): Promise<LibraryDetail> {
+  async refreshMetadata(
+    bookId: number,
+    userId?: string,
+  ): Promise<LibraryDetail> {
     const bookPool = await this.bookdarrService.getBookPool();
     const item = bookPool.find((entry) => entry.bookId === bookId);
 
@@ -216,11 +248,18 @@ export class LibraryService {
     const bookdarrCoverRaw = this.pickCoverPath(item.book?.images, item.bookId);
     let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
     if (!bookdarrCover) {
-      const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-      const resourceCoverRaw = this.pickCoverPath(bookResource?.images, item.bookId);
+      const bookResource = await this.bookdarrService.getBookResource(
+        item.bookId,
+      );
+      const resourceCoverRaw = this.pickCoverPath(
+        bookResource?.images,
+        item.bookId,
+      );
       bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
     }
-    const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
+    const openLibraryCover = this.openLibraryService.buildCoverUrl(
+      match?.coverId,
+    );
 
     let files: LibraryFile[] = [];
     try {
@@ -230,13 +269,17 @@ export class LibraryService {
       files = [];
     }
 
-    const audiobookFiles = files.filter((file) => file.mediaType === 'audiobook');
+    const audiobookFiles = files.filter(
+      (file) => file.mediaType === 'audiobook',
+    );
     const ebookFiles = files.filter((file) => file.mediaType === 'ebook');
 
     const checkout = userId
       ? await this.userLibraryService.getActiveByBookId(userId, bookId)
       : null;
-    const readAt = userId ? await this.userLibraryService.getReadStatus(userId, bookId) : null;
+    const readAt = userId
+      ? await this.userLibraryService.getReadStatus(userId, bookId)
+      : null;
     const downloadStatus = userId
       ? await this.offlineDownloadService.getStatusForBook(userId, bookId)
       : null;
@@ -283,6 +326,39 @@ export class LibraryService {
     return this.getLibraryDetail(bookId, userId);
   }
 
+  async getOfflineManifest(userId: string, bookId: number) {
+    const checkout = await this.userLibraryService.getActiveByBookId(
+      userId,
+      bookId,
+    );
+    if (!checkout) {
+      throw new ForbiddenException(
+        'Book must be checked out to download for offline use.',
+      );
+    }
+
+    let bookFiles: BookdarrBookFileResource[] = [];
+    try {
+      bookFiles = await this.bookdarrService.getBookFiles(bookId);
+    } catch {
+      bookFiles = [];
+    }
+
+    const files = bookFiles
+      .map((file) => this.mapBookFile(file))
+      .filter(
+        (file) => file.mediaType === 'ebook' || file.mediaType === 'audiobook',
+      )
+      .map((file) => ({
+        fileId: file.id,
+        url: file.streamUrl,
+        bytesTotal: file.size ?? 0,
+        mediaType: file.mediaType,
+      }));
+
+    return { bookId, files };
+  }
+
   async setReadStatus(userId: string, bookId: number, read: boolean) {
     await this.userLibraryService.setReadStatus(userId, bookId, read);
     return this.getLibraryDetail(bookId, userId);
@@ -300,23 +376,36 @@ export class LibraryService {
           item.book?.author?.authorNameLastFirst ??
           undefined;
 
-        const bookdarrCoverRaw = this.pickCoverPath(item.book?.images, item.bookId);
+        const bookdarrCoverRaw = this.pickCoverPath(
+          item.book?.images,
+          item.bookId,
+        );
         let bookdarrCover = this.resolveCoverUrl(apiUrl, bookdarrCoverRaw);
         if (!bookdarrCover) {
-          const bookResource = await this.bookdarrService.getBookResource(item.bookId);
-          const resourceCoverRaw = this.pickCoverPath(bookResource?.images, item.bookId);
+          const bookResource = await this.bookdarrService.getBookResource(
+            item.bookId,
+          );
+          const resourceCoverRaw = this.pickCoverPath(
+            bookResource?.images,
+            item.bookId,
+          );
           bookdarrCover = this.resolveCoverUrl(apiUrl, resourceCoverRaw);
         }
 
         let match;
         if (!bookdarrCover) {
           try {
-            match = await this.openLibraryService.lookupByTitleAuthor(title, author);
+            match = await this.openLibraryService.lookupByTitleAuthor(
+              title,
+              author,
+            );
           } catch {
             match = undefined;
           }
         }
-        const openLibraryCover = this.openLibraryService.buildCoverUrl(match?.coverId);
+        const openLibraryCover = this.openLibraryService.buildCoverUrl(
+          match?.coverId,
+        );
         const coverUrl = bookdarrCover ?? openLibraryCover;
 
         return {
@@ -353,7 +442,10 @@ export class LibraryService {
     };
   }
 
-  private getMediaType(file: BookdarrBookFileResource, format: string): LibraryMediaType {
+  private getMediaType(
+    file: BookdarrBookFileResource,
+    format: string,
+  ): LibraryMediaType {
     const raw = file.mediaType;
     if (typeof raw === 'string') {
       const normalized = raw.toLowerCase();
@@ -373,17 +465,26 @@ export class LibraryService {
       }
     }
 
-    if (['.mp3', '.m4b', '.m4a', '.aac', '.ogg', '.wav', '.flac'].includes(format)) {
+    if (
+      ['.mp3', '.m4b', '.m4a', '.aac', '.ogg', '.wav', '.flac'].includes(format)
+    ) {
       return 'audiobook';
     }
-    if (['.epub', '.pdf', '.mobi', '.azw', '.azw3', '.cbz', '.cbr'].includes(format)) {
+    if (
+      ['.epub', '.pdf', '.mobi', '.azw', '.azw3', '.cbz', '.cbr'].includes(
+        format,
+      )
+    ) {
       return 'ebook';
     }
 
     return 'unknown';
   }
 
-  private resolveCoverUrl(apiUrl: string, coverRaw?: string): string | undefined {
+  private resolveCoverUrl(
+    apiUrl: string,
+    coverRaw?: string,
+  ): string | undefined {
     if (!coverRaw || coverRaw.trim().length === 0) {
       return undefined;
     }
@@ -401,7 +502,12 @@ export class LibraryService {
   }
 
   private pickCoverPath(
-    images?: { remoteUrl?: string; url?: string; extension?: string; coverType?: string }[],
+    images?: {
+      remoteUrl?: string;
+      url?: string;
+      extension?: string;
+      coverType?: string;
+    }[],
     bookId?: number,
   ): string | undefined {
     if (!images || images.length === 0) {
@@ -424,13 +530,18 @@ export class LibraryService {
 
     const isUsable = (value?: string) =>
       typeof value === 'string' &&
-      (value.startsWith('/') || value.startsWith('http') || value.startsWith('MediaCover/'));
+      (value.startsWith('/') ||
+        value.startsWith('http') ||
+        value.startsWith('MediaCover/'));
 
     const hasImageExtension = (value?: string, extension?: string) => {
       if (extension && /\.(jpe?g|png|gif|webp)$/i.test(extension)) {
         return true;
       }
-      return typeof value === 'string' && /\.(jpe?g|png|gif|webp)(\\?|$)/i.test(value);
+      return (
+        typeof value === 'string' &&
+        /\.(jpe?g|png|gif|webp)(\\?|$)/i.test(value)
+      );
     };
 
     const preferred = images.filter((entry) =>
@@ -443,14 +554,22 @@ export class LibraryService {
         return url;
       }
       const remote = normalize(entry.remoteUrl);
-      if (remote && isUsable(remote) && hasImageExtension(remote, entry.extension)) {
+      if (
+        remote &&
+        isUsable(remote) &&
+        hasImageExtension(remote, entry.extension)
+      ) {
         return remote;
       }
     }
 
     for (const entry of preferred) {
       const remote = normalize(entry.remoteUrl);
-      if (remote && remote.startsWith('http') && hasImageExtension(remote, entry.extension)) {
+      if (
+        remote &&
+        remote.startsWith('http') &&
+        hasImageExtension(remote, entry.extension)
+      ) {
         return remote;
       }
     }

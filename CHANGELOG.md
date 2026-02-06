@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.214 — 2026-02-05 23:16 -06:00
+- Add device-side offline caching foundation (Service Worker) for My Library: checked-out books automatically cache their ebook/audiobook streams on supported browsers (HTTPS only), with progress ring updates driven by SW progress events.
+- Add `GET /library/:id/offline-manifest` to provide a minimal authenticated file list for device caching.
+- Clear device offline cache on logout via SW `CLEAR_ALL`.
+
 ## 1.0.213 — 2026-02-05 22:33 -06:00
 - Fix “Unable to load EPUB” on macOS/desktop by vendoring JSZip at `vendor/jszip/jszip.min.js` and serving it from `/vendor/jszip/` (epub.js requires JSZip).
 

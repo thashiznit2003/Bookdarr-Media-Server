@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { FileLoggerService } from '../logging/file-logger.service';
@@ -24,7 +33,10 @@ export class AuthController {
 
   private static readonly COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 
-  private setAuthCookies(res: Response, tokens?: { accessToken?: string; refreshToken?: string }) {
+  private setAuthCookies(
+    res: Response,
+    tokens?: { accessToken?: string; refreshToken?: string },
+  ) {
     if (!tokens?.accessToken) {
       return;
     }
@@ -78,14 +90,22 @@ export class AuthController {
   }
 
   private getBaseUrl(req: Request) {
-    const proto = (req.headers['x-forwarded-proto'] as string | undefined) ?? req.protocol ?? 'http';
-    const host = (req.headers['x-forwarded-host'] as string | undefined) ?? req.get('host');
+    const proto =
+      (req.headers['x-forwarded-proto'] as string | undefined) ??
+      req.protocol ??
+      'http';
+    const host =
+      (req.headers['x-forwarded-host'] as string | undefined) ??
+      req.get('host');
     if (!host) return undefined;
     return `${proto}://${host}`;
   }
 
   @Post('signup')
-  async signup(@Body() request: SignupRequest, @Res({ passthrough: true }) res: Response) {
+  async signup(
+    @Body() request: SignupRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const response = await this.authService.signup(request);
     this.setAuthCookies(res, response.tokens);
     return response;
@@ -97,7 +117,10 @@ export class AuthController {
   }
 
   @Post('setup')
-  async setup(@Body() request: SetupRequest, @Res({ passthrough: true }) res: Response) {
+  async setup(
+    @Body() request: SetupRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const response = await this.authService.setupFirstUser(request);
     this.setAuthCookies(res, response.tokens);
     return response;
@@ -118,7 +141,9 @@ export class AuthController {
         ).toString('base64');
         res.setHeader('content-type', 'text/html; charset=utf-8');
         res.setHeader('cache-control', 'no-store');
-        return res.send(`<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(response.tokens.refreshToken ?? '')}');</script></body></html>`);
+        return res.send(
+          `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(response.tokens.refreshToken ?? '')}');</script></body></html>`,
+        );
       }
       return res.redirect('/');
     } catch (error) {
@@ -128,7 +153,10 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() request: LoginRequest, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() request: LoginRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const response = await this.authService.login(request);
     if ((response as { twoFactorRequired?: boolean })?.twoFactorRequired) {
       return res.status(401).json(response);
@@ -146,14 +174,22 @@ export class AuthController {
         hasOtp: Boolean((request as any)?.otp),
       });
       const response = await this.authService.login(request);
-      if ((response as { twoFactorRequired?: boolean; challengeToken?: string })?.twoFactorRequired) {
+      if (
+        (response as { twoFactorRequired?: boolean; challengeToken?: string })
+          ?.twoFactorRequired
+      ) {
         this.logger.info('auth_login_web_2fa_required', {
           username: request?.username ?? null,
-          challengeIssued: Boolean((response as { challengeToken?: string }).challengeToken),
+          challengeIssued: Boolean(
+            (response as { challengeToken?: string }).challengeToken,
+          ),
         });
-        const challengeToken = (response as { challengeToken?: string }).challengeToken;
+        const challengeToken = (response as { challengeToken?: string })
+          .challengeToken;
         this.setTwoFactorCookie(res, challengeToken);
-        const challengeParam = challengeToken ? `&challenge=${encodeURIComponent(challengeToken)}` : '';
+        const challengeParam = challengeToken
+          ? `&challenge=${encodeURIComponent(challengeToken)}`
+          : '';
         return res.redirect(`/login?otp=1${challengeParam}`);
       }
       this.logger.info('auth_login_web_success', {
@@ -166,7 +202,9 @@ export class AuthController {
       if (response.tokens?.accessToken) {
         const access = encodeURIComponent(response.tokens.accessToken);
         const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
-        return res.redirect(`/auth/complete?access=${access}&refresh=${refresh}`);
+        return res.redirect(
+          `/auth/complete?access=${access}&refresh=${refresh}`,
+        );
       }
       return res.redirect('/');
     } catch (error) {
@@ -177,15 +215,22 @@ export class AuthController {
       });
       const normalized = message.toLowerCase();
       const otpRequired =
-        normalized.includes('two-factor') || normalized.includes('2fa') || normalized.includes('otp');
+        normalized.includes('two-factor') ||
+        normalized.includes('2fa') ||
+        normalized.includes('otp');
       const otpParam = otpRequired ? '&otp=1' : '';
       this.setTwoFactorCookie(res);
-      return res.redirect(`/login?error=${encodeURIComponent(message)}${otpParam}`);
+      return res.redirect(
+        `/login?error=${encodeURIComponent(message)}${otpParam}`,
+      );
     }
   }
 
   @Post('login/2fa')
-  async loginTwoFactor(@Body() request: TwoFactorLoginRequest, @Res({ passthrough: true }) res: Response) {
+  async loginTwoFactor(
+    @Body() request: TwoFactorLoginRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const response = await this.authService.completeTwoFactorLogin(request);
     this.setAuthCookies(res, response.tokens);
     this.setTwoFactorCookie(res);
@@ -203,7 +248,8 @@ export class AuthController {
         hasOtp: Boolean(request?.otp),
         hasChallenge: Boolean(request?.challengeToken),
       });
-      const challengeToken = request.challengeToken ?? this.readTwoFactorCookie(req);
+      const challengeToken =
+        request.challengeToken ?? this.readTwoFactorCookie(req);
       const response = await this.authService.completeTwoFactorLogin({
         otp: request.otp,
         challengeToken,
@@ -217,7 +263,9 @@ export class AuthController {
       if (response.tokens?.accessToken) {
         const access = encodeURIComponent(response.tokens.accessToken);
         const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
-        return res.redirect(`/auth/complete?access=${access}&refresh=${refresh}`);
+        return res.redirect(
+          `/auth/complete?access=${access}&refresh=${refresh}`,
+        );
       }
       return res.redirect('/');
     } catch (error) {
@@ -234,7 +282,8 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
+    const refreshToken =
+      request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
     const response = await this.authService.refresh({ refreshToken });
     this.setAuthCookies(res, response.tokens);
     return response;
@@ -261,7 +310,9 @@ export class AuthController {
   }
 
   @Post('debug-log')
-  async debugLog(@Body() body: { event?: string; meta?: Record<string, unknown> }) {
+  async debugLog(
+    @Body() body: { event?: string; meta?: Record<string, unknown> },
+  ) {
     this.logger.info('auth_debug', {
       event: body?.event ?? 'unknown',
       meta: body?.meta ?? null,
@@ -275,14 +326,18 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
+    const refreshToken =
+      request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
     const response = await this.authService.logout({ refreshToken });
     this.clearAuthCookies(res);
     return response;
   }
 
   @Post('password/request')
-  requestPasswordReset(@Body() request: PasswordResetRequest, @Req() req: Request) {
+  requestPasswordReset(
+    @Body() request: PasswordResetRequest,
+    @Req() req: Request,
+  ) {
     return this.authService.requestPasswordReset(request, this.getBaseUrl(req));
   }
 

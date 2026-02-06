@@ -47,7 +47,10 @@ export class BookdarrConfigService {
 
     const existing = await this.getConfig();
     const poolPathRaw = input.poolPath?.trim();
-    const poolPath = poolPathRaw && poolPathRaw.length > 0 ? poolPathRaw : existing?.poolPath ?? null;
+    const poolPath =
+      poolPathRaw && poolPathRaw.length > 0
+        ? poolPathRaw
+        : (existing?.poolPath ?? null);
     const now = new Date().toISOString();
     const record = this.configRepo.create({
       id: 1,

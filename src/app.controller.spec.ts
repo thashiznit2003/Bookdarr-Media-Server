@@ -6,7 +6,12 @@ describe('AppService', () => {
     const html = appService.getIndexHtml({
       token: null,
       refreshToken: null,
-      user: { id: 'test', username: 'test', email: 'test@example.com', isAdmin: true },
+      user: {
+        id: 'test',
+        username: 'test',
+        email: 'test@example.com',
+        isAdmin: true,
+      },
     });
     expect(html).toContain('Bookdarr Media Server');
     expect(html).toContain('Book Pool Library');

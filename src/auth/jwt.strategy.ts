@@ -39,7 +39,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const secrets = await authConfigService.getSecrets();
         const secret = secrets.accessSecret ?? auth.accessSecret;
         if (!secret) {
-          return done(new UnauthorizedException('JWT secret is not configured.'));
+          return done(
+            new UnauthorizedException('JWT secret is not configured.'),
+          );
         }
         return done(null, secret);
       },

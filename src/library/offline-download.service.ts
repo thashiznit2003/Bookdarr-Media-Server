@@ -9,7 +9,10 @@ import { In, Repository } from 'typeorm';
 import { BookdarrService } from '../bookdarr/bookdarr.service';
 import type { BookdarrBookFileResource } from '../bookdarr/bookdarr.types';
 import { FileLoggerService } from '../logging/file-logger.service';
-import { OfflineDownloadEntity, OfflineDownloadStatus } from './offline-download.entity';
+import {
+  OfflineDownloadEntity,
+  OfflineDownloadStatus,
+} from './offline-download.entity';
 
 export type OfflineDownloadSummaryStatus =
   | 'not_started'
@@ -60,11 +63,14 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     try {
       files = await this.bookdarrService.getBookFiles(bookId);
     } catch (error) {
-      this.logger.error('Unable to queue offline downloads: book files unavailable.', {
-        bookId,
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      this.logger.error(
+        'Unable to queue offline downloads: book files unavailable.',
+        {
+          bookId,
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
       return [];
     }
 
@@ -77,13 +83,21 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
         const mediaType = this.getMediaType(file, format);
         return { file, fileName, format, mediaType };
       })
-      .filter((entry) => entry.mediaType === 'ebook' || entry.mediaType === 'audiobook');
+      .filter(
+        (entry) =>
+          entry.mediaType === 'ebook' || entry.mediaType === 'audiobook',
+      );
 
     const queued: OfflineDownloadEntity[] = [];
     for (const entry of candidates) {
       const { file, fileName, format, mediaType } = entry;
       const extension = format || '.bin';
-      const filePath = join(this.baseDir, userId, String(bookId), `${file.id}${extension}`);
+      const filePath = join(
+        this.baseDir,
+        userId,
+        String(bookId),
+        `${file.id}${extension}`,
+      );
       const existing = await this.downloadsRepo.findOne({
         where: { userId, bookId, fileId: file.id },
       });
@@ -134,7 +148,9 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
   }
 
   async removeBook(userId: string, bookId: number) {
-    const downloads = await this.downloadsRepo.find({ where: { userId, bookId } });
+    const downloads = await this.downloadsRepo.find({
+      where: { userId, bookId },
+    });
     const ids = new Set(downloads.map((download) => download.id));
 
     for (const id of ids) {
@@ -180,7 +196,10 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getStatusForBook(userId: string, bookId: number): Promise<OfflineDownloadSummary | null> {
+  async getStatusForBook(
+    userId: string,
+    bookId: number,
+  ): Promise<OfflineDownloadSummary | null> {
     const map = await this.getStatusMap(userId, [bookId]);
     return map.get(bookId) ?? null;
   }
@@ -256,7 +275,10 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (summary.bytesTotal > 0) {
-        summary.progress = Math.min(summary.bytesDownloaded / summary.bytesTotal, 1);
+        summary.progress = Math.min(
+          summary.bytesDownloaded / summary.bytesTotal,
+          1,
+        );
       } else if (summary.fileCount > 0) {
         summary.progress = summary.readyCount / summary.fileCount;
       } else {
@@ -278,7 +300,9 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
 
   private async resumePending() {
     const pending = await this.downloadsRepo.find({
-      where: { status: In(['queued', 'downloading'] as OfflineDownloadStatus[]) },
+      where: {
+        status: In(['queued', 'downloading'] as OfflineDownloadStatus[]),
+      },
     });
     if (!pending.length) {
       return;
@@ -286,7 +310,10 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     const now = new Date().toISOString();
     for (const download of pending) {
       if (download.status === 'downloading') {
-        await this.downloadsRepo.update(download.id, { status: 'queued', updatedAt: now });
+        await this.downloadsRepo.update(download.id, {
+          status: 'queued',
+          updatedAt: now,
+        });
       }
       this.enqueue(download.id);
     }
@@ -425,10 +452,16 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    if (['.mp3', '.m4b', '.m4a', '.aac', '.ogg', '.wav', '.flac'].includes(format)) {
+    if (
+      ['.mp3', '.m4b', '.m4a', '.aac', '.ogg', '.wav', '.flac'].includes(format)
+    ) {
       return 'audiobook';
     }
-    if (['.epub', '.pdf', '.mobi', '.azw', '.azw3', '.cbz', '.cbr'].includes(format)) {
+    if (
+      ['.epub', '.pdf', '.mobi', '.azw', '.azw3', '.cbz', '.cbr'].includes(
+        format,
+      )
+    ) {
       return 'ebook';
     }
 

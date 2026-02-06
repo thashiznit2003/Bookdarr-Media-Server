@@ -31,9 +31,9 @@ export class SettingsService {
   getPublicSettings(): PublicSettings {
     const smtpConfigured = Boolean(
       this.settings.smtp.host &&
-        this.settings.smtp.port &&
-        this.settings.smtp.user &&
-        this.settings.smtp.pass,
+      this.settings.smtp.port &&
+      this.settings.smtp.user &&
+      this.settings.smtp.pass,
     );
     const bookdarrConfigured = Boolean(
       this.settings.bookdarr.apiUrl && this.settings.bookdarr.apiKey,
@@ -43,9 +43,9 @@ export class SettingsService {
         ? Boolean(this.settings.database.sqlitePath)
         : Boolean(
             this.settings.database.host &&
-              this.settings.database.port &&
-              this.settings.database.username &&
-              this.settings.database.name,
+            this.settings.database.port &&
+            this.settings.database.username &&
+            this.settings.database.name,
           );
     const diagnosticsConfigured = Boolean(
       this.settings.diagnostics.repo && this.settings.diagnostics.token,
@@ -106,7 +106,11 @@ export class SettingsService {
   private loadFromEnv(): Settings {
     const port =
       this.parsePort(process.env.PORT, DEFAULT_PORT, 'PORT') ?? DEFAULT_PORT;
-    const smtpPort = this.parsePort(process.env.SMTP_PORT, undefined, 'SMTP_PORT');
+    const smtpPort = this.parsePort(
+      process.env.SMTP_PORT,
+      undefined,
+      'SMTP_PORT',
+    );
     const diagnosticsRequired = this.parseBoolean(
       process.env.DIAGNOSTICS_REQUIRED,
       true,
@@ -130,16 +134,17 @@ export class SettingsService {
     const dbTypeRaw = this.readEnv('DB_TYPE') ?? DEFAULT_DB_TYPE;
     const dbType = this.parseDbType(dbTypeRaw);
     const dbSyncDefault = dbType === 'sqlite';
-    const dbSync = this.parseBoolean(
-      this.readEnv('DB_SYNC'),
-      dbSyncDefault,
-    );
+    const dbSync = this.parseBoolean(this.readEnv('DB_SYNC'), dbSyncDefault);
     const dbPath = this.readEnv('DB_PATH') ?? DEFAULT_DB_PATH;
     if (dbType === 'sqlite') {
       this.ensureSqliteDirectory(dbPath);
     }
     const dbHost = this.readEnv('DB_HOST');
-    const dbPort = this.parsePort(this.readEnv('DB_PORT'), undefined, 'DB_PORT');
+    const dbPort = this.parsePort(
+      this.readEnv('DB_PORT'),
+      undefined,
+      'DB_PORT',
+    );
     const dbUser = this.readEnv('DB_USER');
     const dbPass = this.readEnv('DB_PASS');
     const dbName = this.readEnv('DB_NAME');
@@ -147,14 +152,19 @@ export class SettingsService {
     const bookPoolPath =
       this.readEnv('BOOKDARR_BOOKPOOL_PATH') ?? DEFAULT_BOOKPOOL_PATH;
     const openLibraryBase =
-      this.parseUrl(this.readEnv('OPENLIBRARY_BASE_URL'), 'OPENLIBRARY_BASE_URL') ??
-      DEFAULT_OPENLIBRARY_BASE;
+      this.parseUrl(
+        this.readEnv('OPENLIBRARY_BASE_URL'),
+        'OPENLIBRARY_BASE_URL',
+      ) ?? DEFAULT_OPENLIBRARY_BASE;
     const legacyEpubEnabled = this.parseBoolean(
       this.readEnv('LEGACY_EPUB_ENABLED'),
       DEFAULT_LEGACY_EPUB_ENABLED,
     );
 
-    const apiUrl = this.parseUrl(process.env.BOOKDARR_API_URL, 'BOOKDARR_API_URL');
+    const apiUrl = this.parseUrl(
+      process.env.BOOKDARR_API_URL,
+      'BOOKDARR_API_URL',
+    );
 
     return {
       port,
@@ -231,7 +241,10 @@ export class SettingsService {
     return parsed;
   }
 
-  private parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
+  private parseBoolean(
+    value: string | undefined,
+    defaultValue: boolean,
+  ): boolean {
     if (!value || value.trim().length === 0) {
       return defaultValue;
     }
@@ -239,7 +252,10 @@ export class SettingsService {
     return ['1', 'true', 'yes', 'y', 'on'].includes(value.trim().toLowerCase());
   }
 
-  private parseUrl(value: string | undefined, name: string): string | undefined {
+  private parseUrl(
+    value: string | undefined,
+    name: string,
+  ): string | undefined {
     if (!value || value.trim().length === 0) {
       return undefined;
     }
@@ -255,7 +271,10 @@ export class SettingsService {
     }
   }
 
-  private parseRepo(value: string | undefined, name: string): string | undefined {
+  private parseRepo(
+    value: string | undefined,
+    name: string,
+  ): string | undefined {
     if (!value || value.trim().length === 0) {
       return undefined;
     }

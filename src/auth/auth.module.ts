@@ -30,7 +30,12 @@ import { LoggingModule } from '../logging/logging.module';
       AuthConfigEntity,
     ]),
   ],
-  controllers: [AuthController, UsersController, AuthSettingsController, MeController],
+  controllers: [
+    AuthController,
+    UsersController,
+    AuthSettingsController,
+    MeController,
+  ],
   providers: [
     AuthService,
     MailerService,

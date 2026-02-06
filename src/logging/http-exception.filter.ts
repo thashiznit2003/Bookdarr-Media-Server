@@ -26,9 +26,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       method: request.method,
       path: request.originalUrl,
       status,
-      message: isHttpException
-        ? exception.message
-        : 'Unexpected error',
+      message: isHttpException ? exception.message : 'Unexpected error',
     });
 
     if (isHttpException) {

@@ -89,6 +89,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - Book Pool filters are a dropdown; cover images use `object-fit: contain` to avoid cropping.
 - My Library supports per-user checkout/return; sessions refresh automatically via refresh tokens.
 - Checkout now queues server-side offline downloads per user (cached under `data/offline`) and My Library cards show an App Store-style progress ring until ready.
+- Device-side offline caching (PWA) is also available on supported browsers: the Service Worker caches checked-out book streams per-device and pushes progress to the UI. This requires HTTPS (secure context); it will not work on plain LAN `http://<ip>:9797` (except `localhost`).
 - Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.
 - Downloads are surfaced only inside My Library; `/downloads` redirects to `/my-library`.
 - Desktop EPUB reader now falls back to a direct stream URL if blob loading fails.

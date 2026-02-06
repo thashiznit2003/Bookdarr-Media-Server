@@ -11,7 +11,9 @@ export class ReaderProgressService {
   ) {}
 
   async getProgress(userId: string, kind: string, fileId: string) {
-    const record = await this.progressRepo.findOne({ where: { userId, kind, fileId } });
+    const record = await this.progressRepo.findOne({
+      where: { userId, kind, fileId },
+    });
     if (!record) {
       throw new NotFoundException('Progress not found.');
     }
@@ -29,7 +31,9 @@ export class ReaderProgressService {
     updatedAt?: number,
   ) {
     const ts = typeof updatedAt === 'number' ? updatedAt : Date.now();
-    const existing = await this.progressRepo.findOne({ where: { userId, kind, fileId } });
+    const existing = await this.progressRepo.findOne({
+      where: { userId, kind, fileId },
+    });
     if (!existing) {
       const record = this.progressRepo.create({
         userId,
@@ -42,7 +46,10 @@ export class ReaderProgressService {
       return { data, updatedAt: ts };
     }
     if (existing.updatedAt > ts) {
-      return { data: existing.data ? JSON.parse(existing.data) : null, updatedAt: existing.updatedAt };
+      return {
+        data: existing.data ? JSON.parse(existing.data) : null,
+        updatedAt: existing.updatedAt,
+      };
     }
     existing.data = JSON.stringify(data ?? {});
     existing.updatedAt = ts;
@@ -51,7 +58,9 @@ export class ReaderProgressService {
   }
 
   async resetProgress(userId: string, kind: string, fileId: string) {
-    const existing = await this.progressRepo.findOne({ where: { userId, kind, fileId } });
+    const existing = await this.progressRepo.findOne({
+      where: { userId, kind, fileId },
+    });
     if (!existing) {
       return { status: 'ok' };
     }

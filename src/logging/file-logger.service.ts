@@ -29,7 +29,11 @@ export class FileLoggerService {
     this.write('error', message, meta);
   }
 
-  private write(level: LogLevel, message: string, meta?: Record<string, unknown>) {
+  private write(
+    level: LogLevel,
+    message: string,
+    meta?: Record<string, unknown>,
+  ) {
     const entry = {
       timestamp: new Date().toISOString(),
       level,

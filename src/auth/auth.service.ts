@@ -8,7 +8,12 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
 import { generateSecret, generateURI, verify } from 'otplib';
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from 'crypto';
 import type { StringValue } from 'ms';
 import { SettingsService } from '../settings/settings.service';
 import {
@@ -164,7 +169,9 @@ export class AuthService implements OnModuleInit {
         };
       }
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
-      const isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
+      const isValid = secret
+        ? this.isValidOtp(verify({ token: otp, secret }))
+        : false;
       if (!isValid) {
         throw new UnauthorizedException({
           message: 'Invalid two-factor code.',
@@ -178,7 +185,10 @@ export class AuthService implements OnModuleInit {
     return { user: this.toAuthUser(user), tokens };
   }
 
-  async completeTwoFactorLogin(input: { otp?: string; challengeToken?: string }) {
+  async completeTwoFactorLogin(input: {
+    otp?: string;
+    challengeToken?: string;
+  }) {
     const otp = input.otp?.trim();
     if (!otp) {
       throw new BadRequestException('Two-factor code is required.');
@@ -194,7 +204,9 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
-    const isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
+    const isValid = secret
+      ? this.isValidOtp(verify({ token: otp, secret }))
+      : false;
     if (!isValid) {
       throw new UnauthorizedException('Invalid two-factor code.');
     }
@@ -240,7 +252,13 @@ export class AuthService implements OnModuleInit {
     return users.map((user) => this.toAuthUser(user));
   }
 
-  async createUser(input: { username: string; email: string; password: string; isAdmin?: boolean; baseUrl?: string }) {
+  async createUser(input: {
+    username: string;
+    email: string;
+    password: string;
+    isAdmin?: boolean;
+    baseUrl?: string;
+  }) {
     const username = this.normalizeUsername(input.username);
     const email = this.normalizeEmail(input.email);
 
@@ -248,7 +266,9 @@ export class AuthService implements OnModuleInit {
     this.assertEmail(email);
     this.assertPassword(input.password);
 
-    const existing = await this.users.findOne({ where: [{ username }, { email }] });
+    const existing = await this.users.findOne({
+      where: [{ username }, { email }],
+    });
     if (existing) {
       throw new BadRequestException('User already exists.');
     }
@@ -267,7 +287,11 @@ export class AuthService implements OnModuleInit {
     });
 
     await this.users.save(user);
-    await this.mailerService.sendNewUserWelcome(user.email, user.username ?? '', input.baseUrl);
+    await this.mailerService.sendNewUserWelcome(
+      user.email,
+      user.username ?? '',
+      input.baseUrl,
+    );
     return this.toAuthUser(user);
   }
 
@@ -284,7 +308,12 @@ export class AuthService implements OnModuleInit {
 
   async updateProfile(
     userId: string | undefined,
-    input: { username?: string; email?: string; currentPassword?: string; newPassword?: string },
+    input: {
+      username?: string;
+      email?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    },
   ) {
     if (!userId) {
       throw new UnauthorizedException('Unauthorized.');
@@ -318,7 +347,10 @@ export class AuthService implements OnModuleInit {
       if (!input.currentPassword) {
         throw new BadRequestException('Current password is required.');
       }
-      const matches = await argon2.verify(user.passwordHash, input.currentPassword);
+      const matches = await argon2.verify(
+        user.passwordHash,
+        input.currentPassword,
+      );
       if (!matches) {
         throw new UnauthorizedException('Current password is invalid.');
       }
@@ -437,7 +469,9 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Unauthorized.');
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorTempSecret);
-    const isValid = secret ? this.isValidOtp(verify({ token: code, secret })) : false;
+    const isValid = secret
+      ? this.isValidOtp(verify({ token: code, secret }))
+      : false;
     if (!isValid) {
       throw new BadRequestException('Invalid two-factor code.');
     }
@@ -464,17 +498,24 @@ export class AuthService implements OnModuleInit {
     }
     if (input.code) {
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
-      const isValid = secret ? this.isValidOtp(verify({ token: input.code.trim(), secret })) : false;
+      const isValid = secret
+        ? this.isValidOtp(verify({ token: input.code.trim(), secret }))
+        : false;
       if (!isValid) {
         throw new BadRequestException('Invalid two-factor code.');
       }
     } else if (input.currentPassword) {
-      const matches = await argon2.verify(user.passwordHash, input.currentPassword);
+      const matches = await argon2.verify(
+        user.passwordHash,
+        input.currentPassword,
+      );
       if (!matches) {
         throw new UnauthorizedException('Current password is invalid.');
       }
     } else {
-      throw new BadRequestException('Two-factor code or current password is required.');
+      throw new BadRequestException(
+        'Two-factor code or current password is required.',
+      );
     }
 
     user.twoFactorEnabled = false;
@@ -573,7 +614,9 @@ export class AuthService implements OnModuleInit {
     return false;
   }
 
-  private async resolveTwoFactorSecret(stored?: string | null): Promise<string> {
+  private async resolveTwoFactorSecret(
+    stored?: string | null,
+  ): Promise<string> {
     if (!stored) return '';
     if (!stored.startsWith('enc:v1:')) {
       return stored;
@@ -594,7 +637,10 @@ export class AuthService implements OnModuleInit {
     const key = await this.getTwoFactorKey();
     const iv = randomBytes(12);
     const cipher = createCipheriv('aes-256-gcm', key, iv);
-    const ciphertext = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
+    const ciphertext = Buffer.concat([
+      cipher.update(secret, 'utf8'),
+      cipher.final(),
+    ]);
     const tag = cipher.getAuthTag();
     return `enc:v1:${iv.toString('hex')}:${tag.toString('hex')}:${ciphertext.toString('hex')}`;
   }
@@ -627,7 +673,12 @@ export class AuthService implements OnModuleInit {
     const refreshId = this.generateToken();
 
     const accessToken = await this.jwtService.signAsync(
-      { sub: user.id, username: user.username, email: user.email, isAdmin: user.isAdmin },
+      {
+        sub: user.id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+      },
       {
         secret: auth.accessSecret,
         expiresIn: auth.accessTokenTtl as StringValue,
@@ -703,7 +754,9 @@ export class AuthService implements OnModuleInit {
     }
 
     const normalized = inviteCode.trim();
-    const code = await this.inviteCodes.findOne({ where: { code: normalized } });
+    const code = await this.inviteCodes.findOne({
+      where: { code: normalized },
+    });
     if (!code || code.usedAt) {
       throw new UnauthorizedException('Invite code is invalid.');
     }
@@ -746,7 +799,10 @@ export class AuthService implements OnModuleInit {
     }
 
     const normalized = username.trim();
-    if (normalized.length < MIN_USERNAME_LENGTH || normalized.length > MAX_USERNAME_LENGTH) {
+    if (
+      normalized.length < MIN_USERNAME_LENGTH ||
+      normalized.length > MAX_USERNAME_LENGTH
+    ) {
       throw new BadRequestException(
         `Username must be ${MIN_USERNAME_LENGTH}-${MAX_USERNAME_LENGTH} characters.`,
       );
@@ -814,7 +870,9 @@ export class AuthService implements OnModuleInit {
 
       let candidate = base;
       for (let i = 0; i < 20; i++) {
-        const existing = await this.users.findOne({ where: { username: candidate } });
+        const existing = await this.users.findOne({
+          where: { username: candidate },
+        });
         if (!existing) {
           user.username = candidate;
           await this.users.save(user);

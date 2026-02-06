@@ -10,7 +10,12 @@ export class MailerService {
     private readonly smtpConfigService: SmtpConfigService,
   ) {}
 
-  async sendPasswordReset(email: string, token: string, ttlMinutes: number, baseUrl?: string) {
+  async sendPasswordReset(
+    email: string,
+    token: string,
+    ttlMinutes: number,
+    baseUrl?: string,
+  ) {
     const settings = this.settingsService.getSettings();
     const stored = await this.smtpConfigService.getConfig();
     const smtp = stored ?? settings.smtp;
@@ -34,7 +39,9 @@ export class MailerService {
       smtp.from ?? smtp.user,
     );
     const subject = 'Bookdarr Media Server password reset';
-    const resetLink = baseUrl ? `${baseUrl.replace(/\/$/, '')}/login?reset=${encodeURIComponent(token)}` : undefined;
+    const resetLink = baseUrl
+      ? `${baseUrl.replace(/\/$/, '')}/login?reset=${encodeURIComponent(token)}`
+      : undefined;
     const text = `A password reset was requested for your Bookdarr Media Server account.
 
 Use this token to reset your password (valid for ${ttlMinutes} minutes):
@@ -74,7 +81,9 @@ If you did not request this, you can ignore this email.`;
       smtp.fromName,
       smtp.from ?? smtp.user,
     );
-    const loginUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/login` : undefined;
+    const loginUrl = baseUrl
+      ? `${baseUrl.replace(/\/$/, '')}/login`
+      : undefined;
     const subject = 'Your Bookdarr Media Server account';
     const text = `An account has been created for you on Bookdarr Media Server.
 
@@ -90,7 +99,10 @@ If you did not expect this email, you can ignore it.`;
     });
   }
 
-  private formatFromAddress(fromName?: string | null, fromEmail?: string | null) {
+  private formatFromAddress(
+    fromName?: string | null,
+    fromEmail?: string | null,
+  ) {
     const email = (fromEmail || '').trim();
     if (!email) {
       return undefined;

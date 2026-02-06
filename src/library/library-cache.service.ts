@@ -15,7 +15,11 @@ interface LibraryCachePayload {
 
 @Injectable()
 export class LibraryCacheService {
-  private readonly cachePath = join(process.cwd(), 'data', 'library-cache.json');
+  private readonly cachePath = join(
+    process.cwd(),
+    'data',
+    'library-cache.json',
+  );
 
   async getCached(configKey: string): Promise<LibraryItem[] | null> {
     try {
@@ -49,7 +53,11 @@ export class LibraryCacheService {
         updatedAt: new Date().toISOString(),
         items,
       };
-      await writeFile(this.cachePath, JSON.stringify(payload, null, 2), 'utf-8');
+      await writeFile(
+        this.cachePath,
+        JSON.stringify(payload, null, 2),
+        'utf-8',
+      );
     } catch {
       // ignore cache write failures
     }

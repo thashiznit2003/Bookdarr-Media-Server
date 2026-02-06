@@ -18,9 +18,17 @@ import { LoggingModule } from '../logging/logging.module';
     forwardRef(() => BookdarrModule),
     forwardRef(() => AuthModule),
     LoggingModule,
-    TypeOrmModule.forFeature([SmtpConfigEntity, ReaderConfigEntity, UserEntity]),
+    TypeOrmModule.forFeature([
+      SmtpConfigEntity,
+      ReaderConfigEntity,
+      UserEntity,
+    ]),
   ],
-  controllers: [SettingsController, SmtpConfigController, ReaderConfigController],
+  controllers: [
+    SettingsController,
+    SmtpConfigController,
+    ReaderConfigController,
+  ],
   providers: [SettingsService, SmtpConfigService, ReaderConfigService],
   exports: [SettingsService, SmtpConfigService, ReaderConfigService],
 })

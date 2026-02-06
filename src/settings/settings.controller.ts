@@ -36,7 +36,8 @@ export class SettingsController {
       settings.smtp.port = smtpConfig.port;
       settings.smtp.from = smtpConfig.from ?? undefined;
       settings.smtp.fromName = smtpConfig.fromName ?? undefined;
-      settings.smtp.configured = this.smtpConfigService.isConfigured(smtpConfig);
+      settings.smtp.configured =
+        this.smtpConfigService.isConfigured(smtpConfig);
     }
     const readerConfig = await this.readerConfigService.getConfig();
     if (readerConfig) {

@@ -20,6 +20,8 @@ export class AppService {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f1115" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Bookdarr Media Server</title>
     <script>
       window.__BMS_INTERNAL_BASE = 'http://127.0.0.1:9797';
@@ -1956,6 +1958,148 @@ export class AppService {
         debugAuthLog('reader_' + event, meta);
       }
 
+      // Device-side offline cache (PWA) support.
+      const offlineSupported =
+        Boolean(window.isSecureContext) &&
+        'serviceWorker' in navigator &&
+        'caches' in window &&
+        typeof navigator.serviceWorker.register === 'function';
+      let swReady = false;
+      const deviceOfflineByBookId = new Map(); // bookId -> { status, progress }
+      const swPending = new Map(); // requestId -> { resolve, reject, timeout }
+      const deviceOfflineManifestPending = new Set(); // bookId
+      let deviceOfflineAutoCaching = false;
+
+      function swRequestId() {
+        return Math.random().toString(16).slice(2) + Date.now().toString(16);
+      }
+
+      async function getSwTarget() {
+        if (!offlineSupported) return null;
+        try {
+          if (navigator.serviceWorker.controller) {
+            return navigator.serviceWorker.controller;
+          }
+          const reg = await navigator.serviceWorker.ready;
+          return reg?.active ?? reg?.waiting ?? null;
+        } catch {
+          return null;
+        }
+      }
+
+      function sendSwMessage(type, payload = {}) {
+        const requestId = swRequestId();
+        const message = { type, requestId, ...payload };
+        return new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            swPending.delete(requestId);
+            resolve(null);
+          }, 5000);
+          swPending.set(requestId, { resolve, timeout });
+          getSwTarget()
+            .then((target) => {
+              if (!target || typeof target.postMessage !== 'function') {
+                clearTimeout(timeout);
+                swPending.delete(requestId);
+                resolve(null);
+                return;
+              }
+              target.postMessage(message);
+            })
+            .catch(() => {
+              clearTimeout(timeout);
+              swPending.delete(requestId);
+              resolve(null);
+            });
+        });
+      }
+
+      function onSwMessage(event) {
+        const data = event?.data;
+        if (!data || typeof data.type !== 'string') return;
+        if (data.type === 'QUERY_BOOKS_RESULT' && data.requestId) {
+          const pending = swPending.get(data.requestId);
+          if (pending) {
+            clearTimeout(pending.timeout);
+            swPending.delete(data.requestId);
+            pending.resolve(data.results ?? null);
+          }
+          return;
+        }
+        if (data.type === 'OFFLINE_PROGRESS') {
+          const bookId = data.bookId ? String(data.bookId) : null;
+          if (!bookId) return;
+          const total = Number(data.bytesTotal || 0);
+          const downloaded = Number(data.bytesDownloaded || 0);
+          const overall = Number(data.progressOverall || 0);
+          const progress =
+            overall > 0
+              ? Math.min(Math.max(overall, 0), 1)
+              : total > 0
+                ? Math.min(Math.max(downloaded / total, 0), 1)
+                : 0;
+          deviceOfflineByBookId.set(bookId, {
+            status: 'downloading',
+            progress,
+            bytesTotal: total,
+            bytesDownloaded: downloaded,
+          });
+          if (activePage === 'my-library') {
+            updateDownloadOverlays(state.myLibrary, myLibraryGrid);
+          }
+          return;
+        }
+        if (data.type === 'OFFLINE_STATUS') {
+          if (data.status === 'cleared_all') {
+            deviceOfflineByBookId.clear();
+            if (activePage === 'my-library') {
+              updateDownloadOverlays(state.myLibrary, myLibraryGrid);
+            }
+            return;
+          }
+          const bookId = data.bookId ? String(data.bookId) : null;
+          if (!bookId) return;
+          const status = String(data.status || '');
+          if (status === 'ready') {
+            deviceOfflineByBookId.set(bookId, { status: 'ready', progress: 1 });
+          } else if (status === 'queued') {
+            deviceOfflineByBookId.set(bookId, { status: 'queued', progress: 0 });
+          } else if (status === 'downloading') {
+            const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
+            deviceOfflineByBookId.set(bookId, { status: 'downloading', progress: current.progress ?? 0 });
+          } else if (status === 'partial') {
+            const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
+            deviceOfflineByBookId.set(bookId, { status: 'downloading', progress: current.progress ?? 0 });
+          } else if (status === 'cleared') {
+            deviceOfflineByBookId.delete(bookId);
+          } else if (status === 'failed') {
+            deviceOfflineByBookId.set(bookId, { status: 'failed', progress: 0 });
+          }
+          if (activePage === 'my-library') {
+            updateDownloadOverlays(state.myLibrary, myLibraryGrid);
+          }
+        }
+      }
+
+      async function initServiceWorker() {
+        if (!offlineSupported) {
+          debugReaderLog('offline_sw_unsupported', { secure: Boolean(window.isSecureContext) });
+          return;
+        }
+        try {
+          const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          await navigator.serviceWorker.ready;
+          swReady = true;
+          debugReaderLog('offline_sw_ready', { scope: reg?.scope ?? null });
+          navigator.serviceWorker.addEventListener('message', onSwMessage);
+          if (activePage === 'my-library') {
+            loadMyLibrary();
+          }
+        } catch (error) {
+          debugReaderLog('offline_sw_error', { message: error?.message ?? String(error) });
+        }
+      }
+
       let pdfDoc = null;
       let pdfPage = 1;
       let epubBook = null;
@@ -2024,6 +2168,8 @@ export class AppService {
       if (!bootstrap?.user) {
         window.location.replace('/login?reason=unauth');
       }
+
+      initServiceWorker();
 
       libraryGrid?.addEventListener('click', (event) => {
         const card = event.target.closest('.book-card');
@@ -2777,6 +2923,28 @@ export class AppService {
         });
       }
 
+      function getDeviceDownloadStatus(bookId) {
+        if (!offlineSupported) return null;
+        const entry = deviceOfflineByBookId.get(String(bookId));
+        if (!entry) return null;
+        return {
+          status: entry.status || 'not_started',
+          bytesTotal: Number(entry.bytesTotal || 0),
+          bytesDownloaded: Number(entry.bytesDownloaded || 0),
+          progress: Number(entry.progress || 0),
+          fileCount: 0,
+          readyCount: entry.status === 'ready' ? 1 : 0,
+          failedCount: entry.status === 'failed' ? 1 : 0,
+        };
+      }
+
+      function getEffectiveDownloadStatus(item) {
+        // Prefer device-side offline status when SW is available, otherwise fall back
+        // to server-side cached downloads (older behavior).
+        const device = getDeviceDownloadStatus(item.id);
+        return device || item.downloadStatus || null;
+      }
+
       function renderBooks(list, grid, emptyMessage, options = {}) {
         if (!grid) return;
         const filtered = applyFilters(list);
@@ -2789,7 +2957,7 @@ export class AppService {
 
         grid.innerHTML = filtered.map((item) => {
           const coverSrc = item.coverUrl ? withToken(item.coverUrl) : null;
-          const downloadStatus = showDownloads ? item.downloadStatus : null;
+          const downloadStatus = showDownloads ? getEffectiveDownloadStatus(item) : null;
           const downloadInfo = getDownloadProgress(downloadStatus);
           const showDownloadOverlay =
             downloadStatus &&
@@ -2847,9 +3015,9 @@ export class AppService {
           if (!card) return;
           const cover = card.querySelector('.cover');
           if (!cover) return;
-          const downloadInfo = getDownloadProgress(item.downloadStatus);
+          const downloadInfo = getDownloadProgress(getEffectiveDownloadStatus(item));
           const showDownloadOverlay =
-            item.downloadStatus &&
+            getEffectiveDownloadStatus(item) &&
             (downloadInfo.state === 'queued' || downloadInfo.state === 'downloading') &&
             downloadInfo.progress < 1;
           let overlay = cover.querySelector('.download-overlay');
@@ -2895,6 +3063,8 @@ export class AppService {
       }
 
       function hasActiveDownloads(list) {
+        // Polling is only needed for the server-side offline cache status. Device-side
+        // (Service Worker) progress is pushed via postMessage events.
         return list.some((item) => {
           const status = item.downloadStatus;
           if (!status) return false;
@@ -2945,6 +3115,100 @@ export class AppService {
           });
       }
 
+      async function queryDeviceOfflineStatus(bookIds) {
+        if (!offlineSupported || !bookIds.length) return null;
+        const results = await sendSwMessage('QUERY_BOOKS', { bookIds });
+        if (!results || typeof results !== 'object') return null;
+        return results;
+      }
+
+      function applyDeviceOfflineResults(results) {
+        if (!results || typeof results !== 'object') return;
+        Object.keys(results).forEach((bookId) => {
+          const entry = results[bookId];
+          if (!entry) return;
+          let status = String(entry.status || 'not_started');
+          if (status === 'partial') status = 'downloading';
+          const progress = Number(entry.progress || 0);
+          if (status === 'not_started') {
+            deviceOfflineByBookId.delete(String(bookId));
+            return;
+          }
+          deviceOfflineByBookId.set(String(bookId), {
+            status,
+            progress: Math.min(Math.max(progress, 0), 1),
+            bytesTotal: Number(entry.bytesTotal || 0),
+            bytesDownloaded: Number(entry.bytesDownloaded || 0),
+          });
+        });
+      }
+
+      async function startDeviceOfflineCacheForBook(bookId) {
+        const id = String(bookId);
+        if (!offlineSupported) return false;
+        if (!swReady) return false;
+        if (deviceOfflineManifestPending.has(id)) return false;
+
+        const existing = deviceOfflineByBookId.get(id);
+        if (existing && (existing.status === 'queued' || existing.status === 'downloading' || existing.status === 'ready')) {
+          return false;
+        }
+
+        deviceOfflineManifestPending.add(id);
+        try {
+          deviceOfflineByBookId.set(id, { status: 'queued', progress: 0, bytesTotal: 0, bytesDownloaded: 0 });
+          if (activePage === 'my-library') {
+            updateDownloadOverlays(state.myLibrary, myLibraryGrid);
+          }
+
+          await ensureFreshToken();
+          const response = await fetchWithAuth('/library/' + id + '/offline-manifest', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const body = await response.json().catch(() => null);
+          if (!response.ok) {
+            debugReaderLog('offline_manifest_failed', { bookId: id, status: response.status, message: body?.message ?? null });
+            deviceOfflineByBookId.set(id, { status: 'failed', progress: 0, bytesTotal: 0, bytesDownloaded: 0 });
+            return false;
+          }
+          const files = Array.isArray(body?.files) ? body.files : [];
+          if (!files.length) {
+            deviceOfflineByBookId.delete(id);
+            return false;
+          }
+
+          await sendSwMessage('CACHE_BOOK', { bookId: id, files });
+          return true;
+        } catch (error) {
+          debugReaderLog('offline_cache_error', { bookId: id, message: error?.message ?? String(error) });
+          deviceOfflineByBookId.set(id, { status: 'failed', progress: 0, bytesTotal: 0, bytesDownloaded: 0 });
+          return false;
+        } finally {
+          deviceOfflineManifestPending.delete(id);
+        }
+      }
+
+      async function autoCacheMyLibrary(list) {
+        if (!offlineSupported || !swReady) return;
+        if (deviceOfflineAutoCaching) return;
+        deviceOfflineAutoCaching = true;
+        try {
+          for (const item of list) {
+            if (!item || !item.checkedOutByMe) continue;
+            const id = String(item.id);
+            const status = deviceOfflineByBookId.get(id);
+            if (status && (status.status === 'ready' || status.status === 'downloading' || status.status === 'queued')) {
+              continue;
+            }
+            // eslint-disable-next-line no-await-in-loop
+            await startDeviceOfflineCacheForBook(id);
+          }
+        } finally {
+          deviceOfflineAutoCaching = false;
+        }
+      }
+
       async function loadMyLibrary() {
         if (activePage !== 'my-library') {
           return;
@@ -2966,6 +3230,15 @@ export class AppService {
               updateDownloadOverlays(state.myLibrary, myLibraryGrid);
             } else {
               renderMyLibrary();
+            }
+            if (offlineSupported && swReady) {
+              queryDeviceOfflineStatus(next.map((item) => item.id))
+                .then((results) => {
+                  applyDeviceOfflineResults(results);
+                  updateDownloadOverlays(state.myLibrary, myLibraryGrid);
+                  autoCacheMyLibrary(state.myLibrary);
+                })
+                .catch(() => {});
             }
             scheduleMyLibraryRefresh(state.myLibrary);
           })
@@ -5449,6 +5722,15 @@ export class AppService {
             if (detailCheckoutStatus) {
               detailCheckoutStatus.textContent = action === 'return' ? 'Returned.' : 'Added to My Library.';
             }
+            const bookId = detailModal?.dataset?.bookId ? String(detailModal.dataset.bookId) : null;
+            if (bookId && offlineSupported && swReady) {
+              if (action === 'return') {
+                deviceOfflineByBookId.delete(bookId);
+                sendSwMessage('CLEAR_BOOK', { bookId }).catch(() => {});
+              } else {
+                startDeviceOfflineCacheForBook(bookId).catch(() => {});
+              }
+            }
           })
           .catch(() => {
             if (detailCheckoutStatus) {
@@ -5928,6 +6210,10 @@ export class AppService {
 
       logoutButton?.addEventListener('click', () => {
         const refreshToken = safeStorageGet('bmsRefreshToken');
+        if (offlineSupported) {
+          deviceOfflineByBookId.clear();
+          sendSwMessage('CLEAR_ALL', {}).catch(() => {});
+        }
         fetch('/auth/logout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -17,9 +17,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const auth = this.settingsService.getSettings().auth;
     const secrets = await this.authConfigService.getSecrets();
-    const authConfigured = Boolean(
-      secrets.accessSecret ?? auth.accessSecret,
-    );
+    const authConfigured = Boolean(secrets.accessSecret ?? auth.accessSecret);
     if (!authConfigured) {
       return true;
     }

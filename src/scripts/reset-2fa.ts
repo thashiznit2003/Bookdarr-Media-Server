@@ -7,7 +7,10 @@ async function run() {
   const resetAll = (process.env.RESET_2FA_ALL ?? '').toLowerCase() === 'true';
   const resetUsersRaw = (process.env.RESET_2FA_USER ?? '').trim();
   const resetUsers = resetUsersRaw
-    ? resetUsersRaw.split(',').map((value) => value.trim()).filter(Boolean)
+    ? resetUsersRaw
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
     : [];
 
   if (!resetAll && resetUsers.length === 0) {
@@ -23,7 +26,10 @@ async function run() {
     port: settings.type === 'postgres' ? settings.port : undefined,
     username: settings.type === 'postgres' ? settings.username : undefined,
     password: settings.type === 'postgres' ? settings.password : undefined,
-    ssl: settings.type === 'postgres' && settings.ssl ? { rejectUnauthorized: false } : false,
+    ssl:
+      settings.type === 'postgres' && settings.ssl
+        ? { rejectUnauthorized: false }
+        : false,
     synchronize: false,
     entities: [UserEntity],
   } as any);

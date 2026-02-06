@@ -1,6 +1,10 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-export type OfflineDownloadStatus = 'queued' | 'downloading' | 'ready' | 'failed';
+export type OfflineDownloadStatus =
+  | 'queued'
+  | 'downloading'
+  | 'ready'
+  | 'failed';
 
 @Entity('offline_downloads')
 @Index(['userId', 'bookId'])

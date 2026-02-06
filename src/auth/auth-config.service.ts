@@ -53,10 +53,20 @@ export class AuthConfigService implements OnModuleInit {
   async ensureConfigured(): Promise<AuthConfigEntity> {
     const existing = await this.getConfig();
     const auth = this.settingsService.getSettings().auth;
-    const accessSecret = (existing?.accessSecret ?? auth.accessSecret ?? '').trim();
-    const refreshSecret = (existing?.refreshSecret ?? auth.refreshSecret ?? '').trim();
-    const finalAccessSecret = accessSecret.length > 0 ? accessSecret : this.generateSecret();
-    const finalRefreshSecret = refreshSecret.length > 0 ? refreshSecret : this.generateSecret();
+    const accessSecret = (
+      existing?.accessSecret ??
+      auth.accessSecret ??
+      ''
+    ).trim();
+    const refreshSecret = (
+      existing?.refreshSecret ??
+      auth.refreshSecret ??
+      ''
+    ).trim();
+    const finalAccessSecret =
+      accessSecret.length > 0 ? accessSecret : this.generateSecret();
+    const finalRefreshSecret =
+      refreshSecret.length > 0 ? refreshSecret : this.generateSecret();
 
     if (
       existing &&
@@ -90,7 +100,8 @@ export class AuthConfigService implements OnModuleInit {
   async upsert(input: AuthSecretsInput) {
     const existing = await this.getConfig();
     const accessSecret = input.accessSecret ?? existing?.accessSecret ?? null;
-    const refreshSecret = input.refreshSecret ?? existing?.refreshSecret ?? null;
+    const refreshSecret =
+      input.refreshSecret ?? existing?.refreshSecret ?? null;
 
     if (!accessSecret || accessSecret.trim().length === 0) {
       throw new BadRequestException('Access secret is required.');
