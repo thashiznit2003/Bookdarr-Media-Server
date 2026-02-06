@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.225 — 2026-02-06 16:26 -06:00
+- Force monospace font for the book description field to avoid missing lowercase `s` rendering issues across browsers/OS combos.
+
 ## 1.0.224 — 2026-02-06 16:14 -06:00
 - Fix missing lowercase `s` in some browsers by detecting a zero-width `s` glyph at runtime and falling back to a known-good font stack for the description field only.
 

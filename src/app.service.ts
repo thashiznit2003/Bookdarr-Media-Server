@@ -600,13 +600,10 @@ export class AppService {
         line-height: 1.6;
         margin: 0 0 12px;
         white-space: pre-line;
-        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+        /* Force a known-good monospace stack to avoid glyph rendering quirks (e.g. missing "s"). */
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         font-variant-ligatures: none;
         font-feature-settings: "liga" 0, "clig" 0;
-      }
-
-      .detail-description.desc-font-fallback {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       }
 
       .detail-toggle {
@@ -4287,7 +4284,6 @@ export class AppService {
         if (detailDescription) {
           detailDescription.textContent = truncated ? text : fallback;
         }
-        ensureDescriptionFontHealthy();
         if (detailDescriptionToggle) {
           if (truncated) {
             detailDescriptionToggle.style.display = 'inline-flex';
@@ -4306,7 +4302,6 @@ export class AppService {
         if (!detailDescriptionExpanded) {
           detailDescriptionExpanded = true;
           detailDescription.textContent = detailDescriptionFull;
-          ensureDescriptionFontHealthy();
           detailDescriptionToggle.textContent = 'Less';
           return;
         }
@@ -4314,46 +4309,7 @@ export class AppService {
         detailDescriptionExpanded = false;
         const { text, truncated } = truncateWords(detailDescriptionFull, 100);
         detailDescription.textContent = truncated ? text : detailDescriptionFull;
-        ensureDescriptionFontHealthy();
         detailDescriptionToggle.textContent = 'More...';
-      }
-
-      function ensureDescriptionFontHealthy() {
-        if (!detailDescription || !detailDescription.isConnected) return;
-        // If a browser/font combo renders lowercase "s" as a zero-width glyph, words
-        // look concatenated (no gap where the letter should be). Detect and fall back
-        // to a known-good monospace stack for this field only.
-        try {
-          const host = detailDescription;
-          const probeWrap = document.createElement('span');
-          probeWrap.style.position = 'absolute';
-          probeWrap.style.left = '-99999px';
-          probeWrap.style.top = '0';
-          probeWrap.style.visibility = 'hidden';
-          probeWrap.style.whiteSpace = 'pre';
-          probeWrap.style.font = getComputedStyle(host).font;
-          const sProbe = document.createElement('span');
-          const nProbe = document.createElement('span');
-          sProbe.textContent = 'ssssssssss';
-          nProbe.textContent = 'nnnnnnnnnn';
-          probeWrap.appendChild(sProbe);
-          probeWrap.appendChild(nProbe);
-          document.body.appendChild(probeWrap);
-          const sWidth = sProbe.getBoundingClientRect().width;
-          const nWidth = nProbe.getBoundingClientRect().width;
-          const fontFamily = getComputedStyle(host).fontFamily;
-          probeWrap.remove();
-
-          const broken = sWidth <= 0.5 || (nWidth > 0 && sWidth / nWidth < 0.2);
-          host.classList.toggle('desc-font-fallback', broken);
-          debugAuthLog('desc_font_probe', {
-            broken,
-            sWidth,
-            nWidth,
-            ratio: nWidth > 0 ? sWidth / nWidth : null,
-            fontFamily,
-          });
-        } catch {}
       }
 
       async function openReader(file, title, engine) {
