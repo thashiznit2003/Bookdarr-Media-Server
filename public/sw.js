@@ -33,7 +33,36 @@ const queuedBooks = new Set(); // bookId
 let processingQueue = false;
 
 const AUDIO_CHUNK_THRESHOLD_BYTES = 25 * 1024 * 1024;
-const AUDIO_CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
+// Bigger chunks reduce per-request overhead (TLS + headers) while still being safe on memory.
+const AUDIO_CHUNK_SIZE_BYTES = 10 * 1024 * 1024;
+
+async function refreshAuth(signal) {
+  try {
+    const res = await fetch("/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      cache: "no-store",
+      body: "{}",
+      signal,
+    });
+    return Boolean(res && res.ok);
+  } catch {
+    return false;
+  }
+}
+
+async function fetchWithAuthRetry(url, init, signal) {
+  const merged = { ...(init || {}), credentials: "include", cache: "no-store", signal };
+  const res = await fetch(url, merged);
+  if (res && res.status === 401) {
+    const refreshed = await refreshAuth(signal);
+    if (refreshed) {
+      return fetch(url, merged);
+    }
+  }
+  return res;
+}
 
 function parseRangeHeader(rangeHeader, total) {
   if (!rangeHeader || typeof rangeHeader !== "string") return null;
@@ -254,12 +283,13 @@ async function resolveTotalBytes(normalizedUrl, expectedBytes, signal) {
   if (expectedBytes && expectedBytes > 0) return expectedBytes;
 
   try {
-    const head = await fetch(normalizedUrl, {
+    const head = await fetchWithAuthRetry(
+      normalizedUrl,
+      {
       method: "HEAD",
-      credentials: "include",
-      cache: "no-store",
+      },
       signal,
-    });
+    );
     if (head && head.ok) {
       const len = head.headers.get("content-length");
       if (len && !Number.isNaN(Number(len))) return Number(len);
@@ -269,13 +299,14 @@ async function resolveTotalBytes(normalizedUrl, expectedBytes, signal) {
   }
 
   try {
-    const probe = await fetch(normalizedUrl, {
+    const probe = await fetchWithAuthRetry(
+      normalizedUrl,
+      {
       method: "GET",
       headers: { Range: "bytes=0-0" },
-      credentials: "include",
-      cache: "no-store",
+      },
       signal,
-    });
+    );
     const cr = probe.headers.get("content-range") || "";
     const match = cr.match(/bytes\\s+\\d+-\\d+\\/(\\d+)/i);
     if (match && match[1]) {
@@ -340,13 +371,14 @@ async function cacheUrlChunked(url, opts) {
       // ignore
     }
 
-    const res = await fetch(normalizedUrl, {
+    const res = await fetchWithAuthRetry(
+      normalizedUrl,
+      {
       method: "GET",
       headers: { Range: `bytes=${start}-${end}` },
-      credentials: "include",
-      cache: "no-store",
-      signal: controller.signal,
-    });
+      },
+      controller.signal,
+    );
     if (!res.ok) {
       throw new Error(`Chunk fetch failed (${res.status})`);
     }
@@ -411,11 +443,7 @@ async function cacheUrl(url, opts) {
     activeDownloads.set(bookId, controller);
   }
 
-  const res = await fetch(normalizedUrl, {
-    credentials: "include",
-    cache: "no-store",
-    signal: controller.signal,
-  });
+  const res = await fetchWithAuthRetry(normalizedUrl, {}, controller.signal);
   if (!res.ok) {
     throw new Error(`Fetch failed (${res.status})`);
   }

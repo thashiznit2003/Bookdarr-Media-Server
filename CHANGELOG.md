@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.217 — 2026-02-06 01:05 -06:00
+- Fix device offline audiobook failures caused by expiring auth during long downloads: Service Worker now auto-refreshes and retries once on `401` while caching.
+- Increase offline audiobook chunk size (10MB) to reduce per-request overhead and improve download throughput.
+
 ## 1.0.216 — 2026-02-06 00:47 -06:00
 - Book detail modal now uses clearer checkout language (Check out / Return) and adds per-device offline controls (Download offline / Remove offline copy) with a device offline status label.
 - Add GitHub Actions CI workflow to run `npm ci`, `npm test`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
