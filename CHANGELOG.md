@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.218 — 2026-02-06 01:17 -06:00
+- My Library download progress ring now appears immediately on checkout (optimistic queued state + short minimum visibility so fast downloads still show feedback).
+- Reduce false `Device offline: Failed` reports by reconciling device status via SW queries and by treating SW DB status as the source of truth (no more "chunk 0 exists = ready").
+
 ## 1.0.217 — 2026-02-06 01:05 -06:00
 - Fix device offline audiobook failures caused by expiring auth during long downloads: Service Worker now auto-refreshes and retries once on `401` while caching.
 - Increase offline audiobook chunk size (10MB) to reduce per-request overhead and improve download throughput.

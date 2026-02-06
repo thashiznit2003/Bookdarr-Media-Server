@@ -537,27 +537,37 @@ async function cacheBookNow(bookId) {
   for (const f of record.files) {
     const normalized = stripHash(String(f.url));
     if (f.chunked && f.chunkSize) {
-      // Chunked items: verify the first chunk exists.
-      try {
-        const hit = await cache.match(buildChunkUrl(normalized, 0, Number(f.chunkSize || AUDIO_CHUNK_SIZE_BYTES)));
-        if (hit) {
-          f.status = "ready";
-          f.bytesDownloaded = Number(f.bytesTotal || 0);
-          readyBytes += Number(f.bytesTotal || 0);
+      // Chunked items: only treat as ready if the DB status says ready and at least one chunk exists.
+      if (f.status === "ready") {
+        try {
+          const hit = await cache.match(
+            buildChunkUrl(normalized, 0, Number(f.chunkSize || AUDIO_CHUNK_SIZE_BYTES)),
+          );
+          if (hit) {
+            f.bytesDownloaded = Number(f.bytesTotal || 0);
+            readyBytes += Number(f.bytesTotal || 0);
+          } else {
+            f.status = "queued";
+            f.bytesDownloaded = 0;
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
     } else {
-      try {
-        const hit = await cache.match(normalized);
-        if (hit) {
-          f.status = "ready";
-          f.bytesDownloaded = Number(f.bytesTotal || 0);
-          readyBytes += Number(f.bytesTotal || 0);
+      if (f.status === "ready") {
+        try {
+          const hit = await cache.match(normalized);
+          if (hit) {
+            f.bytesDownloaded = Number(f.bytesTotal || 0);
+            readyBytes += Number(f.bytesTotal || 0);
+          } else {
+            f.status = "queued";
+            f.bytesDownloaded = 0;
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
     }
   }
@@ -831,23 +841,9 @@ async function queryBooks(payload, source) {
       if (f.status === "downloading") hasDownloading = true;
       if (f.status === "failed") hasFailed = true;
 
-      // If cached, treat as fully downloaded.
-      let isCached = false;
-      try {
-        const normalized = stripHash(String(f.url));
-        if (f && f.chunked && f.chunkSize) {
-          const hit = await cache.match(
-            buildChunkUrl(normalized, 0, Number(f.chunkSize || AUDIO_CHUNK_SIZE_BYTES)),
-          );
-          isCached = Boolean(hit);
-        } else {
-          const hit = await cache.match(normalized);
-          isCached = Boolean(hit);
-        }
-      } catch {
-        isCached = false;
-      }
-      if (isCached) {
+      // Use DB status/bytesDownloaded as the source of truth. Cache probing is too
+      // expensive for chunked audio and can produce false positives.
+      if (f.status === "ready") {
         bytesDownloaded += expected;
         readyCount += 1;
         continue;
