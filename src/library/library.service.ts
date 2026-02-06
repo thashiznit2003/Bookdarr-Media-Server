@@ -16,6 +16,7 @@ import type { BookdarrBookFileResource } from '../bookdarr/bookdarr.types';
 import { LibraryCacheService } from './library-cache.service';
 import { UserLibraryService } from './user-library.service';
 import { OfflineDownloadService } from './offline-download.service';
+import { normalizeBookDescription } from './description.util';
 
 @Injectable()
 export class LibraryService {
@@ -204,7 +205,7 @@ export class LibraryService {
       readAt,
       downloadStatus,
       releaseDate: item.book?.releaseDate,
-      description: overview || details?.description,
+      description: normalizeBookDescription(overview || details?.description),
       subjects: details?.subjects,
       pageCount: details?.pageCount,
       files,
@@ -301,7 +302,7 @@ export class LibraryService {
       readAt,
       downloadStatus,
       releaseDate: item.book?.releaseDate,
-      description: details?.description ?? item.book?.overview,
+      description: normalizeBookDescription(details?.description ?? item.book?.overview),
       subjects: details?.subjects,
       pageCount: details?.pageCount,
       files,

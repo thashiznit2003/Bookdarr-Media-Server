@@ -597,6 +597,7 @@ export class AppService {
         color: var(--text);
         line-height: 1.6;
         margin: 0 0 12px;
+        white-space: pre-line;
       }
 
       .detail-toggle {

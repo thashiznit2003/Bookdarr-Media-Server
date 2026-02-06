@@ -48,6 +48,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 
 ## UI Notes
 - Book detail modal shows a 100-word description preview with a More/Less toggle; modal content can scroll.
+- Book descriptions can contain upstream HTML from Bookdarr/OpenLibrary; normalize to safe plain text server-side (strip tags, decode entities). Do not render upstream HTML directly.
 - PDF reader loads module assets from `/vendor/pdfjs/pdf.mjs` with worker `/vendor/pdfjs/pdf.worker.mjs`.
 - EPUB reader uses full-screen touch mode with overlay back/progress and iframe swipe handling; auth storage is guarded for iOS/Safari, and unauthenticated users are redirected to a dedicated /login page with no UI chrome.
 - Auth sessions set a lightweight `bmsLoggedIn` cookie so the server can redirect signed-out devices (including iPad/Safari) to `/login` before the app shell loads.

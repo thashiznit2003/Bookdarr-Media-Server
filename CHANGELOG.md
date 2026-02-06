@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.221 — 2026-02-06 15:14 -06:00
+- Fix book descriptions showing raw HTML tags and missing letters by normalizing Bookdarr/OpenLibrary description HTML to safe plain text (tags stripped, entities decoded, whitespace normalized).
+- Preserve line breaks in the description UI (rendered as `pre-line`).
+
 ## 1.0.220 — 2026-02-06 01:59 -06:00
 - My Library progress ring now reflects server-side downloads only (avoids confusing device/PWA status with VM caching).
 - Device-side caching is now manual (via the book detail "Download offline" toggle) instead of auto-starting on checkout; prevents misleading device failure messages when server caching succeeds.
