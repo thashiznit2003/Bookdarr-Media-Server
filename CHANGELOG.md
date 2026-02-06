@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.213 — 2026-02-05 22:33 -06:00
+- Fix “Unable to load EPUB” on macOS/desktop by vendoring JSZip at `vendor/jszip/jszip.min.js` and serving it from `/vendor/jszip/` (epub.js requires JSZip).
+
 ## 1.0.212 — 2026-02-05 21:49 -06:00
 - Fix “Unable to load EPUB” by removing the incompatible epub.js `0.5.x alpha` dependency path; the browser reader is now vendored at `vendor/epub/epub.min.js` and served from `/vendor/epub/`.
 - EPUB open now prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.

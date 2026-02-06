@@ -2,6 +2,7 @@
 
 ## Current Status
 - EPUB reader: browser uses a vendored epub.js build at `vendor/epub/epub.min.js`, served from `/vendor/epub/` (no npm dependency).
+- EPUB reader dependency: JSZip is vendored at `vendor/jszip/jszip.min.js`, served from `/vendor/jszip/`.
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.
 - EPUB open prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.

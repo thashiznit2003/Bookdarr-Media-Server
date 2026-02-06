@@ -59,7 +59,10 @@ async function bootstrap() {
   if (existsSync(epubPath)) {
     app.use('/vendor/epub', express.static(epubPath));
   }
-  const jszipPath = join(process.cwd(), 'node_modules', 'jszip', 'dist');
+  // JSZip is required by the browser-only epub.js build.
+  const jszipVendorPath = join(process.cwd(), 'vendor', 'jszip');
+  const jszipNodeModulesPath = join(process.cwd(), 'node_modules', 'jszip', 'dist');
+  const jszipPath = existsSync(jszipVendorPath) ? jszipVendorPath : jszipNodeModulesPath;
   if (existsSync(jszipPath)) {
     app.use('/vendor/jszip', express.static(jszipPath));
   }

@@ -80,6 +80,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - EPUB page numbers now follow explicit page-turn actions to prevent fast-swipe drift.
 - EPUB.js pagination is sensitive: do not force `overflow: hidden` on the EPUB iframe `html/body` and do not clamp/override CSS columns (`column-count`, `column-width`, `max-width`) inside the rendered document. Those overrides caused intra-chapter pages to be skipped (chapters looked like ~2 pages). Keep custom reader CSS limited to the outer container and let epub.js manage internal pagination.
 - EPUB reader JS is vendored under `vendor/epub/epub.min.js` and served from `/vendor/epub/`. Do not re-introduce the `epubjs` npm dependency without re-verifying archived `.epub` support and `npm audit` cleanliness.
+- JSZip is also vendored under `vendor/jszip/jszip.min.js` and served from `/vendor/jszip/` (required by epub.js).
 - Do not append access tokens into media/image URLs when cookie auth is available; otherwise the URL token can go stale after refresh and can leak into logs/history.
 - Reader progress is stored in DB via /reader/progress; Sync reconciles latest progress and Restart clears it.
 - Readium is not used in the BMS web UI/server (removed due to dependency security issues). Web reading uses epub.js; the future mobile apps should use Readium native SDKs.
