@@ -595,13 +595,23 @@ export class AppService {
         letter-spacing: 0.08em;
       }
 
+      /* Bundled monospace to avoid platform-specific glyph issues in long descriptions. */
+      @font-face {
+        font-family: "BMSMono";
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url("/fonts/bms-mono.woff2") format("woff2");
+      }
+
       .detail-description {
         color: var(--text);
         line-height: 1.6;
         margin: 0 0 12px;
         white-space: pre-line;
-        /* Force a known-good monospace stack to avoid glyph rendering quirks (e.g. missing "s"). */
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        /* Force a known-good font to avoid missing-glyph rendering quirks (e.g. missing lowercase "s"). */
+        font-family: "BMSMono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
         font-variant-ligatures: none;
         font-feature-settings: "liga" 0, "clig" 0;
       }
