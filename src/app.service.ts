@@ -3102,7 +3102,13 @@ export class AppService {
       }
 
       function withToken(url) {
-        if (!state.token || !url || !url.startsWith('/')) return url;
+        if (!url || !url.startsWith('/')) return url;
+        // Prefer cookie-based auth for same-origin media/image requests to avoid
+        // leaking short-lived access tokens into URLs (logs, history, referrers).
+        if (readCookie('bmsAccessToken') || readCookie('bmsLoggedIn')) {
+          return url;
+        }
+        if (!state.token) return url;
         const joiner = url.includes('?') ? '&' : '?';
         return url + joiner + 'token=' + encodeURIComponent(state.token);
       }

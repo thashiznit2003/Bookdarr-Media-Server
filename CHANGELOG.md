@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.211 — 2026-02-05 21:04 -06:00
+- Stop appending `?token=...` to same-origin media/image URLs when cookie auth is available (prevents token leakage in URLs and avoids stale token URL issues after refresh).
+
 ## 1.0.210 — 2026-02-05 20:50 -06:00
 - Fix “Unable to load EPUB” regression after epub.js upgrade by providing a browser `xmldom` shim (epub.js UMD expects `window.xmldom` even though browsers already have DOMParser).
 
