@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.216 — 2026-02-06 00:47 -06:00
+- Book detail modal now uses clearer checkout language (Check out / Return) and adds per-device offline controls (Download offline / Remove offline copy) with a device offline status label.
+- Add GitHub Actions CI workflow to run `npm ci`, `npm test`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
+
 ## 1.0.215 — 2026-02-05 23:46 -06:00
 - Add Range support for device-side offline audiobook playback: large audiobook streams are cached in 5MB chunks and served back as `206 Partial Content` from the Service Worker so `<audio>` seeking works offline.
 

@@ -1683,15 +1683,17 @@ export class AppService {
               <div>
                 <h2 class="detail-title" id="detail-title">Loading…</h2>
                 <div class="detail-author" id="detail-author"></div>
-              <div class="detail-meta" id="detail-meta"></div>
-              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
-                <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
-                <button id="detail-checkout" class="filter-btn">+ My Library</button>
-                <button id="detail-read-toggle" class="filter-btn">Mark Read</button>
-                <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
-                <span id="detail-checkout-status" style="color: var(--muted); font-size: 0.85rem;"></span>
-                <span id="detail-download-status" style="color: var(--muted); font-size: 0.85rem;"></span>
-              </div>
+                <div class="detail-meta" id="detail-meta"></div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                  <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
+                  <button id="detail-checkout" class="filter-btn">Check out</button>
+                  <button id="detail-read-toggle" class="filter-btn">Mark Read</button>
+                  <button id="detail-device-offline-toggle" class="filter-btn" style="display: none;">Remove offline copy</button>
+                  <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+                  <span id="detail-checkout-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+                  <span id="detail-download-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+                  <span id="detail-device-download-status" style="color: var(--muted); font-size: 0.85rem;"></span>
+                </div>
                 <p class="detail-description" id="detail-description"></p>
                 <button class="detail-toggle" id="detail-description-toggle" style="display: none;">More...</button>
                 <div class="detail-subjects" id="detail-subjects"></div>
@@ -1915,6 +1917,8 @@ export class AppService {
       const detailCheckoutStatus = document.getElementById('detail-checkout-status');
       const detailReadToggle = document.getElementById('detail-read-toggle');
       const detailDownloadStatus = document.getElementById('detail-download-status');
+      const detailDeviceOfflineToggle = document.getElementById('detail-device-offline-toggle');
+      const detailDeviceDownloadStatus = document.getElementById('detail-device-download-status');
       const readerModal = document.getElementById('reader-modal');
       const readerClose = document.getElementById('reader-close');
       const readerBack = document.getElementById('reader-back');
@@ -1969,6 +1973,24 @@ export class AppService {
       const swPending = new Map(); // requestId -> { resolve, reject, timeout }
       const deviceOfflineManifestPending = new Set(); // bookId
       let deviceOfflineAutoCaching = false;
+
+      function offlineOptOutKey(bookId) {
+        const userId = state.userId || 'anon';
+        return 'bmsOfflineOptOut:' + userId + ':' + String(bookId);
+      }
+
+      function isOfflineOptedOut(bookId) {
+        return safeStorageGet(offlineOptOutKey(bookId)) === '1';
+      }
+
+      function setOfflineOptOut(bookId, enabled) {
+        const key = offlineOptOutKey(bookId);
+        if (enabled) {
+          safeStorageSet(key, '1');
+          return;
+        }
+        safeStorageRemove(key);
+      }
 
       function swRequestId() {
         return Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -2189,6 +2211,37 @@ export class AppService {
       detailClose?.addEventListener('click', closeBookDetail);
       detailRefresh?.addEventListener('click', refreshBookDetail);
       detailCheckout?.addEventListener('click', toggleCheckoutStatus);
+      detailDeviceOfflineToggle?.addEventListener('click', async () => {
+        if (!currentDetail?.id) return;
+        if (!currentDetail?.checkedOutByMe) return;
+        const bookId = String(currentDetail.id);
+        if (!offlineSupported || !swReady) return;
+
+        const entry = deviceOfflineByBookId.get(bookId);
+        const optedOut = isOfflineOptedOut(bookId);
+        const hasCopy =
+          Boolean(entry) &&
+          (entry.status === 'queued' || entry.status === 'downloading' || entry.status === 'ready' || entry.status === 'failed');
+
+        if (optedOut || !hasCopy) {
+          if (detailDeviceDownloadStatus) {
+            detailDeviceDownloadStatus.textContent = 'Device offline: Queued';
+          }
+          setOfflineOptOut(bookId, false);
+          startDeviceOfflineCacheForBook(bookId).then(() => {
+            if (currentDetail) renderBookDetail(currentDetail);
+          }).catch(() => {});
+          return;
+        }
+
+        if (detailDeviceDownloadStatus) {
+          detailDeviceDownloadStatus.textContent = 'Device offline: Clearing...';
+        }
+        setOfflineOptOut(bookId, true);
+        deviceOfflineByBookId.delete(bookId);
+        sendSwMessage('CLEAR_BOOK', { bookId }).catch(() => {});
+        if (currentDetail) renderBookDetail(currentDetail);
+      });
       detailReadToggle?.addEventListener('click', toggleReadStatus);
       detailDescriptionToggle?.addEventListener('click', toggleDetailDescription);
       detailModal?.addEventListener('click', (event) => {
@@ -3156,6 +3209,7 @@ export class AppService {
 
         deviceOfflineManifestPending.add(id);
         try {
+          setOfflineOptOut(id, false);
           deviceOfflineByBookId.set(id, { status: 'queued', progress: 0, bytesTotal: 0, bytesDownloaded: 0 });
           if (activePage === 'my-library') {
             updateDownloadOverlays(state.myLibrary, myLibraryGrid);
@@ -3197,6 +3251,9 @@ export class AppService {
           for (const item of list) {
             if (!item || !item.checkedOutByMe) continue;
             const id = String(item.id);
+            if (isOfflineOptedOut(id)) {
+              continue;
+            }
             const status = deviceOfflineByBookId.get(id);
             if (status && (status.status === 'ready' || status.status === 'downloading' || status.status === 'queued')) {
               continue;
@@ -3299,6 +3356,19 @@ export class AppService {
           return 'Downloading ' + percent + '% · ' + formatBytes(downloaded) + ' / ' + formatBytes(total);
         }
         return status.status === 'queued' ? 'Queued for download.' : 'Downloading ' + percent + '%';
+      }
+
+      function formatDeviceOfflineStatus(bookId) {
+        if (!offlineSupported) return '';
+        const entry = deviceOfflineByBookId.get(String(bookId));
+        if (!entry || !entry.status || entry.status === 'not_started') {
+          return isOfflineOptedOut(bookId) ? 'Device offline: Disabled' : 'Device offline: Not downloaded';
+        }
+        if (entry.status === 'ready') return 'Device offline: Ready';
+        if (entry.status === 'failed') return 'Device offline: Failed';
+        const percent = Math.round(Number(entry.progress || 0) * 100);
+        if (entry.status === 'queued') return 'Device offline: Queued';
+        return 'Device offline: Downloading ' + percent + '%';
       }
 
       function safeStorageGet(key) {
@@ -5593,7 +5663,7 @@ export class AppService {
 
         if (detailCheckout) {
           detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
-          detailCheckout.textContent = data?.checkedOutByMe ? 'Return to Library' : '+ My Library';
+          detailCheckout.textContent = data?.checkedOutByMe ? 'Return' : 'Check out';
         }
         if (detailReadToggle) {
           detailReadToggle.style.display = state.token ? 'inline-flex' : 'none';
@@ -5604,6 +5674,23 @@ export class AppService {
         }
         if (detailDownloadStatus) {
           detailDownloadStatus.textContent = formatDownloadStatus(data?.downloadStatus);
+        }
+        if (detailDeviceOfflineToggle) {
+          const eligible = Boolean(state.token) && Boolean(data?.checkedOutByMe) && offlineSupported && swReady;
+          detailDeviceOfflineToggle.style.display = eligible ? 'inline-flex' : 'none';
+          if (eligible) {
+            const bookId = String(data?.id ?? '');
+            const deviceEntry = deviceOfflineByBookId.get(bookId);
+            const optedOut = isOfflineOptedOut(bookId);
+            const hasCopy =
+              Boolean(deviceEntry) &&
+              (deviceEntry.status === 'queued' || deviceEntry.status === 'downloading' || deviceEntry.status === 'ready' || deviceEntry.status === 'failed');
+            detailDeviceOfflineToggle.textContent = optedOut || !hasCopy ? 'Download offline' : 'Remove offline copy';
+          }
+        }
+        if (detailDeviceDownloadStatus) {
+          const eligible = Boolean(state.token) && Boolean(data?.checkedOutByMe) && offlineSupported && swReady;
+          detailDeviceDownloadStatus.textContent = eligible ? formatDeviceOfflineStatus(data?.id) : '';
         }
       }
 
@@ -5626,8 +5713,13 @@ export class AppService {
         if (detailRefreshStatus) detailRefreshStatus.textContent = '';
         if (detailCheckoutStatus) detailCheckoutStatus.textContent = '';
         if (detailDownloadStatus) detailDownloadStatus.textContent = '';
+        if (detailDeviceDownloadStatus) detailDeviceDownloadStatus.textContent = '';
+        if (detailDeviceOfflineToggle) {
+          detailDeviceOfflineToggle.style.display = 'none';
+          detailDeviceOfflineToggle.textContent = 'Remove offline copy';
+        }
         if (detailCheckout) {
-          detailCheckout.textContent = '+ My Library';
+          detailCheckout.textContent = 'Check out';
           detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
         }
         if (detailReadToggle) {
@@ -5647,6 +5739,14 @@ export class AppService {
               return;
             }
             renderBookDetail(body);
+            if (offlineSupported && swReady && body?.checkedOutByMe) {
+              queryDeviceOfflineStatus([body.id])
+                .then((results) => {
+                  applyDeviceOfflineResults(results);
+                  renderBookDetail(body);
+                })
+                .catch(() => {});
+            }
           })
           .catch(() => {
             if (detailDescription) {
@@ -5697,7 +5797,7 @@ export class AppService {
         const action = currentDetail?.checkedOutByMe ? 'return' : 'checkout';
         if (detailCheckoutStatus) {
           detailCheckoutStatus.textContent =
-            action === 'return' ? 'Returning book...' : 'Adding to My Library...';
+            action === 'return' ? 'Returning book...' : 'Checking out...';
         }
 
         await ensureFreshToken();
@@ -5720,12 +5820,13 @@ export class AppService {
             loadLibrary();
             loadMyLibrary();
             if (detailCheckoutStatus) {
-              detailCheckoutStatus.textContent = action === 'return' ? 'Returned.' : 'Added to My Library.';
+              detailCheckoutStatus.textContent = action === 'return' ? 'Returned.' : 'Checked out.';
             }
             const bookId = detailModal?.dataset?.bookId ? String(detailModal.dataset.bookId) : null;
             if (bookId && offlineSupported && swReady) {
               if (action === 'return') {
                 deviceOfflineByBookId.delete(bookId);
+                setOfflineOptOut(bookId, false);
                 sendSwMessage('CLEAR_BOOK', { bookId }).catch(() => {});
               } else {
                 startDeviceOfflineCacheForBook(bookId).catch(() => {});
