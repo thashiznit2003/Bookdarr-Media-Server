@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.248 — 2026-02-07 15:31 -06:00
+- Mobile API contract: add `/api/v1/*` e2e contract tests (auth + refresh rotation/reuse + library) and run them in CI.
+
 ## 1.0.247 — 2026-02-07 15:08 -06:00
 - Fix auth refresh loop (401 -> refresh spam -> 429): move the SPA to cookie-only auth (no JS JWT storage, no `Authorization` header on same-origin requests).
 - Auth cleanup: remove URL/hash token bootstrap flows and make `/auth/complete` redirect to `/` without emitting tokens in the URL.

@@ -114,7 +114,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - SW must resume pending offline downloads after restarts/updates by scanning IndexedDB for queued/downloading records and re-enqueueing them (otherwise UI can sit at `Queued` forever).
 - To free VM disk space, use Settings -> Storage -> `Clear Server Cache` (admin-only). This deletes VM-cached offline media under `data/offline` and clears `offline_downloads` DB rows.
 - Audiobook chunk caching uses bounded parallel fetch (chunk concurrency) for higher throughput on LAN without saturating mobile devices.
-- CI: GitHub Actions runs `npm ci`, `npm test`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
+- CI: GitHub Actions runs `npm ci`, `npm test`, `npm run test:e2e`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
 - Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.
 - Downloads are surfaced only inside My Library; `/downloads` redirects to `/my-library`.
 - Desktop EPUB reader now falls back to a direct stream URL if blob loading fails.
