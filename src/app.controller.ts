@@ -1,55 +1,24 @@
 import { Controller, Get, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { JwtService } from '@nestjs/jwt';
 import { AppService } from './app.service';
 import { FileLoggerService } from './logging/file-logger.service';
-import { AuthConfigService } from './auth/auth-config.service';
-import { SettingsService } from './settings/settings.service';
+import { AuthService } from './auth/auth.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly authConfigService: AuthConfigService,
-    private readonly settingsService: SettingsService,
-    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
     private readonly logger: FileLoggerService,
   ) {}
 
   @Get()
   async getIndex(@Req() req: Request, @Res() res: Response) {
-    const queryAccessRaw =
-      typeof req.query?.access === 'string' ? req.query.access : undefined;
-    const queryRefreshRaw =
-      typeof req.query?.refresh === 'string' ? req.query.refresh : undefined;
-    const queryAccess = queryAccessRaw
-      ? decodeURIComponent(queryAccessRaw)
-      : undefined;
-    const queryRefresh = queryRefreshRaw
-      ? decodeURIComponent(queryRefreshRaw)
-      : undefined;
     this.logger.info('app_index_enter', {
       authParam: req.query?.auth ?? null,
-      hasQueryAccess: Boolean(queryAccess),
-      hasQueryRefresh: Boolean(queryRefresh),
       hasCookieAccess: Boolean(this.readCookie(req, 'bmsAccessToken')),
       hasCookieRefresh: Boolean(this.readCookie(req, 'bmsRefreshToken')),
     });
-    if (queryAccess) {
-      this.setAuthCookies(res, queryAccess, queryRefresh);
-      const bootstrap = await this.buildBootstrap(
-        req,
-        queryAccess,
-        queryRefresh,
-      );
-      this.logger.info('app_index_auth_bootstrap', {
-        hasUser: Boolean(bootstrap?.user),
-      });
-      if (bootstrap?.user) {
-        return res.redirect('/');
-      }
-      return res.redirect('/login?reason=authfail');
-    }
     const bootstrap = await this.buildBootstrap(req);
     if (!bootstrap?.user) {
       const authParam = req.query?.auth;
@@ -129,61 +98,12 @@ export class AppController {
     res.setHeader('surrogate-control', 'no-store');
   }
 
-  private setAuthCookies(
-    res: Response,
-    accessToken: string,
-    refreshToken?: string,
-  ) {
-    const options = {
-      httpOnly: false,
-      sameSite: 'lax' as const,
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      path: '/',
-    };
-    res.cookie('bmsAccessToken', accessToken, options);
-    if (refreshToken) {
-      res.cookie('bmsRefreshToken', refreshToken, options);
-    }
-    res.cookie('bmsLoggedIn', '1', options);
-  }
-
-  private async buildBootstrap(
-    req: Request,
-    accessOverride?: string,
-    refreshOverride?: string,
-  ) {
-    const accessToken =
-      accessOverride ?? this.readCookie(req, 'bmsAccessToken');
-    const refreshToken =
-      refreshOverride ?? this.readCookie(req, 'bmsRefreshToken');
+  private async buildBootstrap(req: Request) {
+    const accessToken = this.readCookie(req, 'bmsAccessToken');
     if (!accessToken) {
-      return { token: null, refreshToken: null, user: null };
+      return { user: null };
     }
-    try {
-      const auth = this.settingsService.getSettings().auth;
-      const secrets = await this.authConfigService.getSecrets();
-      const secret = secrets.accessSecret ?? auth.accessSecret;
-      if (!secret) {
-        return { token: null, refreshToken: null, user: null };
-      }
-      const payload = await this.jwtService.verifyAsync<{
-        sub: string;
-        username?: string;
-        email?: string;
-        isAdmin?: boolean;
-      }>(accessToken, { secret });
-      return {
-        token: accessToken,
-        refreshToken,
-        user: {
-          id: payload.sub,
-          username: payload.username,
-          email: payload.email,
-          isAdmin: Boolean(payload.isAdmin),
-        },
-      };
-    } catch {
-      return { token: null, refreshToken: null, user: null };
-    }
+    const user = await this.authService.verifyAccessTokenForBootstrap(accessToken);
+    return { user };
   }
 }

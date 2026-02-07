@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.247 — 2026-02-07 15:08 -06:00
+- Fix auth refresh loop (401 -> refresh spam -> 429): move the SPA to cookie-only auth (no JS JWT storage, no `Authorization` header on same-origin requests).
+- Auth cleanup: remove URL/hash token bootstrap flows and make `/auth/complete` redirect to `/` without emitting tokens in the URL.
+- Server bootstrap hardening: validate access cookies using the same session/tokenVersion checks as the JWT strategy so stale cookies do not render a broken app shell.
+
 ## 1.0.246 — 2026-02-07 14:03 -06:00
 - Security: add baseline security headers (CSP, HSTS on HTTPS, nosniff, referrer policy, permissions policy).
 - Security: remove the last remaining URL token fallback so access tokens are never appended into media/image URLs.

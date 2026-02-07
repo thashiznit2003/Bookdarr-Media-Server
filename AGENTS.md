@@ -64,18 +64,15 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - PDF reader loads module assets from `/vendor/pdfjs/pdf.mjs` with worker `/vendor/pdfjs/pdf.worker.mjs`.
 - EPUB reader uses full-screen touch mode with overlay back/progress and iframe swipe handling; auth storage is guarded for iOS/Safari, and unauthenticated users are redirected to a dedicated /login page with no UI chrome.
 - Auth sessions set a lightweight `bmsLoggedIn` cookie so the server can redirect signed-out devices (including iPad/Safari) to `/login` before the app shell loads.
-- Access/refresh tokens are mirrored to cookies as a fallback when Safari blocks localStorage, so signed-in state persists on iPad.
-- After login, access/refresh tokens are also passed via URL hash so Safari can bootstrap auth even if storage is blocked.
-- Auth endpoints now set cookies server-side and JWT guards accept tokens from cookies to keep iPad/Safari signed in.
-- Dedicated /login now uses form POSTs to set cookies via top-level navigation (more reliable on iPad).
-- App boot no longer requires localStorage tokens before loading the user/library; cookie auth is sufficient.
+- Web auth is cookie-only: access/refresh tokens live in `HttpOnly` cookies, and the SPA never stores JWTs or sends `Authorization` headers for same-origin requests (prevents stale-token 401 -> refresh spam loops).
+- `bmsLoggedIn` is a non-sensitive hint only (used for redirects); it must not be treated as authentication.
+- Do not re-introduce token-in-URL bootstrap flows (`/?auth=1`, `#access=...`); they caused stale-token refresh loops and rate limiting.
+- Dedicated `/login` uses form POSTs to set cookies via top-level navigation (more reliable on iPad/Safari).
 - Auth and library fetches use `cache: no-store` to avoid 304 responses that can leave iPad showing Signed Out.
-- Server injects a verified auth bootstrap (token + user) into the HTML so iPad doesn’t depend on cached /api/me.
+- Server injects a verified auth bootstrap (user only) into the HTML so iPad doesn’t depend on cached /api/me.
 - Root route redirects to /login when no bootstrap user is present to avoid signed-out shells.
-- Login now bootstraps via `window.name` + `?auth=1` to handle iPad/Safari cookie blocking.
 - Login page now clears stored auth tokens/cookies on load to force a fresh sign-in each time.
 - Client-side guard redirects to /login if the UI detects a signed-out session on any app page.
-- Auth bootstrap now writes to both window.name and the URL hash, and auth=1 bounces back to /login on failure.
 - Touch-device reader initialization must declare its observer before use to avoid a script crash that blocks iPad auth boot.
 - Bookdarr connection wizard hides automatically when Bookdarr is configured (DB or env settings).
 - EPUB reader uses a touch gesture overlay for reliable swipe/tap navigation on iPad.

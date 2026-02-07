@@ -299,6 +299,43 @@ export class AuthService implements OnModuleInit {
     return { tokens };
   }
 
+  // Used by server-rendered bootstrap to decide whether to serve the app shell or
+  // redirect to /login. This must mirror the JWT strategy validation, including
+  // per-user tokenVersion and per-session revocation checks.
+  async verifyAccessTokenForBootstrap(accessToken: string): Promise<AuthUser | null> {
+    if (!accessToken || accessToken.trim().length === 0) {
+      return null;
+    }
+    try {
+      const auth = await this.getAuthSettings();
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        tv?: number;
+        sid?: string;
+      }>(accessToken, { secret: auth.accessSecret });
+
+      const user = await this.users.findOne({ where: { id: payload.sub } });
+      if (!user || !user.isActive) {
+        return null;
+      }
+      const tv = typeof payload.tv === 'number' ? payload.tv : 0;
+      if ((user.tokenVersion ?? 0) !== tv) {
+        return null;
+      }
+      if (payload.sid) {
+        const session = await this.sessions.findOne({
+          where: { id: payload.sid, userId: user.id, revokedAt: IsNull() },
+        });
+        if (!session) {
+          return null;
+        }
+      }
+      return this.toAuthUser(user);
+    } catch {
+      return null;
+    }
+  }
+
   async logout(request: LogoutRequest, meta?: ClientMeta) {
     if (!request.refreshToken || request.refreshToken.trim().length === 0) {
       throw new BadRequestException('Refresh token is required.');

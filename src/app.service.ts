@@ -2672,7 +2672,6 @@ export class AppService {
         }
 	        if (!user) {
           debugAuthLog('update_user_menu_signed_out', {
-            hasToken: Boolean(state.token),
             hasBootstrap: Boolean(bootstrap?.user),
           });
           userAvatar.textContent = '?';
@@ -2709,16 +2708,13 @@ export class AppService {
 	        }
 	      }
 
-      function setAuth(token, refreshToken) {
-        state.token = token;
-        if (token) {
-          debugAuthLog('set_auth_token', { hasRefresh: Boolean(refreshToken) });
+      // Cookie-based auth: do not persist or attach JWTs from JS. The server sets
+      // HttpOnly access/refresh cookies; the SPA uses fetch(..., credentials:'same-origin').
+      function setAuth(enabled) {
+        state.token = null;
+        if (enabled) {
+          debugAuthLog('set_auth_cookie_only');
           setAuthCookie(true);
-          setTokenCookies(token, refreshToken ?? safeStorageGet('bmsRefreshToken'));
-          safeStorageSet('bmsAccessToken', token);
-          if (refreshToken) {
-            safeStorageSet('bmsRefreshToken', refreshToken);
-          }
           scheduleTokenRefresh();
           bookdarrPanel.style.display = 'block';
           setBookdarrEnabled(true);
@@ -2730,9 +2726,6 @@ export class AppService {
         } else {
           debugAuthLog('set_auth_cleared');
           setAuthCookie(false);
-          setTokenCookies(null, null);
-          safeStorageRemove('bmsAccessToken');
-          safeStorageRemove('bmsRefreshToken');
           setBookdarrEnabled(false);
           updateUserMenu(null);
           state.userId = null;
@@ -2743,21 +2736,19 @@ export class AppService {
         }
       }
 
-      if (bootstrap?.token) {
-        debugAuthLog('bootstrap_token_present', { hasUser: Boolean(bootstrap?.user) });
-        setAuth(bootstrap.token, bootstrap.refreshToken);
-        if (bootstrap.user) {
-          updateUserMenu(bootstrap.user);
-          state.userId = bootstrap.user.id ?? null;
-        }
+      if (bootstrap?.user) {
+        debugAuthLog('bootstrap_user_present', { userId: bootstrap.user.id ?? null });
+        updateUserMenu(bootstrap.user);
+        state.userId = bootstrap.user.id ?? null;
+        setAuth(true);
       }
 
       function authHeaders() {
-        return state.token ? { Authorization: 'Bearer ' + state.token } : {};
+        return {};
       }
 
       function isAuthenticated() {
-        return Boolean(state.token || readCookie('bmsAccessToken') || readCookie('bmsLoggedIn'));
+        return Boolean(bootstrap?.user || readCookie('bmsLoggedIn'));
       }
 
       function parseTokenExpiry(token) {
@@ -2773,63 +2764,49 @@ export class AppService {
         }
       }
 
+      let refreshInFlight = null;
+      let refreshCooldownUntil = 0;
       async function refreshAuthToken() {
-        const refreshToken = safeStorageGet('bmsRefreshToken') ?? readCookie('bmsRefreshToken');
-        if (!refreshToken) {
+        const now = Date.now();
+        if (now < refreshCooldownUntil) {
           return false;
         }
-        try {
-          const response = await fetch('/auth/refresh', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ refreshToken }),
-          });
-          if (!response.ok) {
-            if (state.token) {
-              setAuth(null);
+        if (refreshInFlight) {
+          return refreshInFlight;
+        }
+        refreshInFlight = (async () => {
+          try {
+            const response = await fetch('/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              cache: 'no-store',
+              body: '{}',
+            });
+            if (!response.ok) {
+              // Avoid refresh-spam loops if the device is truly signed out.
+              if (response.status === 429) {
+                refreshCooldownUntil = Date.now() + 30 * 1000;
+              }
+              return false;
             }
-            return false;
-          }
-          const body = await response.json();
-          const tokens = body?.tokens;
-          if (tokens?.accessToken) {
-            setAuth(tokens.accessToken, tokens.refreshToken ?? refreshToken);
+            setAuthCookie(true);
             return true;
+          } catch {
+            return false;
+          } finally {
+            refreshInFlight = null;
           }
-        } catch {
-          return false;
-        }
-        return false;
+        })();
+        return refreshInFlight;
       }
 
       async function ensureFreshToken() {
-        if (!state.token) {
-          return true;
-        }
-        const expiry = parseTokenExpiry(state.token);
-        if (expiry && Date.now() > expiry - 60 * 1000) {
-          return refreshAuthToken();
-        }
         return true;
       }
 
       function scheduleTokenRefresh() {
-        if (tokenRefreshTimer) {
-          clearTimeout(tokenRefreshTimer);
-          tokenRefreshTimer = null;
-        }
-        if (!state.token) {
-          return;
-        }
-        const expiry = parseTokenExpiry(state.token);
-        if (!expiry) {
-          return;
-        }
-        const delay = Math.max(expiry - Date.now() - 60 * 1000, 30 * 1000);
-        tokenRefreshTimer = setTimeout(() => {
-          refreshAuthToken();
-        }, delay);
+        // Cookie auth; no client-side JWT timers.
       }
 
       async function fetchWithAuth(url, options, retry = true) {
@@ -2848,9 +2825,7 @@ export class AppService {
           if (refreshed) {
             return fetchWithAuth(url, options, false);
           }
-          if (state.token) {
-            setAuth(null);
-          }
+          setAuth(false);
         }
         return response;
       }
@@ -2916,68 +2891,34 @@ export class AppService {
 
       async function restoreSession() {
         debugAuthLog('restore_session_start', {
-          hasToken: Boolean(state.token),
           authParam,
           hasBootstrapUser: Boolean(bootstrap?.user),
+          hasLoggedInCookie: Boolean(readCookie('bmsLoggedIn')),
         });
-        if (state.token) {
-          await ensureFreshToken();
-          loadCurrentUser();
-          return;
-        }
-        const windowTokens = readWindowNameTokens();
-        if (windowTokens?.accessToken) {
-          debugAuthLog('restore_session_window_name', { hasRefresh: Boolean(windowTokens?.refreshToken) });
-          setAuth(windowTokens.accessToken, windowTokens.refreshToken ?? undefined);
+        // Clear legacy token URL artifacts (we no longer accept tokens via URL/hash).
+        if (authParam === '1') {
           clearAuthParams();
-          await ensureFreshToken();
-          loadCurrentUser();
-          return;
         }
-        const hashTokens = readHashTokens();
-        if (hashTokens?.accessToken) {
-          debugAuthLog('restore_session_hash', { hasRefresh: Boolean(hashTokens?.refreshToken) });
-          setAuth(hashTokens.accessToken, hashTokens.refreshToken ?? undefined);
-          clearHashTokens();
-          await ensureFreshToken();
-          loadCurrentUser();
-          return;
-        }
-        const cachedToken = safeStorageGet('bmsAccessToken');
-        const cachedRefresh = safeStorageGet('bmsRefreshToken');
-        const cookieToken = readCookie('bmsAccessToken');
-        const cookieRefresh = readCookie('bmsRefreshToken');
-        const accessToken = cachedToken || cookieToken;
-        const refreshToken = cachedRefresh || cookieRefresh;
-        if (accessToken) {
-          debugAuthLog('restore_session_cached', {
-            cached: Boolean(cachedToken),
-            cookie: Boolean(cookieToken),
-            hasRefresh: Boolean(refreshToken),
-          });
-          setAuth(accessToken, refreshToken ?? undefined);
-          await ensureFreshToken();
-          loadCurrentUser();
-          return;
-        }
-        await refreshAuthToken();
-        if (!state.token) {
-          if (isAuthenticated()) {
-            debugAuthLog('restore_session_auth_cookie_only');
-            loadCurrentUser();
-            return;
+        clearHashTokens();
+        if (bootstrap?.user || isAuthenticated()) {
+          // Cookie-only auth, no JS token storage.
+          if (!bootstrap?.user) {
+            setAuth(true);
           }
-          debugAuthLog('restore_session_no_auth');
-          updateUserMenu(null);
-          setAuthCookie(false);
+          loadCurrentUser();
+          return;
         }
+        const refreshed = await refreshAuthToken();
+        if (refreshed) {
+          setAuth(true);
+          return;
+        }
+        debugAuthLog('restore_session_no_auth');
+        updateUserMenu(null);
+        setAuthCookie(false);
       }
       (async () => {
         await restoreSession();
-        if (!state.token && !bootstrap?.user && authParam === '1') {
-          window.location.replace('/login?reason=authfail');
-          return;
-        }
         fetch('/auth/setup', { cache: 'no-store' })
           .then((response) => response.json())
           .then(handleSetupStatus)
@@ -5878,11 +5819,11 @@ export class AppService {
         renderEbookSection(Array.isArray(data?.ebookFiles) ? data.ebookFiles : []);
 
         if (detailCheckout) {
-          detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
+          detailCheckout.style.display = isAuthenticated() ? 'inline-flex' : 'none';
           detailCheckout.textContent = data?.checkedOutByMe ? 'Return' : 'Check out';
         }
         if (detailReadToggle) {
-          detailReadToggle.style.display = state.token ? 'inline-flex' : 'none';
+          detailReadToggle.style.display = isAuthenticated() ? 'inline-flex' : 'none';
           detailReadToggle.textContent = data?.readByMe ? 'Mark Unread' : 'Mark Read';
         }
         if (detailCheckoutStatus) {
@@ -5892,7 +5833,7 @@ export class AppService {
           detailDownloadStatus.textContent = formatDownloadStatus(data?.downloadStatus);
         }
         if (detailDeviceOfflineToggle) {
-          const eligible = Boolean(state.token) && Boolean(data?.checkedOutByMe) && offlineSupported && swReady;
+          const eligible = isAuthenticated() && Boolean(data?.checkedOutByMe) && offlineSupported && swReady;
           detailDeviceOfflineToggle.style.display = eligible ? 'inline-flex' : 'none';
           if (eligible) {
             const bookId = String(data?.id ?? '');
@@ -5911,7 +5852,7 @@ export class AppService {
           }
         }
         if (detailDeviceDownloadStatus) {
-          const eligible = Boolean(state.token) && Boolean(data?.checkedOutByMe) && offlineSupported && swReady;
+          const eligible = isAuthenticated() && Boolean(data?.checkedOutByMe) && offlineSupported && swReady;
           if (!eligible) {
             detailDeviceDownloadStatus.textContent = '';
           } else {
@@ -5946,11 +5887,11 @@ export class AppService {
         }
         if (detailCheckout) {
           detailCheckout.textContent = 'Check out';
-          detailCheckout.style.display = state.token ? 'inline-flex' : 'none';
+          detailCheckout.style.display = isAuthenticated() ? 'inline-flex' : 'none';
         }
         if (detailReadToggle) {
           detailReadToggle.textContent = 'Mark Read';
-          detailReadToggle.style.display = state.token ? 'inline-flex' : 'none';
+          detailReadToggle.style.display = isAuthenticated() ? 'inline-flex' : 'none';
         }
         currentDetail = null;
 
@@ -6365,7 +6306,7 @@ export class AppService {
           wizardPanel.style.display = 'block';
           return;
         }
-        if (!state.token) {
+        if (!isAuthenticated()) {
           wizardPanel.style.display = 'none';
           return;
         }
@@ -6420,7 +6361,7 @@ export class AppService {
             }
             setupStatus.textContent = 'Admin created. Connect Bookdarr below.';
             setupPanel.style.display = 'none';
-            setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
+            setAuth(true);
           })
           .catch(() => {
             setupStatus.textContent = 'Setup failed.';
@@ -6452,7 +6393,7 @@ export class AppService {
               return;
             }
             loginPageStatus.textContent = 'Signed in.';
-            setAuth(body?.tokens?.accessToken, body?.tokens?.refreshToken);
+            setAuth(true);
             window.location.href = '/';
           })
           .catch(() => {
@@ -6578,7 +6519,6 @@ export class AppService {
       });
 
       logoutButton?.addEventListener('click', () => {
-        const refreshToken = safeStorageGet('bmsRefreshToken');
         if (offlineSupported) {
           deviceOfflineByBookId.clear();
           sendSwMessage('CLEAR_ALL', {}).catch(() => {});
@@ -6587,10 +6527,10 @@ export class AppService {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+          body: JSON.stringify({}),
         })
           .finally(() => {
-            setAuth(null);
+            setAuth(false);
             window.location.href = '/login';
           });
       });

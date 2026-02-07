@@ -190,20 +190,7 @@ export class AuthController {
     try {
       const response = await this.authService.setupFirstUser(request, this.getClientMeta(req));
       this.setAuthCookies(req, res, response.tokens);
-      if (response.tokens?.accessToken) {
-        const payload = Buffer.from(
-          JSON.stringify({
-            accessToken: response.tokens.accessToken,
-            refreshToken: response.tokens.refreshToken ?? '',
-          }),
-          'utf8',
-        ).toString('base64');
-        res.setHeader('content-type', 'text/html; charset=utf-8');
-        res.setHeader('cache-control', 'no-store');
-        return res.send(
-          `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Signing in…</title></head><body><script>window.name='bms:${payload}';location.replace('/?auth=1#access=${encodeURIComponent(response.tokens.accessToken)}&refresh=${encodeURIComponent(response.tokens.refreshToken ?? '')}');</script></body></html>`,
-        );
-      }
+      // Cookie-based auth: no tokens in URL/hash, rely on HttpOnly cookies.
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Setup failed.';
@@ -273,13 +260,6 @@ export class AuthController {
       });
       this.setAuthCookies(req, res, response.tokens);
       this.setTwoFactorCookie(req, res);
-      if (response.tokens?.accessToken) {
-        const access = encodeURIComponent(response.tokens.accessToken);
-        const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
-        return res.redirect(
-          `/auth/complete?access=${access}&refresh=${refresh}`,
-        );
-      }
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
@@ -339,13 +319,6 @@ export class AuthController {
       });
       this.setAuthCookies(req, res, response.tokens);
       this.setTwoFactorCookie(req, res);
-      if (response.tokens?.accessToken) {
-        const access = encodeURIComponent(response.tokens.accessToken);
-        const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
-        return res.redirect(
-          `/auth/complete?access=${access}&refresh=${refresh}`,
-        );
-      }
       return res.redirect('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
@@ -385,10 +358,9 @@ export class AuthController {
       return res.redirect('/login?reason=authfail');
     }
     this.setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
-    const safeAccess = encodeURIComponent(access);
-    const safeRefresh = encodeURIComponent(refresh ?? '');
     res.setHeader('cache-control', 'no-store');
-    return res.redirect(`/?auth=1&access=${safeAccess}&refresh=${safeRefresh}`);
+    // Backwards-compatible endpoint; keep, but do not emit tokens in the URL.
+    return res.redirect(`/`);
   }
 
   @Post('debug-log')
