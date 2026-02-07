@@ -26,6 +26,10 @@ export class UserEntity {
   @Column({ type: 'text', nullable: true })
   refreshTokenId?: string | null;
 
+  // Increment to invalidate *all* existing access tokens for this user immediately.
+  @Column({ type: 'integer', default: 0 })
+  tokenVersion!: number;
+
   @Column({ default: false })
   twoFactorEnabled!: boolean;
 

@@ -53,6 +53,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid token.');
     }
+    const tokenVersion =
+      typeof (payload as any).tv === 'number' ? (payload as any).tv : 0;
+    if ((user.tokenVersion ?? 0) !== tokenVersion) {
+      throw new UnauthorizedException('Invalid token.');
+    }
 
     return {
       userId: user.id,

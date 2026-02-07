@@ -11,11 +11,15 @@ import type { Request } from 'express';
 import { AuthGuard } from './auth.guard';
 import { AdminGuard } from './admin.guard';
 import { AuthService } from './auth.service';
+import { FileLoggerService } from '../logging/file-logger.service';
 
 @Controller('api/users')
 @UseGuards(AuthGuard, AdminGuard)
 export class UsersController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly logger: FileLoggerService,
+  ) {}
 
   @Get()
   list() {
@@ -45,6 +49,12 @@ export class UsersController {
       isAdmin?: boolean;
     },
   ) {
+    this.logger.info('admin_create_user', {
+      byUserId: (req as any).user?.userId ?? null,
+      username: body?.username ?? null,
+      email: body?.email ?? null,
+      isAdmin: Boolean(body?.isAdmin),
+    });
     return this.authService.createUser({
       ...body,
       baseUrl: this.getBaseUrl(req),
@@ -52,15 +62,24 @@ export class UsersController {
   }
 
   @Post(':id/reset-2fa')
-  resetTwoFactor(@Param('id') id: string) {
+  resetTwoFactor(@Req() req: Request, @Param('id') id: string) {
+    this.logger.warn('admin_reset_2fa', {
+      byUserId: (req as any).user?.userId ?? null,
+      targetUserId: id,
+    });
     return this.authService.adminResetTwoFactor(id);
   }
 
   @Post(':id/reset-password')
   resetPassword(
+    @Req() req: Request,
     @Param('id') id: string,
     @Body() body: { newPassword: string },
   ) {
+    this.logger.warn('admin_reset_password', {
+      byUserId: (req as any).user?.userId ?? null,
+      targetUserId: id,
+    });
     return this.authService.adminResetPassword(id, body?.newPassword ?? '');
   }
 }

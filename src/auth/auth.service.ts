@@ -33,6 +33,7 @@ import { UserEntity } from './entities/user.entity';
 import { InviteCodeEntity } from './entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
 import { AuthConfigService } from './auth-config.service';
+import { TwoFactorBackupCodeEntity } from './entities/two-factor-backup-code.entity';
 
 const MIN_PASSWORD_LENGTH = 8;
 const MIN_USERNAME_LENGTH = 3;
@@ -51,6 +52,8 @@ export class AuthService implements OnModuleInit {
     private readonly inviteCodes: Repository<InviteCodeEntity>,
     @InjectRepository(PasswordResetTokenEntity)
     private readonly resetTokens: Repository<PasswordResetTokenEntity>,
+    @InjectRepository(TwoFactorBackupCodeEntity)
+    private readonly backupCodes: Repository<TwoFactorBackupCodeEntity>,
   ) {}
 
   async onModuleInit() {
@@ -184,9 +187,10 @@ export class AuthService implements OnModuleInit {
       }
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
       const { verify } = this.getOtpFns();
-      const isValid = secret
-        ? this.isValidOtp(verify({ token: otp, secret }))
-        : false;
+      let isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
+      if (!isValid) {
+        isValid = await this.tryConsumeBackupCode(user.id, otp);
+      }
       if (!isValid) {
         throw new UnauthorizedException({
           message: 'Invalid two-factor code.',
@@ -220,9 +224,10 @@ export class AuthService implements OnModuleInit {
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
     const { verify } = this.getOtpFns();
-    const isValid = secret
-      ? this.isValidOtp(verify({ token: otp, secret }))
-      : false;
+    let isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
+    if (!isValid) {
+      isValid = await this.tryConsumeBackupCode(user.id, otp);
+    }
     if (!isValid) {
       throw new UnauthorizedException('Invalid two-factor code.');
     }
@@ -240,7 +245,14 @@ export class AuthService implements OnModuleInit {
     const payload = await this.verifyRefreshToken(request.refreshToken);
     const user = await this.users.findOne({ where: { id: payload.sub } });
 
-    if (!user || user.refreshTokenId !== payload.jti) {
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Refresh token is invalid.');
+    }
+    if (user.refreshTokenId !== payload.jti) {
+      // Possible refresh token reuse (stolen token) or out-of-order refresh; revoke session.
+      user.refreshTokenId = undefined;
+      user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+      await this.users.save(user);
       throw new UnauthorizedException('Refresh token is invalid.');
     }
 
@@ -374,6 +386,9 @@ export class AuthService implements OnModuleInit {
       user.passwordHash = await argon2.hash(input.newPassword, {
         type: argon2.argon2id,
       });
+      // Password change revokes refresh tokens and invalidates existing access tokens.
+      user.refreshTokenId = undefined;
+      user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     }
 
     await this.users.save(user);
@@ -441,6 +456,7 @@ export class AuthService implements OnModuleInit {
       type: argon2.argon2id,
     });
     user.refreshTokenId = undefined;
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.users.save(user);
     record.usedAt = new Date().toISOString();
     await this.resetTokens.save(record);
@@ -496,8 +512,12 @@ export class AuthService implements OnModuleInit {
     user.twoFactorSecret = await this.encryptTwoFactorSecret(secret);
     user.twoFactorTempSecret = null;
     user.twoFactorEnabled = true;
+    // Enabling 2FA revokes refresh tokens and invalidates existing access tokens.
+    user.refreshTokenId = undefined;
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.users.save(user);
-    return { enabled: true };
+    const backupCodes = await this.generateAndStoreBackupCodes(user.id);
+    return { enabled: true, backupCodes };
   }
 
   async disableTwoFactor(
@@ -540,6 +560,9 @@ export class AuthService implements OnModuleInit {
     user.twoFactorEnabled = false;
     user.twoFactorSecret = null;
     user.twoFactorTempSecret = null;
+    user.refreshTokenId = undefined;
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+    await this.backupCodes.delete({ userId: user.id });
     await this.users.save(user);
     return { enabled: false };
   }
@@ -555,6 +578,9 @@ export class AuthService implements OnModuleInit {
     user.twoFactorEnabled = false;
     user.twoFactorSecret = null;
     user.twoFactorTempSecret = null;
+    user.refreshTokenId = undefined;
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+    await this.backupCodes.delete({ userId: user.id });
     await this.users.save(user);
     return { status: 'ok' };
   }
@@ -575,13 +601,115 @@ export class AuthService implements OnModuleInit {
       type: argon2.argon2id,
     });
     user.refreshTokenId = undefined;
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.users.save(user);
     return { status: 'ok' };
+  }
+
+  async regenerateBackupCodes(
+    userId: string | undefined,
+    input: { currentPassword?: string; code?: string },
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    if (!user.twoFactorEnabled) {
+      throw new BadRequestException('Two-factor is not enabled.');
+    }
+
+    if (input.code) {
+      const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
+      const { verify } = this.getOtpFns();
+      const isValid = secret
+        ? this.isValidOtp(verify({ token: input.code.trim(), secret }))
+        : false;
+      if (!isValid) {
+        throw new BadRequestException('Invalid two-factor code.');
+      }
+    } else if (input.currentPassword) {
+      const matches = await argon2.verify(
+        user.passwordHash,
+        input.currentPassword,
+      );
+      if (!matches) {
+        throw new UnauthorizedException('Current password is invalid.');
+      }
+    } else {
+      throw new BadRequestException(
+        'Two-factor code or current password is required.',
+      );
+    }
+
+    await this.backupCodes.delete({ userId: user.id });
+    const backupCodes = await this.generateAndStoreBackupCodes(user.id);
+    return { backupCodes };
   }
 
   async isSetupRequired(): Promise<boolean> {
     const total = await this.users.count();
     return total === 0;
+  }
+
+  private normalizeBackupCode(code: string) {
+    return code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  }
+
+  private generateBackupCode() {
+    const raw = randomBytes(9).toString('base64url');
+    const normalized = this.normalizeBackupCode(raw).slice(0, 12);
+    return `${normalized.slice(0, 4)}-${normalized.slice(4, 8)}-${normalized.slice(8, 12)}`;
+  }
+
+  private async generateAndStoreBackupCodes(userId: string, count = 10) {
+    const codes: string[] = [];
+    for (let i = 0; i < count; i += 1) {
+      codes.push(this.generateBackupCode());
+    }
+
+    const now = new Date().toISOString();
+    const records: TwoFactorBackupCodeEntity[] = [];
+    for (const code of codes) {
+      const normalized = this.normalizeBackupCode(code);
+      const codeHash = await argon2.hash(normalized, { type: argon2.argon2id });
+      records.push(
+        this.backupCodes.create({
+          userId,
+          codeHash,
+          createdAt: now,
+          usedAt: null,
+        }),
+      );
+    }
+    await this.backupCodes.save(records);
+    return codes;
+  }
+
+  private async tryConsumeBackupCode(userId: string, provided: string) {
+    const normalized = this.normalizeBackupCode(provided ?? '');
+    if (!normalized || normalized.length < 6) {
+      return false;
+    }
+    const candidates = await this.backupCodes.find({
+      where: { userId, usedAt: IsNull() },
+      order: { createdAt: 'DESC' },
+    });
+    for (const candidate of candidates) {
+      try {
+        const ok = await argon2.verify(candidate.codeHash, normalized);
+        if (ok) {
+          candidate.usedAt = new Date().toISOString();
+          await this.backupCodes.save(candidate);
+          return true;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return false;
   }
 
   private toAuthUser(user: UserEntity): AuthUser {
@@ -697,6 +825,7 @@ export class AuthService implements OnModuleInit {
         username: user.username,
         email: user.email,
         isAdmin: user.isAdmin,
+        tv: user.tokenVersion ?? 0,
       },
       {
         secret: auth.accessSecret,

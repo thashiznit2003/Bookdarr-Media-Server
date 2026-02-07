@@ -8,6 +8,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { UserEntity } from './entities/user.entity';
 import { InviteCodeEntity } from './entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
+import { TwoFactorBackupCodeEntity } from './entities/two-factor-backup-code.entity';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthGuard } from './auth.guard';
 import { AuthConfigEntity } from './auth-config.entity';
@@ -19,6 +20,8 @@ import { MeController } from './me.controller';
 import { LoggingModule } from '../logging/logging.module';
 import { ApiV1AuthController } from './api-v1-auth.controller';
 import { ApiV1MeController } from './api-v1-me.controller';
+import { RateLimitService } from './rate-limit.service';
+import { RateLimitGuard } from './rate-limit.guard';
 
 @Module({
   imports: [
@@ -29,6 +32,7 @@ import { ApiV1MeController } from './api-v1-me.controller';
       UserEntity,
       InviteCodeEntity,
       PasswordResetTokenEntity,
+      TwoFactorBackupCodeEntity,
       AuthConfigEntity,
     ]),
   ],
@@ -47,7 +51,9 @@ import { ApiV1MeController } from './api-v1-me.controller';
     AuthGuard,
     AuthConfigService,
     AdminGuard,
+    RateLimitService,
+    RateLimitGuard,
   ],
-  exports: [AuthGuard, AuthConfigService, JwtModule, AdminGuard],
+  exports: [AuthGuard, AuthConfigService, JwtModule, AdminGuard, RateLimitGuard],
 })
 export class AuthModule {}

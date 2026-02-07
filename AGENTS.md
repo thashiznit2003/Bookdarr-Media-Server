@@ -18,6 +18,8 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 - Rate limiting on auth endpoints
 - Strong password hashing (Argon2id preferred)
 - 2FA secrets are encrypted at rest using the auth access secret.
+  - Access tokens include a per-user `tokenVersion` (`tv`) and the JWT strategy checks it against the DB, so password/2FA changes can immediately invalidate existing sessions.
+  - Access/refresh cookies are `HttpOnly` and set `Secure` automatically when behind HTTPS (x-forwarded-proto).
 
 ## Constraints
 - Read‑only access to Bookdarr data

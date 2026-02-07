@@ -1,5 +1,12 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.242 — 2026-02-07 12:58 -06:00
+- Auth hardening: access/refresh cookies are now `HttpOnly` and `Secure` when behind HTTPS; clear cookies for both secure/non-secure variants to avoid sticky sessions across envs.
+- Session hardening: refresh token reuse now revokes the user session; password changes and 2FA enable/disable now revoke refresh tokens and immediately invalidate access tokens via per-user `tokenVersion` checks.
+- Add rate limiting (in-memory) across auth endpoints (login, refresh, logout, password reset, 2FA actions) to reduce brute-force risk.
+- 2FA hardening: add one-time backup codes (stored hashed) and allow login using a backup code when TOTP fails; add endpoint to regenerate backup codes after re-auth.
+- Audit admin account tooling actions (create user, reset password, reset 2FA) via server logs.
+
 ## 1.0.241 — 2026-02-07 11:53 -06:00
 - Implement versioned mobile API surface under `/api/v1/*` (auth, me, library, streaming, reader progress) while keeping the existing web UI routes for now.
 - Add e2e contract coverage for the `/api/v1/*` endpoints so CI catches breaking changes early.

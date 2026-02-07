@@ -12,6 +12,8 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { FileLoggerService } from '../logging/file-logger.service';
 import { AuthGuard } from './auth.guard';
+import { RateLimitGuard } from './rate-limit.guard';
+import { RateLimit } from './rate-limit.decorator';
 import qrcode from 'qrcode';
 import type {
   LoginRequest,
@@ -33,33 +35,50 @@ export class AuthController {
 
   private static readonly COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 
+  private isSecureRequest(req: Request) {
+    const proto =
+      (req.headers['x-forwarded-proto'] as string | undefined) ??
+      req.protocol ??
+      'http';
+    return proto === 'https';
+  }
+
   private setAuthCookies(
+    req: Request,
     res: Response,
     tokens?: { accessToken?: string; refreshToken?: string },
   ) {
     if (!tokens?.accessToken) {
       return;
     }
+    const secure = this.isSecureRequest(req);
     const options = {
-      httpOnly: false,
+      httpOnly: true,
+      secure,
       sameSite: 'lax' as const,
       maxAge: AuthController.COOKIE_MAX_AGE_MS,
       path: '/',
-    };
+    } as const;
     res.cookie('bmsAccessToken', tokens.accessToken, options);
     if (tokens.refreshToken) {
       res.cookie('bmsRefreshToken', tokens.refreshToken, options);
     }
-    res.cookie('bmsLoggedIn', '1', options);
+    res.cookie('bmsLoggedIn', '1', {
+      ...options,
+      // Non-sensitive; used only as a signed-in hint for server-side redirects.
+      httpOnly: false,
+    });
   }
 
-  private setTwoFactorCookie(res: Response, token?: string) {
+  private setTwoFactorCookie(req: Request, res: Response, token?: string) {
+    const secure = this.isSecureRequest(req);
     const options = {
-      httpOnly: false,
+      httpOnly: true,
+      secure,
       sameSite: 'lax' as const,
       maxAge: 1000 * 60 * 5,
       path: '/',
-    };
+    } as const;
     if (token) {
       res.cookie('bmsTwoFactor', token, options);
     } else {
@@ -71,11 +90,16 @@ export class AuthController {
     return this.readCookie(req, 'bmsTwoFactor');
   }
 
-  private clearAuthCookies(res: Response) {
-    const options = { path: '/' };
-    res.clearCookie('bmsAccessToken', options);
-    res.clearCookie('bmsRefreshToken', options);
-    res.clearCookie('bmsLoggedIn', options);
+  private clearAuthCookies(req: Request, res: Response) {
+    const base = { path: '/', sameSite: 'lax' as const };
+    // Clear both secure and non-secure variants to avoid "sticky" cookies across envs.
+    for (const secure of [false, true]) {
+      const options = { ...base, secure };
+      res.clearCookie('bmsAccessToken', options);
+      res.clearCookie('bmsRefreshToken', options);
+      res.clearCookie('bmsLoggedIn', options);
+      res.clearCookie('bmsTwoFactor', options);
+    }
   }
 
   private readCookie(req: Request, name: string) {
@@ -102,12 +126,18 @@ export class AuthController {
   }
 
   @Post('signup')
+  @UseGuards(RateLimitGuard)
+  @RateLimit([
+    { id: 'auth_signup_ip', max: 30, windowMs: 60 * 60 * 1000, scope: 'ip' },
+    { id: 'auth_signup_email', max: 10, windowMs: 60 * 60 * 1000, scope: 'ip+email' },
+  ])
   async signup(
     @Body() request: SignupRequest,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const response = await this.authService.signup(request);
-    this.setAuthCookies(res, response.tokens);
+    this.setAuthCookies(req, res, response.tokens);
     return response;
   }
 
@@ -117,20 +147,29 @@ export class AuthController {
   }
 
   @Post('setup')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_setup_ip', max: 20, windowMs: 60 * 60 * 1000, scope: 'ip' })
   async setup(
     @Body() request: SetupRequest,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const response = await this.authService.setupFirstUser(request);
-    this.setAuthCookies(res, response.tokens);
+    this.setAuthCookies(req, res, response.tokens);
     return response;
   }
 
   @Post('setup/web')
-  async setupWeb(@Body() request: SetupRequest, @Res() res: Response) {
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_setup_web_ip', max: 20, windowMs: 60 * 60 * 1000, scope: 'ip' })
+  async setupWeb(
+    @Body() request: SetupRequest,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       const response = await this.authService.setupFirstUser(request);
-      this.setAuthCookies(res, response.tokens);
+      this.setAuthCookies(req, res, response.tokens);
       if (response.tokens?.accessToken) {
         const payload = Buffer.from(
           JSON.stringify({
@@ -153,20 +192,35 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit([
+    { id: 'auth_login_ip', max: 50, windowMs: 5 * 60 * 1000, scope: 'ip' },
+    { id: 'auth_login_user', max: 10, windowMs: 5 * 60 * 1000, scope: 'ip+username' },
+  ])
   async login(
     @Body() request: LoginRequest,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const response = await this.authService.login(request);
     if ((response as { twoFactorRequired?: boolean })?.twoFactorRequired) {
       return res.status(401).json(response);
     }
-    this.setAuthCookies(res, response.tokens);
+    this.setAuthCookies(req, res, response.tokens);
     return response;
   }
 
   @Post('login/web')
-  async loginWeb(@Body() request: LoginRequest, @Res() res: Response) {
+  @UseGuards(RateLimitGuard)
+  @RateLimit([
+    { id: 'auth_login_web_ip', max: 50, windowMs: 5 * 60 * 1000, scope: 'ip' },
+    { id: 'auth_login_web_user', max: 10, windowMs: 5 * 60 * 1000, scope: 'ip+username' },
+  ])
+  async loginWeb(
+    @Body() request: LoginRequest,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       this.logger.info('auth_login_web_attempt', {
         username: request?.username ?? null,
@@ -186,7 +240,7 @@ export class AuthController {
         });
         const challengeToken = (response as { challengeToken?: string })
           .challengeToken;
-        this.setTwoFactorCookie(res, challengeToken);
+        this.setTwoFactorCookie(req, res, challengeToken);
         const challengeParam = challengeToken
           ? `&challenge=${encodeURIComponent(challengeToken)}`
           : '';
@@ -197,8 +251,8 @@ export class AuthController {
         hasAccess: Boolean(response.tokens?.accessToken),
         hasRefresh: Boolean(response.tokens?.refreshToken),
       });
-      this.setAuthCookies(res, response.tokens);
-      this.setTwoFactorCookie(res);
+      this.setAuthCookies(req, res, response.tokens);
+      this.setTwoFactorCookie(req, res);
       if (response.tokens?.accessToken) {
         const access = encodeURIComponent(response.tokens.accessToken);
         const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
@@ -219,7 +273,7 @@ export class AuthController {
         normalized.includes('2fa') ||
         normalized.includes('otp');
       const otpParam = otpRequired ? '&otp=1' : '';
-      this.setTwoFactorCookie(res);
+      this.setTwoFactorCookie(req, res);
       return res.redirect(
         `/login?error=${encodeURIComponent(message)}${otpParam}`,
       );
@@ -227,17 +281,22 @@ export class AuthController {
   }
 
   @Post('login/2fa')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_login_2fa_ip', max: 30, windowMs: 5 * 60 * 1000, scope: 'ip' })
   async loginTwoFactor(
     @Body() request: TwoFactorLoginRequest,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const response = await this.authService.completeTwoFactorLogin(request);
-    this.setAuthCookies(res, response.tokens);
-    this.setTwoFactorCookie(res);
+    this.setAuthCookies(req, res, response.tokens);
+    this.setTwoFactorCookie(req, res);
     return response;
   }
 
   @Post('login/2fa/web')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_login_2fa_web_ip', max: 30, windowMs: 5 * 60 * 1000, scope: 'ip' })
   async loginTwoFactorWeb(
     @Body() request: TwoFactorLoginRequest,
     @Req() req: Request,
@@ -258,8 +317,8 @@ export class AuthController {
         hasAccess: Boolean(response.tokens?.accessToken),
         hasRefresh: Boolean(response.tokens?.refreshToken),
       });
-      this.setAuthCookies(res, response.tokens);
-      this.setTwoFactorCookie(res);
+      this.setAuthCookies(req, res, response.tokens);
+      this.setTwoFactorCookie(req, res);
       if (response.tokens?.accessToken) {
         const access = encodeURIComponent(response.tokens.accessToken);
         const refresh = encodeURIComponent(response.tokens.refreshToken ?? '');
@@ -271,12 +330,14 @@ export class AuthController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
       this.logger.warn('auth_login_2fa_error', { message });
-      this.setTwoFactorCookie(res);
+      this.setTwoFactorCookie(req, res);
       return res.redirect(`/login?error=${encodeURIComponent(message)}&otp=1`);
     }
   }
 
   @Post('refresh')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_refresh_ip', max: 120, windowMs: 5 * 60 * 1000, scope: 'ip' })
   async refresh(
     @Body() request: RefreshRequest,
     @Req() req: Request,
@@ -285,7 +346,7 @@ export class AuthController {
     const refreshToken =
       request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
     const response = await this.authService.refresh({ refreshToken });
-    this.setAuthCookies(res, response.tokens);
+    this.setAuthCookies(req, res, response.tokens);
     return response;
   }
 
@@ -293,6 +354,7 @@ export class AuthController {
   async completeLogin(
     @Query('access') access: string | undefined,
     @Query('refresh') refresh: string | undefined,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     this.logger.info('auth_complete', {
@@ -302,7 +364,7 @@ export class AuthController {
     if (!access) {
       return res.redirect('/login?reason=authfail');
     }
-    this.setAuthCookies(res, { accessToken: access, refreshToken: refresh });
+    this.setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
     const safeAccess = encodeURIComponent(access);
     const safeRefresh = encodeURIComponent(refresh ?? '');
     res.setHeader('cache-control', 'no-store');
@@ -321,6 +383,8 @@ export class AuthController {
   }
 
   @Post('logout')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_logout_ip', max: 120, windowMs: 5 * 60 * 1000, scope: 'ip' })
   async logout(
     @Body() request: LogoutRequest,
     @Req() req: Request,
@@ -329,11 +393,16 @@ export class AuthController {
     const refreshToken =
       request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
     const response = await this.authService.logout({ refreshToken });
-    this.clearAuthCookies(res);
+    this.clearAuthCookies(req, res);
     return response;
   }
 
   @Post('password/request')
+  @UseGuards(RateLimitGuard)
+  @RateLimit([
+    { id: 'auth_pwreq_ip', max: 20, windowMs: 60 * 60 * 1000, scope: 'ip' },
+    { id: 'auth_pwreq_email', max: 5, windowMs: 60 * 60 * 1000, scope: 'ip+email' },
+  ])
   requestPasswordReset(
     @Body() request: PasswordResetRequest,
     @Req() req: Request,
@@ -342,6 +411,8 @@ export class AuthController {
   }
 
   @Post('password/reset')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_pwreset_ip', max: 10, windowMs: 60 * 60 * 1000, scope: 'ip' })
   resetPassword(@Body() request: PasswordResetConfirmRequest) {
     return this.authService.resetPassword(request);
   }
@@ -355,6 +426,8 @@ export class AuthController {
 
   @Post('2fa/setup')
   @UseGuards(AuthGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_2fa_setup_ip', max: 10, windowMs: 10 * 60 * 1000, scope: 'ip' })
   async beginTwoFactor(@Req() req: Request) {
     const userId = (req as any).user?.userId as string | undefined;
     const payload = await this.authService.beginTwoFactorSetup(userId);
@@ -364,6 +437,8 @@ export class AuthController {
 
   @Post('2fa/confirm')
   @UseGuards(AuthGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_2fa_confirm_ip', max: 10, windowMs: 10 * 60 * 1000, scope: 'ip' })
   confirmTwoFactor(@Req() req: Request, @Body() body: { code: string }) {
     const userId = (req as any).user?.userId as string | undefined;
     return this.authService.confirmTwoFactorSetup(userId, body?.code ?? '');
@@ -371,11 +446,25 @@ export class AuthController {
 
   @Post('2fa/disable')
   @UseGuards(AuthGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_2fa_disable_ip', max: 10, windowMs: 10 * 60 * 1000, scope: 'ip' })
   disableTwoFactor(
     @Req() req: Request,
     @Body() body: { currentPassword?: string; code?: string },
   ) {
     const userId = (req as any).user?.userId as string | undefined;
     return this.authService.disableTwoFactor(userId, body ?? {});
+  }
+
+  @Post('2fa/backup-codes')
+  @UseGuards(AuthGuard)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_2fa_backup_ip', max: 5, windowMs: 10 * 60 * 1000, scope: 'ip' })
+  regenerateBackupCodes(
+    @Req() req: Request,
+    @Body() body: { currentPassword?: string; code?: string },
+  ) {
+    const userId = (req as any).user?.userId as string | undefined;
+    return this.authService.regenerateBackupCodes(userId, body ?? {});
   }
 }
