@@ -3449,7 +3449,10 @@ export class AppService {
         if (!offlineSupported) return '';
         const entry = deviceOfflineByBookId.get(String(bookId));
         if (!entry || !entry.status || entry.status === 'not_started') {
-          return isOfflineOptedOut(bookId) ? 'This device: Disabled' : 'This device: Not downloaded (optional)';
+          // Hide the line by default so it doesn't read like a contradiction with server caching.
+          // We'll show status immediately when the user initiates a device download (queued/downloading)
+          // or explicitly disables device copies for this book.
+          return isOfflineOptedOut(bookId) ? 'This device: Disabled' : '';
         }
         if (entry.status === 'ready') return 'This device: Ready';
         if (entry.status === 'failed') return 'This device: Failed';

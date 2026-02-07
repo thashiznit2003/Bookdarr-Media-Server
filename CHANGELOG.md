@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.230 — 2026-02-06 19:48 -06:00
+- Hide `This device: Not downloaded` by default in the book details modal (only show device status once a device download is initiated or explicitly disabled) to avoid confusion with server-side caching.
+
 ## 1.0.229 — 2026-02-06 19:43 -06:00
 - Fix confusing offline messaging in the book details modal by renaming `Device copy` to `This device` and clarifying the toggle text (`Download to this device` / `Remove device copy`).
 
