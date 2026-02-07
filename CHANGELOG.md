@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.241 — 2026-02-07 11:53 -06:00
+- Implement versioned mobile API surface under `/api/v1/*` (auth, me, library, streaming, reader progress) while keeping the existing web UI routes for now.
+- Add e2e contract coverage for the `/api/v1/*` endpoints so CI catches breaking changes early.
+- Make 2FA dependency loading lazy to keep Jest e2e stable (avoids ESM-only transitive deps when 2FA isn’t exercised).
+
 ## 1.0.240 — 2026-02-07 11:21 -06:00
 - Add a numbered, mobile-prep hardening checklist with explicit pass/fail criteria (auth, 2FA, API versioning, logging, migrations, streaming reliability, security headers, deploy recovery).
 

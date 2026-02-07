@@ -21,6 +21,16 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - Port: 9797
 - Docker later
 
+## Mobile API (Versioned)
+The mobile app must use the versioned API under `/api/v1/*`. The web UI continues to use legacy, unversioned routes for now.
+
+Key endpoints (mobile):
+- Auth: `POST /api/v1/auth/login`, `POST /api/v1/auth/login/2fa`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`
+- User: `GET /api/v1/me`, `PUT /api/v1/me`
+- Library: `GET /api/v1/library`, `POST /api/v1/library/refresh`, `GET /api/v1/library/my`, `GET /api/v1/library/:id`
+- Media: `GET|HEAD /api/v1/library/files/:id/stream(/:name)`, `GET /api/v1/library/cover-image?path=...`
+- Reader progress: `GET|POST /api/v1/reader/progress/:kind/:fileId` and `POST /api/v1/reader/progress/:kind/:fileId/(reset|sync)`
+
 ## Installation (Ubuntu)
 Run the installer from the repo to set up dependencies, systemd, and a default env file:
 

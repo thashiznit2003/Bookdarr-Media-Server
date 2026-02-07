@@ -1,6 +1,7 @@
 # Handoff — Bookdarr Media Server (BMS)
 
 ## Current Status
+- Mobile API contract: use `/api/v1/*` for endpoints consumed by the future iPhone/iPad app. The web UI still uses legacy, unversioned routes for now.
 - EPUB reader: browser uses a vendored epub.js build at `vendor/epub/epub.min.js`, served from `/vendor/epub/` (no npm dependency).
 - EPUB reader dependency: JSZip is vendored at `vendor/jszip/jszip.min.js`, served from `/vendor/jszip/`.
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.

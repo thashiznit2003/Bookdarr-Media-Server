@@ -18,8 +18,8 @@ import { LibraryService } from './library.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { LibraryStreamingService } from './library-streaming.service';
 
-@Controller('library')
-export class LibraryController {
+@Controller('api/v1/library')
+export class ApiV1LibraryController {
   constructor(
     private readonly libraryService: LibraryService,
     private readonly offlineDownloadService: OfflineDownloadService,
@@ -122,10 +122,7 @@ export class LibraryController {
 
   @Post(':id/checkout')
   @UseGuards(AuthGuard)
-  async checkoutBook(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
-  ) {
+  async checkoutBook(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     const userId = (req as any).user?.userId as string | undefined;
     if (!userId) {
       return { status: 'unauthorized' };
@@ -143,13 +140,9 @@ export class LibraryController {
     return this.libraryService.returnBook(userId, id);
   }
 
-  // Minimal file manifest for device-side offline caching (Service Worker / PWA).
   @Get(':id/offline-manifest')
   @UseGuards(AuthGuard)
-  async getOfflineManifest(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
-  ) {
+  async getOfflineManifest(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     const userId = (req as any).user?.userId as string | undefined;
     if (!userId) {
       return { status: 'unauthorized' };
@@ -172,10 +165,10 @@ export class LibraryController {
     return this.libraryService.setReadStatus(userId, id, read);
   }
 
-  // Admin-only: clear VM-side cached ebook/audiobook media under data/offline.
   @Post('admin/clear-cache')
   @UseGuards(AuthGuard, AdminGuard)
   async clearServerOfflineCache() {
     return this.offlineDownloadService.clearAllCachedMedia();
   }
 }
+

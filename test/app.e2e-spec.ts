@@ -7,6 +7,7 @@ import { AppModule } from './../src/app.module';
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
   let accessToken: string;
+  let refreshToken: string;
 
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
@@ -39,19 +40,19 @@ describe('AppController (e2e)', () => {
       .expect(201);
 
     accessToken = setupResponse.body.tokens.accessToken;
+    refreshToken = setupResponse.body.tokens.refreshToken;
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it('/ (GET)', () => {
+  it('/ (GET) redirects to /login when unauthenticated', () => {
     return request(app.getHttpServer())
       .get('/')
-      .expect(200)
-      .expect('Content-Type', /html/)
+      .expect(302)
       .expect((response) => {
-        expect(response.text).toContain('Bookdarr Media Server');
+        expect(response.headers.location).toContain('/login');
       });
   });
 
@@ -80,5 +81,59 @@ describe('AppController (e2e)', () => {
       .expect((response) => {
         expect(response.body.status).toBe('skipped');
       });
+  });
+
+  it('/api/v1/auth/login (POST) returns tokens', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ username: 'testadmin', password: 'password123' })
+      .expect(201);
+
+    expect(response.body.tokens?.accessToken).toBeTruthy();
+    expect(response.body.tokens?.refreshToken).toBeTruthy();
+    refreshToken = response.body.tokens.refreshToken;
+  });
+
+  it('/api/v1/me (GET) returns current user with bearer token', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.username).toBe('testadmin');
+    expect(response.body.email).toBe('test@example.com');
+  });
+
+  it('/api/v1/auth/refresh (POST) refreshes tokens', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken })
+      .expect(201);
+
+    expect(response.body.tokens?.accessToken).toBeTruthy();
+    expect(response.body.tokens?.refreshToken).toBeTruthy();
+  });
+
+  it('/api/v1/reader/progress roundtrip works', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/reader/progress/ebook/123')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ data: { cfi: 'epubcfi(/6/2[chapter01]!/4/2/2)', page: 5 }, updatedAt: 10 })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/reader/progress/ebook/123')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.data?.page).toBe(5);
+    expect(response.body.updatedAt).toBe(10);
+  });
+
+  it('/api/v1/library exists (503 when Bookdarr not configured)', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/library')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(503);
   });
 });

@@ -16,6 +16,9 @@ import { ReaderProgressEntity } from './reader-progress.entity';
 import { ReaderProgressService } from './reader-progress.service';
 import { ReaderProgressController } from './reader-progress.controller';
 import { UserEntity } from '../auth/entities/user.entity';
+import { LibraryStreamingService } from './library-streaming.service';
+import { ApiV1LibraryController } from './api-v1-library.controller';
+import { ApiV1ReaderProgressController } from './api-v1-reader-progress.controller';
 
 @Module({
   imports: [
@@ -33,12 +36,18 @@ import { UserEntity } from '../auth/entities/user.entity';
       ReaderProgressEntity,
     ]),
   ],
-  controllers: [LibraryController, ReaderProgressController],
+  controllers: [
+    LibraryController,
+    ReaderProgressController,
+    ApiV1LibraryController,
+    ApiV1ReaderProgressController,
+  ],
   providers: [
     LibraryService,
     LibraryCacheService,
     UserLibraryService,
     OfflineDownloadService,
+    LibraryStreamingService,
     ReaderProgressService,
   ],
   exports: [ReaderProgressService],

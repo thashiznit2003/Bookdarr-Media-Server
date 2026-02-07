@@ -8,6 +8,9 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 - SQLite (dev), PostgreSQL (prod)
 - Optional Redis (rate limiting / cache)
 
+## Mobile API Contract
+- The mobile app must use versioned endpoints under `/api/v1/*`. Do not introduce breaking changes to `/api/v1/*`; bump API version (`/api/v2`) instead.
+
 ## Security Requirements
 - JWT auth + refresh tokens
 - Invite‑code signup only

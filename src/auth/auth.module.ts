@@ -17,6 +17,8 @@ import { UsersController } from './users.controller';
 import { AuthSettingsController } from './auth-settings.controller';
 import { MeController } from './me.controller';
 import { LoggingModule } from '../logging/logging.module';
+import { ApiV1AuthController } from './api-v1-auth.controller';
+import { ApiV1MeController } from './api-v1-me.controller';
 
 @Module({
   imports: [
@@ -32,9 +34,11 @@ import { LoggingModule } from '../logging/logging.module';
   ],
   controllers: [
     AuthController,
+    ApiV1AuthController,
     UsersController,
     AuthSettingsController,
     MeController,
+    ApiV1MeController,
   ],
   providers: [
     AuthService,

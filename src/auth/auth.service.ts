@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
-import { generateSecret, generateURI, verify } from 'otplib';
 import {
   createCipheriv,
   createDecipheriv,
@@ -58,6 +57,21 @@ export class AuthService implements OnModuleInit {
     await this.seedInviteCodes();
     await this.ensureUsernames();
     await this.ensureAdminUser();
+  }
+
+  private otpFns: Pick<
+    typeof import('otplib'),
+    'generateSecret' | 'generateURI' | 'verify'
+  > | null = null;
+
+  private getOtpFns(): NonNullable<AuthService['otpFns']> {
+    // Load 2FA deps only when needed.
+    // This keeps Jest e2e stable (it doesn't exercise 2FA) even if otplib's transitive deps are ESM.
+    if (!this.otpFns) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      this.otpFns = require('otplib');
+    }
+    return this.otpFns!;
   }
 
   async signup(request: SignupRequest) {
@@ -169,6 +183,7 @@ export class AuthService implements OnModuleInit {
         };
       }
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
+      const { verify } = this.getOtpFns();
       const isValid = secret
         ? this.isValidOtp(verify({ token: otp, secret }))
         : false;
@@ -204,6 +219,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
+    const { verify } = this.getOtpFns();
     const isValid = secret
       ? this.isValidOtp(verify({ token: otp, secret }))
       : false;
@@ -451,6 +467,7 @@ export class AuthService implements OnModuleInit {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Unauthorized.');
     }
+    const { generateSecret, generateURI } = this.getOtpFns();
     const secret = generateSecret();
     user.twoFactorTempSecret = await this.encryptTwoFactorSecret(secret);
     await this.users.save(user);
@@ -469,6 +486,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Unauthorized.');
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorTempSecret);
+    const { verify } = this.getOtpFns();
     const isValid = secret
       ? this.isValidOtp(verify({ token: code, secret }))
       : false;
@@ -498,6 +516,7 @@ export class AuthService implements OnModuleInit {
     }
     if (input.code) {
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
+      const { verify } = this.getOtpFns();
       const isValid = secret
         ? this.isValidOtp(verify({ token: input.code.trim(), secret }))
         : false;
