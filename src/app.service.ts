@@ -1700,7 +1700,7 @@ export class AppService {
                   <button id="detail-refresh" class="filter-btn">Refresh Metadata</button>
                   <button id="detail-checkout" class="filter-btn">Check out</button>
                   <button id="detail-read-toggle" class="filter-btn">Mark Read</button>
-                  <button id="detail-device-offline-toggle" class="filter-btn" style="display: none;">Remove offline copy</button>
+                  <button id="detail-device-offline-toggle" class="filter-btn" style="display: none;">Download to this device</button>
                   <span id="detail-refresh-status" style="color: var(--muted); font-size: 0.85rem;"></span>
                   <span id="detail-checkout-status" style="color: var(--muted); font-size: 0.85rem;"></span>
                   <span id="detail-download-status" style="color: var(--muted); font-size: 0.85rem;"></span>
@@ -2288,7 +2288,7 @@ export class AppService {
 
         if (optedOut || !hasCopy) {
           if (detailDeviceDownloadStatus) {
-            detailDeviceDownloadStatus.textContent = 'Device copy: Queued';
+            detailDeviceDownloadStatus.textContent = 'This device: Queued';
           }
           setOfflineOptOut(bookId, false);
           startDeviceOfflineCacheForBook(bookId).then(() => {
@@ -2298,7 +2298,7 @@ export class AppService {
         }
 
         if (detailDeviceDownloadStatus) {
-          detailDeviceDownloadStatus.textContent = 'Device copy: Clearing...';
+          detailDeviceDownloadStatus.textContent = 'This device: Clearing...';
         }
         setOfflineOptOut(bookId, true);
         deviceOfflineByBookId.delete(bookId);
@@ -3449,14 +3449,14 @@ export class AppService {
         if (!offlineSupported) return '';
         const entry = deviceOfflineByBookId.get(String(bookId));
         if (!entry || !entry.status || entry.status === 'not_started') {
-          return isOfflineOptedOut(bookId) ? 'Device copy: Disabled' : 'Device copy: Not downloaded';
+          return isOfflineOptedOut(bookId) ? 'This device: Disabled' : 'This device: Not downloaded (optional)';
         }
-        if (entry.status === 'ready') return 'Device copy: Ready';
-        if (entry.status === 'failed') return 'Device copy: Failed';
-        if (entry.status === 'partial') return 'Device copy: Partial (retry)';
+        if (entry.status === 'ready') return 'This device: Ready';
+        if (entry.status === 'failed') return 'This device: Failed';
+        if (entry.status === 'partial') return 'This device: Partial (retry)';
         const percent = Math.round(Number(entry.progress || 0) * 100);
-        if (entry.status === 'queued') return 'Device copy: Queued';
-        return 'Device copy: Downloading ' + percent + '%';
+        if (entry.status === 'queued') return 'This device: Queued';
+        return 'This device: Downloading ' + percent + '%';
       }
 
       function reconcileDeviceOfflineStatus(bookId) {
@@ -5793,7 +5793,7 @@ export class AppService {
             const hasCopy =
               Boolean(deviceEntry) &&
               (deviceEntry.status === 'queued' || deviceEntry.status === 'downloading' || deviceEntry.status === 'ready' || deviceEntry.status === 'failed');
-            detailDeviceOfflineToggle.textContent = optedOut || !hasCopy ? 'Download offline' : 'Remove offline copy';
+          detailDeviceOfflineToggle.textContent = optedOut || !hasCopy ? 'Download to this device' : 'Remove device copy';
           }
         }
         if (detailDeviceDownloadStatus) {
@@ -5828,7 +5828,7 @@ export class AppService {
         if (detailDeviceDownloadStatus) detailDeviceDownloadStatus.textContent = '';
         if (detailDeviceOfflineToggle) {
           detailDeviceOfflineToggle.style.display = 'none';
-          detailDeviceOfflineToggle.textContent = 'Remove offline copy';
+          detailDeviceOfflineToggle.textContent = 'Remove device copy';
         }
         if (detailCheckout) {
           detailCheckout.textContent = 'Check out';

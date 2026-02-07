@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.229 — 2026-02-06 19:43 -06:00
+- Fix confusing offline messaging in the book details modal by renaming `Device copy` to `This device` and clarifying the toggle text (`Download to this device` / `Remove device copy`).
+
 ## 1.0.228 — 2026-02-06 19:32 -06:00
 - Clarify offline status messaging: server-side caching now shows as `Server cache: ...` so it does not conflict with `Device copy: ...` (service worker/device storage).
 
