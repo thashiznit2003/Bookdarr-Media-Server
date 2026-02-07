@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.227 — 2026-02-06 19:20 -06:00
+- Fix book description text losing lowercase `s`: an unescaped `\s` inside the server-rendered template JS was interpreted as `/s+/` in the browser, replacing `s` runs with spaces when truncating the preview.
+
 ## 1.0.226 — 2026-02-06 17:03 -06:00
 - Bundle a webfont monospace (`BMSMono`) and force it for book descriptions to eliminate missing lowercase `s` rendering seen on some clients even with system monospace fonts.
 
