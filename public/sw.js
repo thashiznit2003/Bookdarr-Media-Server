@@ -8,12 +8,14 @@
  * Note: this is best-effort for browsers. iOS may purge Cache Storage.
  */
 
-const CACHE_VERSION = 1;
+// Bump when cache key semantics change (e.g. relative vs absolute URLs).
+const CACHE_VERSION = 2;
 const CACHE_NAME = `bms-offline-v${CACHE_VERSION}`;
 const APP_SHELL_CACHE = `bms-shell-v${CACHE_VERSION}`;
 
 const DB_NAME = "bms-offline-db";
-const DB_VERSION = 2;
+// Bump when IndexedDB schema/semantics change.
+const DB_VERSION = 3;
 const STORE_BOOKS = "books";
 const STORE_URLS = "urls";
 
@@ -67,6 +69,14 @@ async function fetchWithAuthRetry(url, init, signal) {
   return res;
 }
 
+function toAbsoluteUrl(url) {
+  try {
+    return new URL(String(url), self.location.origin).toString();
+  } catch {
+    return String(url);
+  }
+}
+
 function parseRangeHeader(rangeHeader, total) {
   if (!rangeHeader || typeof rangeHeader !== "string") return null;
   const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
@@ -90,7 +100,7 @@ function parseRangeHeader(rangeHeader, total) {
 }
 
 function buildChunkUrl(baseUrl, chunkIndex, chunkSize) {
-  const u = new URL(stripHash(baseUrl));
+  const u = new URL(stripHash(baseUrl), self.location.origin);
   u.searchParams.set("bms_chunk", String(chunkIndex));
   u.searchParams.set("bms_chunk_size", String(chunkSize));
   return u.toString();
@@ -101,12 +111,15 @@ function openDb() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_BOOKS)) {
-        db.createObjectStore(STORE_BOOKS, { keyPath: "bookId" });
-      }
-      if (!db.objectStoreNames.contains(STORE_URLS)) {
-        db.createObjectStore(STORE_URLS, { keyPath: "url" });
-      }
+      // Schema/semantic upgrade: clear prior records so we don't mix relative/absolute URLs.
+      try {
+        if (db.objectStoreNames.contains(STORE_BOOKS)) db.deleteObjectStore(STORE_BOOKS);
+      } catch {}
+      try {
+        if (db.objectStoreNames.contains(STORE_URLS)) db.deleteObjectStore(STORE_URLS);
+      } catch {}
+      db.createObjectStore(STORE_BOOKS, { keyPath: "bookId" });
+      db.createObjectStore(STORE_URLS, { keyPath: "url" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -265,7 +278,7 @@ self.addEventListener("activate", (event) => {
 
 function isStreamUrl(url) {
   try {
-    const u = new URL(url);
+    const u = new URL(url, self.location.origin);
     return u.pathname.startsWith("/library/files/") && u.pathname.includes("/stream");
   } catch {
     return false;
@@ -274,11 +287,11 @@ function isStreamUrl(url) {
 
 function stripHash(url) {
   try {
-    const u = new URL(url);
+    const u = new URL(url, self.location.origin);
     u.hash = "";
     return u.toString();
   } catch {
-    return url;
+    return toAbsoluteUrl(url);
   }
 }
 
@@ -555,7 +568,7 @@ async function processQueue() {
 async function cacheBookNow(bookId) {
   const record = await dbGet(bookId);
   if (!record || !Array.isArray(record.files) || record.files.length === 0) {
-    postToAllClients({ type: OUT_STATUS, bookId, status: "failed" });
+    postToAllClients({ type: OUT_STATUS, bookId, status: "failed", error: "Missing file manifest." });
     return;
   }
 
@@ -620,6 +633,8 @@ async function cacheBookNow(bookId) {
     try {
       f.status = "downloading";
       f.bytesDownloaded = 0;
+      delete f.error;
+      delete record.error;
       record.updatedAt = Date.now();
       await dbPut(record);
       postToAllClients({
@@ -707,10 +722,20 @@ async function cacheBookNow(bookId) {
       await dbPut(record);
     } catch (err) {
       f.status = "failed";
-      record.error = err && err.message ? err.message : String(err);
+      const msg = err && err.message ? err.message : String(err);
+      f.error = msg;
+      record.error = msg;
       record.updatedAt = Date.now();
       await dbPut(record);
-      postToAllClients({ type: OUT_STATUS, bookId, fileId: f.fileId, url: f.url, status: "failed" });
+      postToAllClients({
+        type: OUT_STATUS,
+        bookId,
+        fileId: f.fileId,
+        mediaType: f.mediaType,
+        url: f.url,
+        status: "failed",
+        error: msg,
+      });
       // Keep going with other files.
     }
   }
@@ -913,6 +938,7 @@ async function queryBooks(payload, source) {
           fileCount: 0,
           readyCount: 0,
           failedCount: 0,
+          lastError: null,
         };
       }
       const typeSummary = byType[mediaType];
@@ -930,6 +956,9 @@ async function queryBooks(payload, source) {
       }
       if (f.status === "failed") {
         typeSummary.failedCount += 1;
+        if (f.error && !typeSummary.lastError) {
+          typeSummary.lastError = String(f.error);
+        }
       }
 
       const partial = Number(f.bytesDownloaded || 0);
@@ -967,7 +996,17 @@ async function queryBooks(payload, source) {
       byType[key] = { ...t, status: typeStatus, progress: typeProgress };
     });
 
-    results[id] = { status, progress, bytesTotal, bytesDownloaded, fileCount, readyCount, failedCount, byType };
+    results[id] = {
+      status,
+      progress,
+      bytesTotal,
+      bytesDownloaded,
+      fileCount,
+      readyCount,
+      failedCount,
+      byType,
+      error: record.error ? String(record.error) : null,
+    };
   }
 
   try {

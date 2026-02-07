@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.235 — 2026-02-06 22:50 -06:00
+- Fix device offline caching failures by normalizing manifest URLs to absolute URLs in the Service Worker (relative URLs broke chunked audiobook caching and could break cache lookups).
+- Expose Service Worker offline failure causes: per-media-type status now includes the last error (ex: `Fetch failed (401)`), making offline troubleshooting possible without guessing.
+- Bump SW cache/DB versions to clear stale offline records created with old URL semantics.
+
 ## 1.0.234 — 2026-02-06 22:34 -06:00
 - Fix device offline Retry behavior: Retry now actually starts a new Service Worker cache job instead of clearing partial downloads, and the UI re-queries status after kickoff so progress appears reliably.
 - Make Service Worker messages fire-and-forget (except `QUERY_BOOKS`) so offline actions do not stall for a timeout waiting on responses that never exist.

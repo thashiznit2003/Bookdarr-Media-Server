@@ -2109,6 +2109,7 @@ export class AppService {
             bytesTotal: total,
             bytesDownloaded: downloaded,
             byType: current.byType ?? null,
+            error: current.error ?? null,
           });
           if (activePage === 'my-library') {
             updateDownloadOverlays(state.myLibrary, myLibraryGrid);
@@ -2130,10 +2131,11 @@ export class AppService {
           const readyCount = Number(data.readyCount || 0);
           const failedCount = Number(data.failedCount || 0);
           const current = deviceOfflineByBookId.get(bookId) ?? {};
+          const error = data.error ? String(data.error) : current.error ?? null;
           if (status === 'ready') {
-            deviceOfflineByBookId.set(bookId, { status: 'ready', progress: 1, fileCount, readyCount, failedCount, byType: current.byType ?? null });
+            deviceOfflineByBookId.set(bookId, { status: 'ready', progress: 1, fileCount, readyCount, failedCount, byType: current.byType ?? null, error: null });
           } else if (status === 'queued') {
-            deviceOfflineByBookId.set(bookId, { status: 'queued', progress: 0, fileCount, readyCount, failedCount, byType: current.byType ?? null });
+            deviceOfflineByBookId.set(bookId, { status: 'queued', progress: 0, fileCount, readyCount, failedCount, byType: current.byType ?? null, error });
           } else if (status === 'downloading') {
             deviceOfflineByBookId.set(bookId, {
               status: 'downloading',
@@ -2142,6 +2144,7 @@ export class AppService {
               readyCount: readyCount || Number(current.readyCount || 0),
               failedCount: failedCount || Number(current.failedCount || 0),
               byType: current.byType ?? null,
+              error,
             });
           } else if (status === 'partial') {
             deviceOfflineByBookId.set(bookId, {
@@ -2151,6 +2154,7 @@ export class AppService {
               readyCount: readyCount || Number(current.readyCount || 0),
               failedCount: failedCount || Number(current.failedCount || 0),
               byType: current.byType ?? null,
+              error,
             });
           } else if (status === 'cleared') {
             deviceOfflineByBookId.delete(bookId);
@@ -2166,10 +2170,11 @@ export class AppService {
                 readyCount: readyCount || Number(current.readyCount || 0),
                 failedCount: Math.max(1, failedCount || Number(current.failedCount || 0)),
                 byType: current.byType ?? null,
+                error,
               });
               reconcileDeviceOfflineStatus(bookId);
             } else {
-              deviceOfflineByBookId.set(bookId, { status: 'failed', progress: 0, fileCount, readyCount, failedCount, byType: current.byType ?? null });
+              deviceOfflineByBookId.set(bookId, { status: 'failed', progress: 0, fileCount, readyCount, failedCount, byType: current.byType ?? null, error });
               reconcileDeviceOfflineStatus(bookId);
             }
           }
@@ -3304,6 +3309,7 @@ export class AppService {
             readyCount: Number(entry.readyCount || 0),
             failedCount: Number(entry.failedCount || 0),
             byType: entry.byType && typeof entry.byType === 'object' ? entry.byType : null,
+            error: entry.error ? String(entry.error) : null,
           });
         });
       }
@@ -3506,7 +3512,11 @@ export class AppService {
             else if (status === 'downloading') parts.push(label + ' downloading');
             else if (status === 'queued') parts.push(label + ' queued');
             else if (status === 'partial') parts.push(label + ' partial');
-            else if (status === 'failed') parts.push(label + ' failed (retry)');
+            else if (status === 'failed') {
+              const err = t.lastError ? String(t.lastError) : '';
+              const suffix = err ? ' failed (' + err + ')' : ' failed (retry)';
+              parts.push(label + suffix);
+            }
             else parts.push(label + ' not downloaded');
           }
           return parts.join('; ');

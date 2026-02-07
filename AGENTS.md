@@ -100,6 +100,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - If device offline caching fails with `Device offline: Failed`, suspect expired auth during a long download; SW auto-refreshes on 401 and retries once.
 - SW `OFFLINE_STATUS` messages can be per-file (includes `fileId`) or per-book (final). The UI must not mark a book as failed on a per-file failure; this produces false "Failed" even when other files complete. Book-level failure is only when *all* files fail; otherwise show `Partial` and offer retry.
 - Service Worker commands are fire-and-forget (no response message exists for `CACHE_BOOK`/`CLEAR_BOOK`). Do not `await` a reply for those commands; only `QUERY_BOOKS` returns `QUERY_BOOKS_RESULT`.
+- SW must normalize device offline URLs to absolute URLs before caching. Relative URLs break chunked audiobook caching (`new URL(...)`) and can prevent cache hits when fetch requests are absolute.
 - Audiobook chunk caching uses bounded parallel fetch (chunk concurrency) for higher throughput on LAN without saturating mobile devices.
 - CI: GitHub Actions runs `npm ci`, `npm test`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
 - Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.
