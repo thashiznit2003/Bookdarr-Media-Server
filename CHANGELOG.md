@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.234 — 2026-02-06 22:34 -06:00
+- Fix device offline Retry behavior: Retry now actually starts a new Service Worker cache job instead of clearing partial downloads, and the UI re-queries status after kickoff so progress appears reliably.
+- Make Service Worker messages fire-and-forget (except `QUERY_BOOKS`) so offline actions do not stall for a timeout waiting on responses that never exist.
+
 ## 1.0.233 — 2026-02-06 21:32 -06:00
 - Make device offline status actionable and non-alarming: show per-media-type results (Ebook vs Audiobook) so users can tell what is actually cached for offline use, and avoid `Failed` wording when streaming still works.
 - Prevent automatic retry loops for device offline caching after a previous failure; retries are now explicit from the book details modal.

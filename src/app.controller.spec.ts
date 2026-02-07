@@ -33,4 +33,19 @@ describe('AppService', () => {
     // (one backslash in the HTML, escaped as \\ in this JS string literal).
     expect(html).toContain('split(/\\s+/)');
   });
+
+  it('mentions per-device offline caching with consistent wording', () => {
+    const appService = new AppService();
+    const html = appService.getIndexHtml({
+      token: null,
+      refreshToken: null,
+      user: {
+        id: 'test',
+        username: 'test',
+        email: 'test@example.com',
+        isAdmin: true,
+      },
+    });
+    expect(html).toContain('Offline on this device:');
+  });
 });

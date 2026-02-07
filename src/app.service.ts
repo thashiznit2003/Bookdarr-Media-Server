@@ -2039,6 +2039,19 @@ export class AppService {
       }
 
       function sendSwMessage(type, payload = {}) {
+        // Only QUERY_BOOKS has a response path (QUERY_BOOKS_RESULT). Other messages are
+        // fire-and-forget and should not "hang" for 5s waiting on a reply that will never come.
+        if (type !== 'QUERY_BOOKS') {
+          const message = { type, ...payload };
+          return getSwTarget()
+            .then((target) => {
+              if (!target || typeof target.postMessage !== 'function') return false;
+              target.postMessage(message);
+              return true;
+            })
+            .catch(() => false);
+        }
+
         const requestId = swRequestId();
         const message = { type, requestId, ...payload };
         return new Promise((resolve) => {
@@ -2285,28 +2298,38 @@ export class AppService {
 
         const entry = deviceOfflineByBookId.get(bookId);
         const optedOut = isOfflineOptedOut(bookId);
-        const hasCopy =
-          Boolean(entry) &&
-          (entry.status === 'queued' || entry.status === 'downloading' || entry.status === 'ready' || entry.status === 'partial');
+        const status = String(entry?.status || 'not_started');
 
-        if (optedOut || !hasCopy) {
+        // Decide action based on actual state, not generic "hasCopy", so Retry does not
+        // accidentally clear partial downloads.
+        const shouldStart = optedOut || status === 'not_started' || status === 'failed' || status === 'partial';
+        const shouldClear = !shouldStart; // queued/downloading/ready
+
+        if (shouldStart) {
           if (detailDeviceDownloadStatus) {
             detailDeviceDownloadStatus.textContent = 'Offline on this device: Queued';
           }
           setOfflineOptOut(bookId, false);
-          startDeviceOfflineCacheForBook(bookId).then(() => {
-            if (currentDetail) renderBookDetail(currentDetail);
-          }).catch(() => {});
+          ensureMinRing(bookId, 900);
+          startDeviceOfflineCacheForBook(bookId)
+            .then(() => {
+              // Force a status query shortly after kickoff so the UI doesn't sit stale.
+              reconcileDeviceOfflineStatus(bookId);
+              if (currentDetail) renderBookDetail(currentDetail);
+            })
+            .catch(() => {});
           return;
         }
 
-        if (detailDeviceDownloadStatus) {
-          detailDeviceDownloadStatus.textContent = 'Offline on this device: Clearing...';
+        if (shouldClear) {
+          if (detailDeviceDownloadStatus) {
+            detailDeviceDownloadStatus.textContent = 'Offline on this device: Clearing...';
+          }
+          setOfflineOptOut(bookId, true);
+          deviceOfflineByBookId.delete(bookId);
+          sendSwMessage('CLEAR_BOOK', { bookId }).catch(() => {});
+          if (currentDetail) renderBookDetail(currentDetail);
         }
-        setOfflineOptOut(bookId, true);
-        deviceOfflineByBookId.delete(bookId);
-        sendSwMessage('CLEAR_BOOK', { bookId }).catch(() => {});
-        if (currentDetail) renderBookDetail(currentDetail);
       });
       detailReadToggle?.addEventListener('click', toggleReadStatus);
       detailDescriptionToggle?.addEventListener('click', toggleDetailDescription);
@@ -3322,6 +3345,9 @@ export class AppService {
           }
 
           await sendSwMessage('CACHE_BOOK', { bookId: id, files });
+          // The SW will push progress/status updates, but also schedule a query so the UI
+          // converges even if a message is missed.
+          reconcileDeviceOfflineStatus(id);
           return true;
         } catch (error) {
           debugReaderLog('offline_cache_error', { bookId: id, message: error?.message ?? String(error) });
@@ -3480,6 +3506,7 @@ export class AppService {
             else if (status === 'downloading') parts.push(label + ' downloading');
             else if (status === 'queued') parts.push(label + ' queued');
             else if (status === 'partial') parts.push(label + ' partial');
+            else if (status === 'failed') parts.push(label + ' failed (retry)');
             else parts.push(label + ' not downloaded');
           }
           return parts.join('; ');
