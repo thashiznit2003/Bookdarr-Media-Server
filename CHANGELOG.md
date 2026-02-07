@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.236 — 2026-02-06 23:13 -06:00
+- Fix device offline ebook caching: Service Worker now clones the `Response` before `cache.put()` so progress streaming doesn’t fail with `Response body is already used`.
+
 ## 1.0.235 — 2026-02-06 22:50 -06:00
 - Fix device offline caching failures by normalizing manifest URLs to absolute URLs in the Service Worker (relative URLs broke chunked audiobook caching and could break cache lookups).
 - Expose Service Worker offline failure causes: per-media-type status now includes the last error (ex: `Fetch failed (401)`), making offline troubleshooting possible without guessing.

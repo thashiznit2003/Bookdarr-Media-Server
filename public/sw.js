@@ -491,8 +491,10 @@ async function cacheUrl(url, opts) {
     throw new Error(`Fetch failed (${res.status})`);
   }
 
-  // Cache the original response while we consume a clone for progress.
-  const cachePutPromise = cache.put(normalizedUrl, res);
+  // IMPORTANT: cache.put() consumes the response body. Clone before passing to cache.put()
+  // so we can also consume a separate stream for progress events.
+  const resForCache = res.clone();
+  const cachePutPromise = cache.put(normalizedUrl, resForCache);
 
   let total = 0;
   const len = res.headers.get("content-length");
@@ -500,9 +502,8 @@ async function cacheUrl(url, opts) {
   if (!total && expectedBytes) total = expectedBytes;
 
   let downloaded = 0;
-  const clone = res.clone();
-  if (clone.body && clone.body.getReader) {
-    const reader = clone.body.getReader();
+  if (res.body && res.body.getReader) {
+    const reader = res.body.getReader();
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const { done, value } = await reader.read();
