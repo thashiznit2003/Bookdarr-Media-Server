@@ -3449,15 +3449,11 @@ export class AppService {
         if (!offlineSupported) return '';
         const entry = deviceOfflineByBookId.get(String(bookId));
         if (!entry || !entry.status || entry.status === 'not_started') {
-          // Hide the line by default so it doesn't read like a contradiction with server caching.
-          // We'll show status immediately when the user initiates a device download (queued/downloading)
-          // or explicitly disables device copies for this book.
-          return isOfflineOptedOut(bookId) ? 'This device: Disabled' : '';
+          // This is per-browser/device offline caching (Service Worker), not server-side caching.
+          return isOfflineOptedOut(bookId) ? 'This device: Disabled' : 'This device: Not cached';
         }
         if (entry.status === 'ready') return 'This device: Ready';
-        // Avoid showing a scary "Failed" label by default. Streaming still works; this only impacts
-        // optional device-side offline caching. We surface the retry action via the button text.
-        if (entry.status === 'failed') return '';
+        if (entry.status === 'failed') return 'This device: Not cached (last attempt failed)';
         if (entry.status === 'partial') return 'This device: Partial (retry available)';
         const percent = Math.round(Number(entry.progress || 0) * 100);
         if (entry.status === 'queued') return 'This device: Queued';

@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.232 — 2026-02-06 20:11 -06:00
+- Make device offline status unambiguous: always show `This device: Not cached` when applicable, and show `Not cached (last attempt failed)` alongside the `Retry device download` button.
+
 ## 1.0.231 — 2026-02-06 20:06 -06:00
 - Avoid false-alarm device offline messaging: hide `This device: Failed` by default (streaming still works) and change the button to `Retry device download` when a previous attempt failed.
 
