@@ -82,7 +82,13 @@ export class AuthController {
     if (token) {
       res.cookie('bmsTwoFactor', token, options);
     } else {
-      res.clearCookie('bmsTwoFactor', { path: '/' });
+      // Clear both secure and non-secure variants to avoid sticky cookies.
+      res.clearCookie('bmsTwoFactor', { path: '/', sameSite: 'lax' as const });
+      res.clearCookie('bmsTwoFactor', {
+        path: '/',
+        sameSite: 'lax' as const,
+        secure: true,
+      });
     }
   }
 

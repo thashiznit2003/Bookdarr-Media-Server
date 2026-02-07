@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.243 — 2026-02-07 13:04 -06:00
+- Fix secure-cookie clearing edge case: when the 2FA challenge cookie is cleared, also clear the `Secure` variant so users do not get stuck in OTP-required loops after protocol changes.
+
 ## 1.0.242 — 2026-02-07 12:58 -06:00
 - Auth hardening: access/refresh cookies are now `HttpOnly` and `Secure` when behind HTTPS; clear cookies for both secure/non-secure variants to avoid sticky sessions across envs.
 - Session hardening: refresh token reuse now revokes the user session; password changes and 2FA enable/disable now revoke refresh tokens and immediately invalidate access tokens via per-user `tokenVersion` checks.
