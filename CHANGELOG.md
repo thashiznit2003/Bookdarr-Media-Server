@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.233 — 2026-02-06 21:32 -06:00
+- Make device offline status actionable and non-alarming: show per-media-type results (Ebook vs Audiobook) so users can tell what is actually cached for offline use, and avoid `Failed` wording when streaming still works.
+- Prevent automatic retry loops for device offline caching after a previous failure; retries are now explicit from the book details modal.
+
 ## 1.0.232 — 2026-02-06 20:11 -06:00
 - Make device offline status unambiguous: always show `This device: Not cached` when applicable, and show `Not cached (last attempt failed)` alongside the `Retry device download` button.
 

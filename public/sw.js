@@ -874,6 +874,13 @@ async function queryBooks(payload, source) {
   const cache = await caches.open(CACHE_NAME);
   const results = {};
 
+  const normalizeMediaType = (t) => {
+    if (!t) return "unknown";
+    const s = String(t).toLowerCase();
+    if (s === "ebook" || s === "audiobook") return s;
+    return s;
+  };
+
   for (const id of ids) {
     const record = await dbGet(id);
     if (!record) {
@@ -886,6 +893,7 @@ async function queryBooks(payload, source) {
     let hasQueued = false;
     let hasDownloading = false;
     let hasFailed = false;
+    const byType = {};
     const files = record.files || [];
     for (const f of files) {
       const expected = Number(f.bytesTotal || 0);
@@ -895,19 +903,42 @@ async function queryBooks(payload, source) {
       if (f.status === "downloading") hasDownloading = true;
       if (f.status === "failed") hasFailed = true;
 
+      const mediaType = normalizeMediaType(f.mediaType);
+      if (!byType[mediaType]) {
+        byType[mediaType] = {
+          status: "partial",
+          progress: 0,
+          bytesTotal: 0,
+          bytesDownloaded: 0,
+          fileCount: 0,
+          readyCount: 0,
+          failedCount: 0,
+        };
+      }
+      const typeSummary = byType[mediaType];
+      typeSummary.fileCount += 1;
+      typeSummary.bytesTotal += expected;
+
       // Use DB status/bytesDownloaded as the source of truth. Cache probing is too
       // expensive for chunked audio and can produce false positives.
       if (f.status === "ready") {
         bytesDownloaded += expected;
         readyCount += 1;
+        typeSummary.bytesDownloaded += expected;
+        typeSummary.readyCount += 1;
         continue;
+      }
+      if (f.status === "failed") {
+        typeSummary.failedCount += 1;
       }
 
       const partial = Number(f.bytesDownloaded || 0);
       if (expected > 0) {
         bytesDownloaded += Math.min(partial, expected);
+        typeSummary.bytesDownloaded += Math.min(partial, expected);
       } else {
         bytesDownloaded += Math.max(partial, 0);
+        typeSummary.bytesDownloaded += Math.max(partial, 0);
       }
     }
     const progress = bytesTotal > 0 ? Math.min(bytesDownloaded / bytesTotal, 1) : 0;
@@ -920,7 +951,23 @@ async function queryBooks(payload, source) {
     else if (hasQueued) status = "queued";
 
     const failedCount = files.filter((f) => f && f.status === "failed").length;
-    results[id] = { status, progress, bytesTotal, bytesDownloaded, fileCount, readyCount, failedCount };
+    // Derive per-mediaType statuses so the UI can tell users what is actually cached offline.
+    Object.keys(byType).forEach((key) => {
+      const t = byType[key];
+      const typeAllReady = t.fileCount > 0 && t.readyCount === t.fileCount;
+      const typeHasFailed = t.failedCount > 0;
+      const typeHasDownloading = files.some((f) => normalizeMediaType(f.mediaType) === key && f.status === "downloading");
+      const typeHasQueued = files.some((f) => normalizeMediaType(f.mediaType) === key && f.status === "queued");
+      let typeStatus = "partial";
+      if (typeAllReady) typeStatus = "ready";
+      else if (typeHasFailed && t.readyCount === 0) typeStatus = "failed";
+      else if (typeHasDownloading) typeStatus = "downloading";
+      else if (typeHasQueued) typeStatus = "queued";
+      const typeProgress = t.bytesTotal > 0 ? Math.min(t.bytesDownloaded / t.bytesTotal, 1) : 0;
+      byType[key] = { ...t, status: typeStatus, progress: typeProgress };
+    });
+
+    results[id] = { status, progress, bytesTotal, bytesDownloaded, fileCount, readyCount, failedCount, byType };
   }
 
   try {

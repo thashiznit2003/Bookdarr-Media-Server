@@ -2083,6 +2083,7 @@ export class AppService {
           const total = Number(data.bytesTotal || 0);
           const downloaded = Number(data.bytesDownloaded || 0);
           const overall = Number(data.progressOverall || 0);
+          const current = deviceOfflineByBookId.get(bookId) ?? {};
           const progress =
             overall > 0
               ? Math.min(Math.max(overall, 0), 1)
@@ -2094,6 +2095,7 @@ export class AppService {
             progress,
             bytesTotal: total,
             bytesDownloaded: downloaded,
+            byType: current.byType ?? null,
           });
           if (activePage === 'my-library') {
             updateDownloadOverlays(state.myLibrary, myLibraryGrid);
@@ -2114,27 +2116,28 @@ export class AppService {
           const fileCount = Number(data.fileCount || 0);
           const readyCount = Number(data.readyCount || 0);
           const failedCount = Number(data.failedCount || 0);
+          const current = deviceOfflineByBookId.get(bookId) ?? {};
           if (status === 'ready') {
-            deviceOfflineByBookId.set(bookId, { status: 'ready', progress: 1, fileCount, readyCount, failedCount });
+            deviceOfflineByBookId.set(bookId, { status: 'ready', progress: 1, fileCount, readyCount, failedCount, byType: current.byType ?? null });
           } else if (status === 'queued') {
-            deviceOfflineByBookId.set(bookId, { status: 'queued', progress: 0, fileCount, readyCount, failedCount });
+            deviceOfflineByBookId.set(bookId, { status: 'queued', progress: 0, fileCount, readyCount, failedCount, byType: current.byType ?? null });
           } else if (status === 'downloading') {
-            const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
             deviceOfflineByBookId.set(bookId, {
               status: 'downloading',
               progress: current.progress ?? 0,
               fileCount: fileCount || Number(current.fileCount || 0),
               readyCount: readyCount || Number(current.readyCount || 0),
               failedCount: failedCount || Number(current.failedCount || 0),
+              byType: current.byType ?? null,
             });
           } else if (status === 'partial') {
-            const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
             deviceOfflineByBookId.set(bookId, {
               status: 'partial',
               progress: current.progress ?? 0,
               fileCount: fileCount || Number(current.fileCount || 0),
               readyCount: readyCount || Number(current.readyCount || 0),
               failedCount: failedCount || Number(current.failedCount || 0),
+              byType: current.byType ?? null,
             });
           } else if (status === 'cleared') {
             deviceOfflineByBookId.delete(bookId);
@@ -2143,17 +2146,17 @@ export class AppService {
             // Don't immediately mark the whole book as failed on a per-file error: other
             // files may still complete and the overall state may be "partial".
             if (data.fileId) {
-              const current = deviceOfflineByBookId.get(bookId) ?? { progress: 0 };
               deviceOfflineByBookId.set(bookId, {
                 status: 'partial',
                 progress: current.progress ?? 0,
                 fileCount: fileCount || Number(current.fileCount || 0),
                 readyCount: readyCount || Number(current.readyCount || 0),
                 failedCount: Math.max(1, failedCount || Number(current.failedCount || 0)),
+                byType: current.byType ?? null,
               });
               reconcileDeviceOfflineStatus(bookId);
             } else {
-              deviceOfflineByBookId.set(bookId, { status: 'failed', progress: 0, fileCount, readyCount, failedCount });
+              deviceOfflineByBookId.set(bookId, { status: 'failed', progress: 0, fileCount, readyCount, failedCount, byType: current.byType ?? null });
               reconcileDeviceOfflineStatus(bookId);
             }
           }
@@ -2288,7 +2291,7 @@ export class AppService {
 
         if (optedOut || !hasCopy) {
           if (detailDeviceDownloadStatus) {
-            detailDeviceDownloadStatus.textContent = 'This device: Queued';
+            detailDeviceDownloadStatus.textContent = 'Offline on this device: Queued';
           }
           setOfflineOptOut(bookId, false);
           startDeviceOfflineCacheForBook(bookId).then(() => {
@@ -2298,7 +2301,7 @@ export class AppService {
         }
 
         if (detailDeviceDownloadStatus) {
-          detailDeviceDownloadStatus.textContent = 'This device: Clearing...';
+          detailDeviceDownloadStatus.textContent = 'Offline on this device: Clearing...';
         }
         setOfflineOptOut(bookId, true);
         deviceOfflineByBookId.delete(bookId);
@@ -3277,6 +3280,7 @@ export class AppService {
             fileCount: Number(entry.fileCount || 0),
             readyCount: Number(entry.readyCount || 0),
             failedCount: Number(entry.failedCount || 0),
+            byType: entry.byType && typeof entry.byType === 'object' ? entry.byType : null,
           });
         });
       }
@@ -3341,6 +3345,11 @@ export class AppService {
             }
             const status = deviceOfflineByBookId.get(id);
             if (status && (status.status === 'ready' || status.status === 'downloading' || status.status === 'queued')) {
+              continue;
+            }
+            // Avoid auto-looping retries if the device offline cache previously failed.
+            // Users can explicitly retry from the book details modal.
+            if (status && status.status === 'failed') {
               continue;
             }
             // eslint-disable-next-line no-await-in-loop
@@ -3448,16 +3457,53 @@ export class AppService {
       function formatDeviceOfflineStatus(bookId) {
         if (!offlineSupported) return '';
         const entry = deviceOfflineByBookId.get(String(bookId));
+        function humanMediaType(type) {
+          const t = String(type || '').toLowerCase();
+          if (t === 'ebook') return 'Ebook';
+          if (t === 'audiobook') return 'Audiobook';
+          if (!t) return 'Unknown';
+          return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+        function summarizeByType(e) {
+          const byType = e && e.byType && typeof e.byType === 'object' ? e.byType : null;
+          if (!byType) return '';
+          const keys = Object.keys(byType);
+          if (!keys.length) return '';
+          const order = (k) => (k === 'ebook' ? 0 : k === 'audiobook' ? 1 : 2);
+          keys.sort((a, b) => order(a) - order(b));
+          const parts = [];
+          for (const key of keys) {
+            const t = byType[key] || {};
+            const status = String(t.status || '').toLowerCase();
+            const label = humanMediaType(key);
+            if (status === 'ready') parts.push(label + ' ready');
+            else if (status === 'downloading') parts.push(label + ' downloading');
+            else if (status === 'queued') parts.push(label + ' queued');
+            else if (status === 'partial') parts.push(label + ' partial');
+            else parts.push(label + ' not downloaded');
+          }
+          return parts.join('; ');
+        }
         if (!entry || !entry.status || entry.status === 'not_started') {
           // This is per-browser/device offline caching (Service Worker), not server-side caching.
-          return isOfflineOptedOut(bookId) ? 'This device: Disabled' : 'This device: Not cached';
+          return isOfflineOptedOut(bookId) ? 'Offline on this device: Disabled' : 'Offline on this device: Not downloaded';
         }
-        if (entry.status === 'ready') return 'This device: Ready';
-        if (entry.status === 'failed') return 'This device: Not cached (last attempt failed)';
-        if (entry.status === 'partial') return 'This device: Partial (retry available)';
+        const byTypeSummary = summarizeByType(entry);
+        if (entry.status === 'ready') {
+          return byTypeSummary ? 'Offline on this device: ' + byTypeSummary : 'Offline on this device: Ready';
+        }
+        // Avoid scary language here: streaming is unaffected by device offline caching.
+        if (entry.status === 'failed') {
+          return byTypeSummary ? 'Offline on this device: ' + byTypeSummary : 'Offline on this device: Not downloaded (retry available)';
+        }
+        if (entry.status === 'partial') {
+          return byTypeSummary ? 'Offline on this device: ' + byTypeSummary : 'Offline on this device: Partial (retry available)';
+        }
         const percent = Math.round(Number(entry.progress || 0) * 100);
-        if (entry.status === 'queued') return 'This device: Queued';
-        return 'This device: Downloading ' + percent + '%';
+        if (entry.status === 'queued') return byTypeSummary ? 'Offline on this device: ' + byTypeSummary : 'Offline on this device: Queued';
+        return byTypeSummary
+          ? 'Offline on this device: Downloading ' + percent + '% (' + byTypeSummary + ')'
+          : 'Offline on this device: Downloading ' + percent + '%';
       }
 
       function reconcileDeviceOfflineStatus(bookId) {
