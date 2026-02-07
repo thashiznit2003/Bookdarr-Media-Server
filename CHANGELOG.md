@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.240 — 2026-02-07 11:21 -06:00
+- Add a numbered, mobile-prep hardening checklist with explicit pass/fail criteria (auth, 2FA, API versioning, logging, migrations, streaming reliability, security headers, deploy recovery).
+
 ## 1.0.239 — 2026-02-07 00:17 -06:00
 - Fix production startup crash (502 Bad Gateway) caused by `AdminGuard` missing `UserEntityRepository` in `LibraryModule` context by registering `UserEntity` in `LibraryModule` TypeORM feature imports.
 
