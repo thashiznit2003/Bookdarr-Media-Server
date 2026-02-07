@@ -15,6 +15,7 @@ import { OfflineDownloadService } from './offline-download.service';
 import { ReaderProgressEntity } from './reader-progress.entity';
 import { ReaderProgressService } from './reader-progress.service';
 import { ReaderProgressController } from './reader-progress.controller';
+import { UserEntity } from '../auth/entities/user.entity';
 
 @Module({
   imports: [
@@ -24,6 +25,9 @@ import { ReaderProgressController } from './reader-progress.controller';
     forwardRef(() => SettingsModule),
     LoggingModule,
     TypeOrmModule.forFeature([
+      // Needed because LibraryController uses AdminGuard, which injects the UserEntity repository.
+      // Without this, the app can crash at startup with UnknownDependenciesException.
+      UserEntity,
       UserLibraryEntity,
       OfflineDownloadEntity,
       ReaderProgressEntity,

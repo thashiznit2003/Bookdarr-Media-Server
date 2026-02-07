@@ -124,6 +124,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - Create User panel is visible only to admins.
 - Auth module now exports AdminGuard so settings controllers can use it without DI errors.
 - Settings module now includes UserEntity repository to satisfy AdminGuard dependencies.
+- Any module that uses AdminGuard (ex: Library) must also register `UserEntity` in `TypeOrmModule.forFeature([...])` or Nest can crash at startup with `UnknownDependenciesException` and the reverse proxy will return 502.
 - Settings no longer show Book Pool Path, and Bookdarr connections can be tested from the UI via /settings/bookdarr/test.
 - SMTP settings can be tested via /settings/smtp/test, and the Bookdarr title dot reflects live connectivity.
 - SMTP settings now show a title status dot based on live connectivity checks.

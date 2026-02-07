@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.239 — 2026-02-07 00:17 -06:00
+- Fix production startup crash (502 Bad Gateway) caused by `AdminGuard` missing `UserEntityRepository` in `LibraryModule` context by registering `UserEntity` in `LibraryModule` TypeORM feature imports.
+
 ## 1.0.238 — 2026-02-06 23:56 -06:00
 - Add admin-only `Clear Server Cache` button in Settings to delete VM-side cached offline ebook/audiobook files under `data/offline` (frees disk space when the VM fills up).
 
