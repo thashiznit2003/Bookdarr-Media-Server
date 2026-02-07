@@ -18,6 +18,7 @@ import { OfflineDownloadEntity } from './library/offline-download.entity';
 import { SmtpConfigEntity } from './settings/smtp-config.entity';
 import { ReaderProgressEntity } from './library/reader-progress.entity';
 import { TwoFactorBackupCodeEntity } from './auth/entities/two-factor-backup-code.entity';
+import { AuthSessionEntity } from './auth/entities/auth-session.entity';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { TwoFactorBackupCodeEntity } from './auth/entities/two-factor-backup-cod
               InviteCodeEntity,
               PasswordResetTokenEntity,
               TwoFactorBackupCodeEntity,
+              AuthSessionEntity,
               BookdarrConfigEntity,
               AuthConfigEntity,
               UserLibraryEntity,
@@ -62,6 +64,7 @@ import { TwoFactorBackupCodeEntity } from './auth/entities/two-factor-backup-cod
             InviteCodeEntity,
             PasswordResetTokenEntity,
             TwoFactorBackupCodeEntity,
+            AuthSessionEntity,
             BookdarrConfigEntity,
             AuthConfigEntity,
             UserLibraryEntity,

@@ -9,6 +9,7 @@ import { UserEntity } from './entities/user.entity';
 import { InviteCodeEntity } from './entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
 import { TwoFactorBackupCodeEntity } from './entities/two-factor-backup-code.entity';
+import { AuthSessionEntity } from './entities/auth-session.entity';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthGuard } from './auth.guard';
 import { AuthConfigEntity } from './auth-config.entity';
@@ -33,6 +34,7 @@ import { RateLimitGuard } from './rate-limit.guard';
       InviteCodeEntity,
       PasswordResetTokenEntity,
       TwoFactorBackupCodeEntity,
+      AuthSessionEntity,
       AuthConfigEntity,
     ]),
   ],

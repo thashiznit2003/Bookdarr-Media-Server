@@ -131,6 +131,20 @@ export class AuthController {
     return `${proto}://${host}`;
   }
 
+  private getClientMeta(req: Request) {
+    const forwarded = req.headers['x-forwarded-for'];
+    let ip: string | null = null;
+    if (typeof forwarded === 'string' && forwarded.trim().length > 0) {
+      ip = forwarded.split(',')[0]?.trim() ?? null;
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+      ip = forwarded[0]?.split(',')[0]?.trim() ?? null;
+    } else {
+      ip = (req.ip as string | undefined) ?? req.socket?.remoteAddress ?? null;
+    }
+    const userAgent = (req.headers['user-agent'] as string | undefined) ?? null;
+    return { ip, userAgent };
+  }
+
   @Post('signup')
   @UseGuards(RateLimitGuard)
   @RateLimit([
@@ -142,7 +156,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const response = await this.authService.signup(request);
+    const response = await this.authService.signup(request, this.getClientMeta(req));
     this.setAuthCookies(req, res, response.tokens);
     return response;
   }
@@ -160,7 +174,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const response = await this.authService.setupFirstUser(request);
+    const response = await this.authService.setupFirstUser(request, this.getClientMeta(req));
     this.setAuthCookies(req, res, response.tokens);
     return response;
   }
@@ -174,7 +188,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
-      const response = await this.authService.setupFirstUser(request);
+      const response = await this.authService.setupFirstUser(request, this.getClientMeta(req));
       this.setAuthCookies(req, res, response.tokens);
       if (response.tokens?.accessToken) {
         const payload = Buffer.from(
@@ -208,7 +222,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const response = await this.authService.login(request);
+    const response = await this.authService.login(request, this.getClientMeta(req));
     if ((response as { twoFactorRequired?: boolean })?.twoFactorRequired) {
       return res.status(401).json(response);
     }
@@ -233,7 +247,7 @@ export class AuthController {
         hasPassword: Boolean(request?.password),
         hasOtp: Boolean((request as any)?.otp),
       });
-      const response = await this.authService.login(request);
+      const response = await this.authService.login(request, this.getClientMeta(req));
       if (
         (response as { twoFactorRequired?: boolean; challengeToken?: string })
           ?.twoFactorRequired
@@ -294,7 +308,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const response = await this.authService.completeTwoFactorLogin(request);
+    const response = await this.authService.completeTwoFactorLogin(request, this.getClientMeta(req));
     this.setAuthCookies(req, res, response.tokens);
     this.setTwoFactorCookie(req, res);
     return response;
@@ -318,7 +332,7 @@ export class AuthController {
       const response = await this.authService.completeTwoFactorLogin({
         otp: request.otp,
         challengeToken,
-      });
+      }, this.getClientMeta(req));
       this.logger.info('auth_login_2fa_success', {
         hasAccess: Boolean(response.tokens?.accessToken),
         hasRefresh: Boolean(response.tokens?.refreshToken),
@@ -351,7 +365,7 @@ export class AuthController {
   ) {
     const refreshToken =
       request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
-    const response = await this.authService.refresh({ refreshToken });
+    const response = await this.authService.refresh({ refreshToken }, this.getClientMeta(req));
     this.setAuthCookies(req, res, response.tokens);
     return response;
   }
@@ -398,7 +412,7 @@ export class AuthController {
   ) {
     const refreshToken =
       request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
-    const response = await this.authService.logout({ refreshToken });
+    const response = await this.authService.logout({ refreshToken }, this.getClientMeta(req));
     this.clearAuthCookies(req, res);
     return response;
   }

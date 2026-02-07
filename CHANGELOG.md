@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.244 — 2026-02-07 13:33 -06:00
+- Auth hardening: add multi-device session table (`auth_sessions`) and migrate refresh rotation to per-session `sid` with one-time-use refresh `jti` (refresh token reuse revokes all sessions and bumps `tokenVersion`).
+- Auth reliability: controllers now pass client `ip` and `user-agent` into auth flows so sessions have usable attribution.
+- Auth correctness: JWT strategy now rejects access tokens for revoked/missing sessions when a token includes `sid` (logout invalidates that device immediately).
+
 ## 1.0.243 — 2026-02-07 13:04 -06:00
 - Fix secure-cookie clearing edge case: when the 2FA challenge cookie is cleared, also clear the `Secure` variant so users do not get stuck in OTP-required loops after protocol changes.
 

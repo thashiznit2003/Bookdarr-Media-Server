@@ -19,6 +19,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 - Strong password hashing (Argon2id preferred)
 - 2FA secrets are encrypted at rest using the auth access secret.
   - Access tokens include a per-user `tokenVersion` (`tv`) and the JWT strategy checks it against the DB, so password/2FA changes can immediately invalidate existing sessions.
+  - Refresh tokens are multi-device: each device/browser session has a stable `sid` stored in `auth_sessions`, and refresh token `jti` rotates on every refresh (one-time use). Logout revokes the `sid`, and the JWT strategy rejects access tokens for revoked/missing sessions.
   - Access/refresh cookies are `HttpOnly` and set `Secure` automatically when behind HTTPS (x-forwarded-proto).
 
 ## Constraints

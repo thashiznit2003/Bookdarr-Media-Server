@@ -11,6 +11,7 @@ Each item has a clear pass/fail expectation.
 ## 2. Auth And Session Hardening (Cookies + Rotation)
 - Pass: Access/refresh cookies are `HttpOnly`, `Secure`, and have an intentional `SameSite` policy for our cross-origin needs.
 - Pass: Refresh tokens rotate (one-time-use); re-use invalidates the session.
+- Pass: Sessions are multi-device: refresh tokens include a stable `sid` and server stores session state in `auth_sessions` (logout revokes only that device session).
 - Pass: Changing password disables old refresh tokens; changing 2FA disables old sessions for that user.
 - Pass: Login, refresh, logout, password reset, and 2FA endpoints are rate-limited.
 

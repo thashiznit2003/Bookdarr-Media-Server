@@ -4,8 +4,9 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthConfigService } from './auth-config.service';
 import { SettingsService } from '../settings/settings.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
+import { AuthSessionEntity } from './entities/auth-session.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -14,6 +15,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly authConfigService: AuthConfigService,
     @InjectRepository(UserEntity)
     private readonly users: Repository<UserEntity>,
+    @InjectRepository(AuthSessionEntity)
+    private readonly sessions: Repository<AuthSessionEntity>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -48,15 +51,35 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; username?: string; email?: string }) {
+  async validate(payload: {
+    sub: string;
+    username?: string;
+    email?: string;
+    tv?: number;
+    sid?: string;
+  }) {
     const user = await this.users.findOne({ where: { id: payload.sub } });
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid token.');
     }
     const tokenVersion =
-      typeof (payload as any).tv === 'number' ? (payload as any).tv : 0;
+      typeof payload.tv === 'number' ? payload.tv : 0;
     if ((user.tokenVersion ?? 0) !== tokenVersion) {
       throw new UnauthorizedException('Invalid token.');
+    }
+
+    // If the access token was issued for a device session, ensure it hasn't been revoked.
+    if (payload.sid) {
+      const session = await this.sessions.findOne({
+        where: {
+          id: payload.sid,
+          userId: user.id,
+          revokedAt: IsNull(),
+        },
+      });
+      if (!session) {
+        throw new UnauthorizedException('Invalid token.');
+      }
     }
 
     return {
@@ -64,6 +87,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       username: user.username,
       email: user.email,
       isAdmin: user.isAdmin,
+      sessionId: payload.sid ?? null,
     };
   }
 }

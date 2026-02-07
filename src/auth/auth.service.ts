@@ -34,10 +34,16 @@ import { InviteCodeEntity } from './entities/invite-code.entity';
 import { PasswordResetTokenEntity } from './entities/password-reset-token.entity';
 import { AuthConfigService } from './auth-config.service';
 import { TwoFactorBackupCodeEntity } from './entities/two-factor-backup-code.entity';
+import { AuthSessionEntity } from './entities/auth-session.entity';
 
 const MIN_PASSWORD_LENGTH = 8;
 const MIN_USERNAME_LENGTH = 3;
 const MAX_USERNAME_LENGTH = 32;
+
+type ClientMeta = {
+  ip?: string | null;
+  userAgent?: string | null;
+};
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -54,6 +60,8 @@ export class AuthService implements OnModuleInit {
     private readonly resetTokens: Repository<PasswordResetTokenEntity>,
     @InjectRepository(TwoFactorBackupCodeEntity)
     private readonly backupCodes: Repository<TwoFactorBackupCodeEntity>,
+    @InjectRepository(AuthSessionEntity)
+    private readonly sessions: Repository<AuthSessionEntity>,
   ) {}
 
   async onModuleInit() {
@@ -77,7 +85,7 @@ export class AuthService implements OnModuleInit {
     return this.otpFns!;
   }
 
-  async signup(request: SignupRequest) {
+  async signup(request: SignupRequest, meta?: ClientMeta) {
     const username = this.normalizeUsername(request.username);
     const email = this.normalizeEmail(request.email);
 
@@ -109,11 +117,11 @@ export class AuthService implements OnModuleInit {
 
     await this.consumeInviteCode(request.inviteCode.trim(), user.id);
 
-    const tokens = await this.issueTokens(user);
+    const tokens = await this.issueTokens(user, meta);
     return { user: this.toAuthUser(user), tokens };
   }
 
-  async setupFirstUser(request: SetupRequest) {
+  async setupFirstUser(request: SetupRequest, meta?: ClientMeta) {
     if (!(await this.isSetupRequired())) {
       throw new BadRequestException('Setup is already complete.');
     }
@@ -145,11 +153,11 @@ export class AuthService implements OnModuleInit {
     });
     await this.users.save(user);
 
-    const tokens = await this.issueTokens(user);
+    const tokens = await this.issueTokens(user, meta);
     return { user: this.toAuthUser(user), tokens };
   }
 
-  async login(request: LoginRequest) {
+  async login(request: LoginRequest, meta?: ClientMeta) {
     const identifier = request.username?.trim();
     if (!identifier) {
       throw new BadRequestException('Username is required.');
@@ -200,14 +208,14 @@ export class AuthService implements OnModuleInit {
       await this.maybeUpgradeTwoFactorSecret(user, secret);
     }
 
-    const tokens = await this.issueTokens(user);
+    const tokens = await this.issueTokens(user, meta);
     return { user: this.toAuthUser(user), tokens };
   }
 
   async completeTwoFactorLogin(input: {
     otp?: string;
     challengeToken?: string;
-  }) {
+  }, meta?: ClientMeta) {
     const otp = input.otp?.trim();
     if (!otp) {
       throw new BadRequestException('Two-factor code is required.');
@@ -233,44 +241,96 @@ export class AuthService implements OnModuleInit {
     }
     await this.maybeUpgradeTwoFactorSecret(user, secret);
 
-    const tokens = await this.issueTokens(user);
+    const tokens = await this.issueTokens(user, meta);
     return { user: this.toAuthUser(user), tokens };
   }
 
-  async refresh(request: RefreshRequest) {
+  async refresh(request: RefreshRequest, meta?: ClientMeta) {
     if (!request.refreshToken || request.refreshToken.trim().length === 0) {
       throw new BadRequestException('Refresh token is required.');
     }
 
     const payload = await this.verifyRefreshToken(request.refreshToken);
     const user = await this.users.findOne({ where: { id: payload.sub } });
-
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Refresh token is invalid.');
     }
+    const tv = typeof payload.tv === 'number' ? payload.tv : undefined;
+    if (typeof tv === 'number' && (user.tokenVersion ?? 0) !== tv) {
+      throw new UnauthorizedException('Refresh token is invalid.');
+    }
+
+    // Session-based refresh tokens (multi-device).
+    if (payload.sid) {
+      const session = await this.sessions.findOne({
+        where: { id: payload.sid, userId: user.id },
+      });
+      if (!session || session.revokedAt) {
+        throw new UnauthorizedException('Refresh token is invalid.');
+      }
+      if (session.refreshTokenId !== payload.jti) {
+        await this.revokeAllSessionsForUser(
+          user.id,
+          'refresh_token_reuse_detected',
+        );
+        user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+        user.refreshTokenId = undefined;
+        await this.users.save(user);
+        throw new UnauthorizedException('Refresh token is invalid.');
+      }
+
+      const tokens = await this.issueTokensForExistingSession(user, session, meta);
+      return { tokens };
+    }
+
+    // Legacy refresh tokens (single refreshTokenId on user). Accept once, then migrate to a session.
     if (user.refreshTokenId !== payload.jti) {
-      // Possible refresh token reuse (stolen token) or out-of-order refresh; revoke session.
       user.refreshTokenId = undefined;
       user.tokenVersion = (user.tokenVersion ?? 0) + 1;
       await this.users.save(user);
       throw new UnauthorizedException('Refresh token is invalid.');
     }
 
-    const tokens = await this.issueTokens(user);
+    // Migrate: create a session and rotate to a session-based refresh token.
+    const session = await this.createSession(user.id, meta);
+    const tokens = await this.issueTokensForExistingSession(user, session, meta);
+    user.refreshTokenId = undefined;
+    await this.users.save(user);
     return { tokens };
   }
 
-  async logout(request: LogoutRequest) {
+  async logout(request: LogoutRequest, meta?: ClientMeta) {
     if (!request.refreshToken || request.refreshToken.trim().length === 0) {
       throw new BadRequestException('Refresh token is required.');
     }
 
     const payload = await this.verifyRefreshToken(request.refreshToken);
     const user = await this.users.findOne({ where: { id: payload.sub } });
-    if (user) {
+    if (!user || !user.isActive) {
+      return { status: 'ok' };
+    }
+
+    if (payload.sid) {
+      const session = await this.sessions.findOne({
+        where: { id: payload.sid, userId: user.id },
+      });
+      if (session && !session.revokedAt && session.refreshTokenId === payload.jti) {
+        session.revokedAt = new Date().toISOString();
+        session.revokeReason = 'logout';
+        session.refreshTokenId = null;
+        session.lastUsedAt = new Date().toISOString();
+        session.lastIp = meta?.ip ?? session.lastIp ?? null;
+        await this.sessions.save(session);
+      }
+      return { status: 'ok' };
+    }
+
+    // Legacy logout token: clear the single refresh token and migrate sessions by revoking all existing.
+    if (user.refreshTokenId === payload.jti) {
       user.refreshTokenId = undefined;
       await this.users.save(user);
     }
+    await this.revokeAllSessionsForUser(user.id, 'legacy_logout');
 
     return { status: 'ok' };
   }
@@ -392,6 +452,9 @@ export class AuthService implements OnModuleInit {
     }
 
     await this.users.save(user);
+    if (input.newPassword) {
+      await this.revokeAllSessionsForUser(user.id, 'password_change');
+    }
     return this.toAuthUser(user);
   }
 
@@ -458,6 +521,7 @@ export class AuthService implements OnModuleInit {
     user.refreshTokenId = undefined;
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.users.save(user);
+    await this.revokeAllSessionsForUser(user.id, 'password_reset');
     record.usedAt = new Date().toISOString();
     await this.resetTokens.save(record);
 
@@ -516,6 +580,7 @@ export class AuthService implements OnModuleInit {
     user.refreshTokenId = undefined;
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.users.save(user);
+    await this.revokeAllSessionsForUser(user.id, 'two_factor_enabled');
     const backupCodes = await this.generateAndStoreBackupCodes(user.id);
     return { enabled: true, backupCodes };
   }
@@ -564,6 +629,7 @@ export class AuthService implements OnModuleInit {
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.backupCodes.delete({ userId: user.id });
     await this.users.save(user);
+    await this.revokeAllSessionsForUser(user.id, 'two_factor_disabled');
     return { enabled: false };
   }
 
@@ -582,6 +648,7 @@ export class AuthService implements OnModuleInit {
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.backupCodes.delete({ userId: user.id });
     await this.users.save(user);
+    await this.revokeAllSessionsForUser(user.id, 'admin_reset_two_factor');
     return { status: 'ok' };
   }
 
@@ -603,6 +670,7 @@ export class AuthService implements OnModuleInit {
     user.refreshTokenId = undefined;
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.users.save(user);
+    await this.revokeAllSessionsForUser(user.id, 'admin_reset_password');
     return { status: 'ok' };
   }
 
@@ -815,9 +883,51 @@ export class AuthService implements OnModuleInit {
     await this.users.save(user);
   }
 
-  private async issueTokens(user: UserEntity): Promise<AuthTokens> {
+  private normalizeMeta(meta?: ClientMeta): ClientMeta {
+    return {
+      ip: meta?.ip ?? null,
+      userAgent: meta?.userAgent ?? null,
+    };
+  }
+
+  private async createSession(userId: string, meta?: ClientMeta) {
+    const now = new Date().toISOString();
+    const m = this.normalizeMeta(meta);
+    const session = this.sessions.create({
+      userId,
+      refreshTokenId: null,
+      createdAt: now,
+      lastUsedAt: now,
+      userAgent: m.userAgent ?? null,
+      createdIp: m.ip ?? null,
+      lastIp: m.ip ?? null,
+      revokedAt: null,
+      revokeReason: null,
+    });
+    return this.sessions.save(session);
+  }
+
+  private async revokeAllSessionsForUser(userId: string, reason: string) {
+    const sessions = await this.sessions.find({ where: { userId } });
+    if (sessions.length === 0) return;
+    const now = new Date().toISOString();
+    for (const session of sessions) {
+      if (session.revokedAt) continue;
+      session.revokedAt = now;
+      session.revokeReason = reason;
+      session.refreshTokenId = null;
+    }
+    await this.sessions.save(sessions);
+  }
+
+  private async issueTokens(user: UserEntity, meta?: ClientMeta): Promise<AuthTokens> {
     const auth = await this.getAuthSettings();
+    const session = await this.createSession(user.id, meta);
     const refreshId = this.generateToken();
+    session.refreshTokenId = refreshId;
+    session.lastUsedAt = new Date().toISOString();
+    session.lastIp = this.normalizeMeta(meta).ip ?? session.lastIp ?? null;
+    await this.sessions.save(session);
 
     const accessToken = await this.jwtService.signAsync(
       {
@@ -826,6 +936,7 @@ export class AuthService implements OnModuleInit {
         email: user.email,
         isAdmin: user.isAdmin,
         tv: user.tokenVersion ?? 0,
+        sid: session.id,
       },
       {
         secret: auth.accessSecret,
@@ -834,14 +945,15 @@ export class AuthService implements OnModuleInit {
     );
 
     const refreshToken = await this.jwtService.signAsync(
-      { sub: user.id, jti: refreshId },
+      { sub: user.id, sid: session.id, jti: refreshId, tv: user.tokenVersion ?? 0 },
       {
         secret: auth.refreshSecret,
         expiresIn: auth.refreshTokenTtl as StringValue,
       },
     );
 
-    user.refreshTokenId = refreshId;
+    // Legacy field kept only for migration support. New logins always use auth_sessions.
+    user.refreshTokenId = null;
     await this.users.save(user);
 
     return {
@@ -851,10 +963,58 @@ export class AuthService implements OnModuleInit {
     };
   }
 
+  private async issueTokensForExistingSession(
+    user: UserEntity,
+    session: AuthSessionEntity,
+    meta?: ClientMeta,
+  ): Promise<AuthTokens> {
+    const auth = await this.getAuthSettings();
+    const refreshId = this.generateToken();
+
+    session.refreshTokenId = refreshId;
+    session.lastUsedAt = new Date().toISOString();
+    const m = this.normalizeMeta(meta);
+    session.lastIp = m.ip ?? session.lastIp ?? null;
+    if (m.userAgent && !session.userAgent) {
+      session.userAgent = m.userAgent;
+    }
+    await this.sessions.save(session);
+
+    const accessToken = await this.jwtService.signAsync(
+      {
+        sub: user.id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        tv: user.tokenVersion ?? 0,
+        sid: session.id,
+      },
+      {
+        secret: auth.accessSecret,
+        expiresIn: auth.accessTokenTtl as StringValue,
+      },
+    );
+
+    const refreshToken = await this.jwtService.signAsync(
+      { sub: user.id, sid: session.id, jti: refreshId, tv: user.tokenVersion ?? 0 },
+      {
+        secret: auth.refreshSecret,
+        expiresIn: auth.refreshTokenTtl as StringValue,
+      },
+    );
+
+    return { accessToken, refreshToken, tokenType: 'Bearer' };
+  }
+
   private async verifyRefreshToken(token: string) {
     try {
       const auth = await this.getAuthSettings();
-      return await this.jwtService.verifyAsync<{ sub: string; jti: string }>(
+      return await this.jwtService.verifyAsync<{
+        sub: string;
+        jti: string;
+        sid?: string;
+        tv?: number;
+      }>(
         token,
         {
           secret: auth.refreshSecret,

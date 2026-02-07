@@ -18,6 +18,20 @@ import type {
 export class ApiV1AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  private getClientMeta(req: Request) {
+    const forwarded = req.headers['x-forwarded-for'];
+    let ip: string | null = null;
+    if (typeof forwarded === 'string' && forwarded.trim().length > 0) {
+      ip = forwarded.split(',')[0]?.trim() ?? null;
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+      ip = forwarded[0]?.split(',')[0]?.trim() ?? null;
+    } else {
+      ip = (req.ip as string | undefined) ?? req.socket?.remoteAddress ?? null;
+    }
+    const userAgent = (req.headers['user-agent'] as string | undefined) ?? null;
+    return { ip, userAgent };
+  }
+
   private readCookie(req: Request, name: string) {
     const raw = req.headers?.cookie;
     if (!raw) return undefined;
@@ -35,8 +49,8 @@ export class ApiV1AuthController {
     { id: 'api_v1_auth_login_ip', max: 50, windowMs: 5 * 60 * 1000, scope: 'ip' },
     { id: 'api_v1_auth_login_user', max: 10, windowMs: 5 * 60 * 1000, scope: 'ip+username' },
   ])
-  async login(@Body() request: LoginRequest, @Res({ passthrough: true }) res: Response) {
-    const response = await this.authService.login(request);
+  async login(@Body() request: LoginRequest, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const response = await this.authService.login(request, this.getClientMeta(req));
     if ((response as { twoFactorRequired?: boolean })?.twoFactorRequired) {
       return res.status(401).json(response);
     }
@@ -46,8 +60,8 @@ export class ApiV1AuthController {
   @Post('login/2fa')
   @UseGuards(RateLimitGuard)
   @RateLimit({ id: 'api_v1_auth_login_2fa_ip', max: 30, windowMs: 5 * 60 * 1000, scope: 'ip' })
-  async loginTwoFactor(@Body() request: TwoFactorLoginRequest) {
-    return this.authService.completeTwoFactorLogin(request);
+  async loginTwoFactor(@Body() request: TwoFactorLoginRequest, @Req() req: Request) {
+    return this.authService.completeTwoFactorLogin(request, this.getClientMeta(req));
   }
 
   @Post('refresh')
@@ -56,7 +70,7 @@ export class ApiV1AuthController {
   async refresh(@Body() request: RefreshRequest, @Req() req: Request) {
     // Support both explicit token and cookie-based refresh (useful for in-app webviews).
     const refreshToken = request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
-    return this.authService.refresh({ refreshToken });
+    return this.authService.refresh({ refreshToken }, this.getClientMeta(req));
   }
 
   @Post('logout')
@@ -64,7 +78,7 @@ export class ApiV1AuthController {
   @RateLimit({ id: 'api_v1_auth_logout_ip', max: 120, windowMs: 5 * 60 * 1000, scope: 'ip' })
   async logout(@Body() request: LogoutRequest, @Req() req: Request) {
     const refreshToken = request.refreshToken ?? this.readCookie(req, 'bmsRefreshToken');
-    return this.authService.logout({ refreshToken });
+    return this.authService.logout({ refreshToken }, this.getClientMeta(req));
   }
 
   @Post('password/request')
