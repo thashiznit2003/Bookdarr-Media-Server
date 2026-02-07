@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.228 — 2026-02-06 19:32 -06:00
+- Clarify offline status messaging: server-side caching now shows as `Server cache: ...` so it does not conflict with `Device copy: ...` (service worker/device storage).
+
 ## 1.0.227 — 2026-02-06 19:20 -06:00
 - Fix book description text losing lowercase `s`: an unescaped `\s` inside the server-rendered template JS was interpreted as `/s+/` in the browser, replacing `s` runs with spaces when truncating the preview.
 

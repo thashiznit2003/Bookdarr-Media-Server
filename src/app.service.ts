@@ -3429,17 +3429,20 @@ export class AppService {
           return '';
         }
         if (status.status === 'ready') {
-          return 'Downloaded for offline use.';
+          // This reflects server-side caching, not device-side offline storage.
+          return 'Server cache: Ready';
         }
         if (status.status === 'failed') {
-          return 'Download failed. Try checkout again.';
+          return 'Server cache: Failed (try again)';
         }
         const { progress, total, downloaded } = getDownloadProgress(status);
         const percent = Math.round(progress * 100);
         if (total > 0) {
-          return 'Downloading ' + percent + '% · ' + formatBytes(downloaded) + ' / ' + formatBytes(total);
+          return 'Server cache: Downloading ' + percent + '% · ' + formatBytes(downloaded) + ' / ' + formatBytes(total);
         }
-        return status.status === 'queued' ? 'Queued for download.' : 'Downloading ' + percent + '%';
+        return status.status === 'queued'
+          ? 'Server cache: Queued'
+          : 'Server cache: Downloading ' + percent + '%';
       }
 
       function formatDeviceOfflineStatus(bookId) {
