@@ -104,6 +104,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - In `public/sw.js`, `cache.put()` consumes the response body. If you also need to read the body (for progress), clone the response before `cache.put()` and consume the original stream separately.
 - SW offline caching is sequential per book (one active book at a time). Other books will show `Offline on this device: Queued (#N in line)` while waiting.
 - SW must resume pending offline downloads after restarts/updates by scanning IndexedDB for queued/downloading records and re-enqueueing them (otherwise UI can sit at `Queued` forever).
+- To free VM disk space, use Settings -> Storage -> `Clear Server Cache` (admin-only). This deletes VM-cached offline media under `data/offline` and clears `offline_downloads` DB rows.
 - Audiobook chunk caching uses bounded parallel fetch (chunk concurrency) for higher throughput on LAN without saturating mobile devices.
 - CI: GitHub Actions runs `npm ci`, `npm test`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
 - Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.

@@ -39,6 +39,7 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
   private readonly active = new Map<string, AbortController>();
   private processing = false;
   private stopping = false;
+  private clearing = false;
 
   constructor(
     @InjectRepository(OfflineDownloadEntity)
@@ -289,7 +290,56 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     return map;
   }
 
+  async clearAllCachedMedia() {
+    const start = Date.now();
+    this.clearing = true;
+    try {
+      // Stop any in-flight downloads and clear the work queue.
+      for (const controller of this.active.values()) {
+        controller.abort();
+      }
+      this.active.clear();
+      this.queuedIds.clear();
+      this.queue.splice(0, this.queue.length);
+
+      const records = await this.downloadsRepo.find();
+      const deletedFiles = records.length;
+      const deletedBooks = new Set(records.map((r) => r.bookId)).size;
+      const deletedBytes = records.reduce(
+        (sum, r) => sum + Number(r.bytesTotal ?? 0),
+        0,
+      );
+
+      await this.downloadsRepo
+        .createQueryBuilder()
+        .delete()
+        .from(OfflineDownloadEntity)
+        .execute();
+
+      try {
+        await rm(this.baseDir, { recursive: true, force: true } as any);
+      } catch {
+        // ignore cleanup failures
+      }
+      await mkdir(this.baseDir, { recursive: true });
+
+      this.logger.info('offline_cache_cleared', {
+        deletedFiles,
+        deletedBooks,
+        deletedBytes,
+        durationMs: Date.now() - start,
+      });
+
+      return { ok: true, deletedFiles, deletedBooks, deletedBytes };
+    } finally {
+      this.clearing = false;
+    }
+  }
+
   private enqueue(id: string) {
+    if (this.clearing) {
+      return;
+    }
     if (this.queuedIds.has(id) || this.active.has(id)) {
       return;
     }
@@ -320,7 +370,7 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async processQueue() {
-    if (this.processing || this.stopping) {
+    if (this.processing || this.stopping || this.clearing) {
       return;
     }
     this.processing = true;

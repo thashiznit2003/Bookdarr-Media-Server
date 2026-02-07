@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.238 — 2026-02-06 23:56 -06:00
+- Add admin-only `Clear Server Cache` button in Settings to delete VM-side cached offline ebook/audiobook files under `data/offline` (frees disk space when the VM fills up).
+
 ## 1.0.237 — 2026-02-06 23:40 -06:00
 - Make device offline queue behavior understandable and resilient: expose queue position for queued books, and resume pending offline downloads after Service Worker restarts/updates so `Queued` doesn’t get stuck.
 

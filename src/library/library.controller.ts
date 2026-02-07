@@ -17,6 +17,7 @@ import { stat } from 'fs/promises';
 import { extname } from 'path';
 import { Readable } from 'stream';
 import { AuthGuard } from '../auth/auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
 import { LibraryService } from './library.service';
 import { BookdarrService } from '../bookdarr/bookdarr.service';
 import { OfflineDownloadService } from './offline-download.service';
@@ -212,6 +213,13 @@ export class LibraryController {
     }
     const read = body?.read !== false;
     return this.libraryService.setReadStatus(userId, id, read);
+  }
+
+  // Admin-only: clear VM-side cached ebook/audiobook media under data/offline.
+  @Post('admin/clear-cache')
+  @UseGuards(AuthGuard, AdminGuard)
+  async clearServerOfflineCache() {
+    return this.offlineDownloadService.clearAllCachedMedia();
   }
 
   private async sendCachedFile(

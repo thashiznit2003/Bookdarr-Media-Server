@@ -1521,13 +1521,26 @@ export class AppService {
             <div id="settings-smtp-status" style="margin-top: 8px; color: var(--muted);"></div>
           </div>
 
-          <div class="panel" style="margin-top: 20px;">
-            <h3 style="margin-top: 0;">Web Reader</h3>
-            <div style="color: var(--muted);">
-              Web uses EPUB.js for stability. Readium is reserved for the future mobile app.
-            </div>
-          </div>
-        </div>
+	          <div class="panel" style="margin-top: 20px;">
+	            <h3 style="margin-top: 0;">Web Reader</h3>
+	            <div style="color: var(--muted);">
+	              Web uses EPUB.js for stability. Readium is reserved for the future mobile app.
+	            </div>
+	          </div>
+
+	          <div class="panel" id="settings-cache-panel" style="margin-top: 20px; display: none;">
+	            <h3 style="margin-top: 0;">Storage</h3>
+	            <div style="color: var(--muted);">
+	              Clears VM-side cached ebook/audiobook files (server cache) to free disk space.
+	            </div>
+	            <div style="display: flex; gap: 10px; margin-top: 12px;">
+	              <button id="settings-clear-server-cache" style="background: rgba(248, 113, 113, 0.16); border: 1px solid rgba(248, 113, 113, 0.25);">
+	                Clear Server Cache
+	              </button>
+	            </div>
+	            <div id="settings-clear-server-cache-status" style="margin-top: 8px; color: var(--muted);"></div>
+	          </div>
+	        </div>
 
         <div class="page" data-page="accounts">
           <section class="section-title">
@@ -1851,14 +1864,17 @@ export class AppService {
       const settingsSmtpUser = document.getElementById('settings-smtp-user');
       const settingsSmtpFromName = document.getElementById('settings-smtp-from-name');
       const settingsSmtpPass = document.getElementById('settings-smtp-pass');
-      const settingsSmtpFrom = document.getElementById('settings-smtp-from');
-      const saveSmtpButton = document.getElementById('save-smtp');
-      const testSmtpButton = document.getElementById('test-smtp');
-      const settingsSmtpStatus = document.getElementById('settings-smtp-status');
-      const settingsSmtpTitleDot = document.getElementById('settings-smtp-title-dot');
-      const settingsReaderLegacy = document.getElementById('settings-reader-legacy');
-      const saveReaderSettingsButton = document.getElementById('save-reader-settings');
-      const settingsReaderStatus = document.getElementById('settings-reader-status');
+	      const settingsSmtpFrom = document.getElementById('settings-smtp-from');
+	      const saveSmtpButton = document.getElementById('save-smtp');
+	      const testSmtpButton = document.getElementById('test-smtp');
+	      const settingsSmtpStatus = document.getElementById('settings-smtp-status');
+	      const settingsSmtpTitleDot = document.getElementById('settings-smtp-title-dot');
+	      const settingsCachePanel = document.getElementById('settings-cache-panel');
+	      const settingsClearServerCacheButton = document.getElementById('settings-clear-server-cache');
+	      const settingsClearServerCacheStatus = document.getElementById('settings-clear-server-cache-status');
+	      const settingsReaderLegacy = document.getElementById('settings-reader-legacy');
+	      const saveReaderSettingsButton = document.getElementById('save-reader-settings');
+	      const settingsReaderStatus = document.getElementById('settings-reader-status');
       const accountsList = document.getElementById('accounts-list');
       const accountsStatus = document.getElementById('accounts-status');
       const adminActionsPanel = document.getElementById('admin-actions-panel');
@@ -2650,11 +2666,11 @@ export class AppService {
         }
       });
 
-      function updateUserMenu(user) {
+	      function updateUserMenu(user) {
         if (!userMenu || !userButton || !userAvatar || !userLabel) {
           return;
         }
-        if (!user) {
+	        if (!user) {
           debugAuthLog('update_user_menu_signed_out', {
             hasToken: Boolean(state.token),
             hasBootstrap: Boolean(bootstrap?.user),
@@ -2666,14 +2682,17 @@ export class AppService {
           if (createUserPanel) {
             createUserPanel.style.display = 'none';
           }
-          if (adminActionsPanel) {
-            adminActionsPanel.style.display = 'none';
-          }
-          if (!isLoginPage) {
-            window.location.replace('/login?reason=unauth');
-          }
-          return;
-        }
+	          if (adminActionsPanel) {
+	            adminActionsPanel.style.display = 'none';
+	          }
+	          if (settingsCachePanel) {
+	            settingsCachePanel.style.display = 'none';
+	          }
+	          if (!isLoginPage) {
+	            window.location.replace('/login?reason=unauth');
+	          }
+	          return;
+	        }
         const letter = (user.username || user.email || 'U')[0]?.toUpperCase() ?? 'U';
         userAvatar.textContent = letter;
         userLabel.textContent = user.username || user.email;
@@ -2682,10 +2701,13 @@ export class AppService {
         if (createUserPanel) {
           createUserPanel.style.display = user.isAdmin ? 'block' : 'none';
         }
-        if (adminActionsPanel) {
-          adminActionsPanel.style.display = user.isAdmin ? 'block' : 'none';
-        }
-      }
+	        if (adminActionsPanel) {
+	          adminActionsPanel.style.display = user.isAdmin ? 'block' : 'none';
+	        }
+	        if (settingsCachePanel) {
+	          settingsCachePanel.style.display = user.isAdmin ? 'block' : 'none';
+	        }
+	      }
 
       function setAuth(token, refreshToken) {
         state.token = token;
@@ -6614,7 +6636,7 @@ export class AppService {
           });
       });
 
-      testSmtpButton?.addEventListener('click', () => {
+	      testSmtpButton?.addEventListener('click', () => {
         const host = settingsSmtpHost?.value?.trim();
         const port = Number(settingsSmtpPort?.value);
         const user = settingsSmtpUser?.value?.trim();
@@ -6647,9 +6669,51 @@ export class AppService {
             if (settingsSmtpStatus) settingsSmtpStatus.textContent = 'Test email failed.';
             setSmtpTitleDot('warn');
           });
-      });
+	      });
 
-      saveBookdarrButton?.addEventListener('click', () => {
+	      settingsClearServerCacheButton?.addEventListener('click', () => {
+	        if (!state.isAdmin) {
+	          if (settingsClearServerCacheStatus) {
+	            settingsClearServerCacheStatus.textContent = 'Admin access required.';
+	          }
+	          return;
+	        }
+	        const ok = window.confirm(
+	          'Clear Server Cache will delete all VM-cached ebook/audiobook files (server cache) for all users. This frees disk space but will require re-caching later. Continue?',
+	        );
+	        if (!ok) return;
+	        if (settingsClearServerCacheStatus) {
+	          settingsClearServerCacheStatus.textContent = 'Clearing server cache...';
+	        }
+	        fetchWithAuth('/library/admin/clear-cache', {
+	          method: 'POST',
+	          headers: { 'Content-Type': 'application/json' },
+	          body: JSON.stringify({}),
+	        })
+	          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+	          .then(({ ok, body }) => {
+	            if (!ok || !body?.ok) {
+	              const message = body?.message ?? 'Unable to clear cache.';
+	              if (settingsClearServerCacheStatus) settingsClearServerCacheStatus.textContent = message;
+	              return;
+	            }
+	            const bytes = Number(body.deletedBytes || 0);
+	            const files = Number(body.deletedFiles || 0);
+	            if (settingsClearServerCacheStatus) {
+	              settingsClearServerCacheStatus.textContent =
+	                'Cleared ' + files + ' files (' + formatBytes(bytes) + ').';
+	            }
+	            // Refresh My Library so server cache status updates quickly.
+	            if (activePage === 'my-library') {
+	              loadMyLibrary();
+	            }
+	          })
+	          .catch(() => {
+	            if (settingsClearServerCacheStatus) settingsClearServerCacheStatus.textContent = 'Unable to clear cache.';
+	          });
+	      });
+
+	      saveBookdarrButton?.addEventListener('click', () => {
         const host = settingsBookdarrHost?.value;
         const portValue = settingsBookdarrPort?.value;
         const port = portValue ? Number(portValue) : undefined;
