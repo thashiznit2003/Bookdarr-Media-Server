@@ -23,6 +23,7 @@ import { ApiV1AuthController } from './api-v1-auth.controller';
 import { ApiV1MeController } from './api-v1-me.controller';
 import { RateLimitService } from './rate-limit.service';
 import { RateLimitGuard } from './rate-limit.guard';
+import { StreamAuthGuard } from './stream-auth.guard';
 
 @Module({
   imports: [
@@ -55,7 +56,16 @@ import { RateLimitGuard } from './rate-limit.guard';
     AdminGuard,
     RateLimitService,
     RateLimitGuard,
+    StreamAuthGuard,
   ],
-  exports: [AuthGuard, AuthConfigService, JwtModule, AdminGuard, RateLimitGuard],
+  exports: [
+    AuthGuard,
+    StreamAuthGuard,
+    AuthService,
+    AuthConfigService,
+    JwtModule,
+    AdminGuard,
+    RateLimitGuard,
+  ],
 })
 export class AuthModule {}

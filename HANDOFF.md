@@ -7,6 +7,7 @@
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.
 - Device-side caching (PWA): Service Worker lives at `public/sw.js` and can cache a per-device copy using `GET /library/:id/offline-manifest` (requires HTTPS / secure context). This is manual via the book detail modal toggle ("Download offline"). Logout clears device caches via SW `CLEAR_ALL`.
 - Offline audio seeking support: large audiobook streams are cached in chunks and served as `206 Partial Content` responses by the Service Worker for Range requests.
+- Streaming reliability: file streaming endpoints refresh server-side using the refresh cookie when the access token expires mid-playback (supports long sessions + Range requests without audio suddenly breaking).
 - CI: GitHub Actions workflow at `.github/workflows/ci.yml` runs install/test/build/audit on pushes/PRs.
 - Device offline caching: SW retries once on `401` by calling `/auth/refresh` (cookie-based refresh supported) and then re-fetching the chunk/url.
 - Device offline caching status is per-device. The SW emits `OFFLINE_STATUS` for both individual file failures (includes `fileId`) and final book state; treat per-file failures as `Partial` and only show `Failed` when all files fail.

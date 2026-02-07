@@ -52,6 +52,11 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 2FA reset command (for Docker/env usage):
 - `RESET_2FA_ALL=true npm run reset-2fa` or `RESET_2FA_USER=user1,user2 npm run reset-2fa`
 
+## DB Migrations / Backups
+- Production-like mode: set `DB_SYNC=false` and `DB_MIGRATIONS=true` (migrations run automatically at startup).
+- SQLite DB path must be writable by the systemd user (`bms`) or you will hit `SQLITE_READONLY` on login/config writes.
+- Backup/restore commands are documented in `HANDOFF.md`.
+
 ## UI Notes
 - Book detail modal shows a 100-word description preview with a More/Less toggle; modal content can scroll.
 - Book descriptions can contain upstream HTML from Bookdarr/OpenLibrary; normalize to safe plain text server-side (strip tags, decode entities). Do not render upstream HTML directly.

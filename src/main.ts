@@ -15,6 +15,53 @@ async function bootstrap() {
   if (httpServer?.disable) {
     httpServer.disable('etag');
   }
+
+  // Basic security headers (CSP included). The app uses inline scripts/styles, so CSP permits
+  // 'unsafe-inline' but still restricts sources to self (no remote CDNs).
+  app.use((req, res, next) => {
+    const proto =
+      (req.headers['x-forwarded-proto'] as string | undefined) ??
+      (req as any).protocol ??
+      'http';
+    const isSecure = proto === 'https';
+
+    res.setHeader('x-content-type-options', 'nosniff');
+    res.setHeader('referrer-policy', 'strict-origin-when-cross-origin');
+    res.setHeader('x-frame-options', 'DENY');
+    res.setHeader(
+      'permissions-policy',
+      'geolocation=(), microphone=(), camera=(), payment=(), usb=()',
+    );
+
+    if (isSecure) {
+      res.setHeader(
+        'strict-transport-security',
+        'max-age=31536000; includeSubDomains',
+      );
+    }
+
+    // Keep CSP permissive enough for our inline shell while disallowing external origins.
+    res.setHeader(
+      'content-security-policy',
+      [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'none'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "media-src 'self' data: blob:",
+        "connect-src 'self'",
+        "worker-src 'self' blob:",
+        "manifest-src 'self'",
+      ].join('; '),
+    );
+
+    next();
+  });
+
   const publicPath = join(process.cwd(), 'public');
   if (existsSync(publicPath)) {
     app.use(

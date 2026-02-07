@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.246 — 2026-02-07 14:03 -06:00
+- Security: add baseline security headers (CSP, HSTS on HTTPS, nosniff, referrer policy, permissions policy).
+- Security: remove the last remaining URL token fallback so access tokens are never appended into media/image URLs.
+- Streaming reliability: add `StreamAuthGuard` on file streaming endpoints to refresh server-side (using the refresh cookie) when the access token expires during long media playback / Range fetches.
+
 ## 1.0.245 — 2026-02-07 13:53 -06:00
 - Data integrity: add TypeORM migrations (baseline schema migration is idempotent) and run migrations automatically at startup when `DB_SYNC=false` (`DB_MIGRATIONS=true` by default).
 - Fix reader settings persistence: register `ReaderConfigEntity` with the DB connection so `reader_config` works reliably.

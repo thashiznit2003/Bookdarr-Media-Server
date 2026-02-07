@@ -14,6 +14,7 @@ import {
 import type { Request, Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
+import { StreamAuthGuard } from '../auth/stream-auth.guard';
 import { LibraryService } from './library.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { LibraryStreamingService } from './library-streaming.service';
@@ -51,7 +52,7 @@ export class ApiV1LibraryController {
   }
 
   @Get('files/:id/stream')
-  @UseGuards(AuthGuard)
+  @UseGuards(StreamAuthGuard)
   async streamBookFile(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request,
@@ -61,7 +62,7 @@ export class ApiV1LibraryController {
   }
 
   @Get('files/:id/stream/:name')
-  @UseGuards(AuthGuard)
+  @UseGuards(StreamAuthGuard)
   async streamBookFileNamed(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request,
@@ -71,7 +72,7 @@ export class ApiV1LibraryController {
   }
 
   @Head('files/:id/stream')
-  @UseGuards(AuthGuard)
+  @UseGuards(StreamAuthGuard)
   async headBookFile(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request,
@@ -81,7 +82,7 @@ export class ApiV1LibraryController {
   }
 
   @Head('files/:id/stream/:name')
-  @UseGuards(AuthGuard)
+  @UseGuards(StreamAuthGuard)
   async headBookFileNamed(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request,
@@ -171,4 +172,3 @@ export class ApiV1LibraryController {
     return this.offlineDownloadService.clearAllCachedMedia();
   }
 }
-

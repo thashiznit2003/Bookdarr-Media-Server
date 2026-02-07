@@ -3665,14 +3665,9 @@ export class AppService {
 
       function withToken(url) {
         if (!url || !url.startsWith('/')) return url;
-        // Prefer cookie-based auth for same-origin media/image requests to avoid
-        // leaking short-lived access tokens into URLs (logs, history, referrers).
-        if (readCookie('bmsAccessToken') || readCookie('bmsLoggedIn')) {
-          return url;
-        }
-        if (!state.token) return url;
-        const joiner = url.includes('?') ? '&' : '?';
-        return url + joiner + 'token=' + encodeURIComponent(state.token);
+        // Never append access tokens into URLs (they leak into logs/history/referrers).
+        // Same-origin requests should rely on cookie auth; fetch-based flows can use Authorization headers.
+        return url;
       }
 
       function toAbsoluteUrl(url) {
