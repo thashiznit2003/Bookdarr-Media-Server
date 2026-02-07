@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.231 — 2026-02-06 20:06 -06:00
+- Avoid false-alarm device offline messaging: hide `This device: Failed` by default (streaming still works) and change the button to `Retry device download` when a previous attempt failed.
+
 ## 1.0.230 — 2026-02-06 19:48 -06:00
 - Hide `This device: Not downloaded` by default in the book details modal (only show device status once a device download is initiated or explicitly disabled) to avoid confusion with server-side caching.
 

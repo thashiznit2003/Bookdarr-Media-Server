@@ -2284,7 +2284,7 @@ export class AppService {
         const optedOut = isOfflineOptedOut(bookId);
         const hasCopy =
           Boolean(entry) &&
-          (entry.status === 'queued' || entry.status === 'downloading' || entry.status === 'ready' || entry.status === 'failed');
+          (entry.status === 'queued' || entry.status === 'downloading' || entry.status === 'ready' || entry.status === 'partial');
 
         if (optedOut || !hasCopy) {
           if (detailDeviceDownloadStatus) {
@@ -3455,8 +3455,10 @@ export class AppService {
           return isOfflineOptedOut(bookId) ? 'This device: Disabled' : '';
         }
         if (entry.status === 'ready') return 'This device: Ready';
-        if (entry.status === 'failed') return 'This device: Failed';
-        if (entry.status === 'partial') return 'This device: Partial (retry)';
+        // Avoid showing a scary "Failed" label by default. Streaming still works; this only impacts
+        // optional device-side offline caching. We surface the retry action via the button text.
+        if (entry.status === 'failed') return '';
+        if (entry.status === 'partial') return 'This device: Partial (retry available)';
         const percent = Math.round(Number(entry.progress || 0) * 100);
         if (entry.status === 'queued') return 'This device: Queued';
         return 'This device: Downloading ' + percent + '%';
@@ -5793,10 +5795,16 @@ export class AppService {
             const bookId = String(data?.id ?? '');
             const deviceEntry = deviceOfflineByBookId.get(bookId);
             const optedOut = isOfflineOptedOut(bookId);
-            const hasCopy =
-              Boolean(deviceEntry) &&
-              (deviceEntry.status === 'queued' || deviceEntry.status === 'downloading' || deviceEntry.status === 'ready' || deviceEntry.status === 'failed');
-          detailDeviceOfflineToggle.textContent = optedOut || !hasCopy ? 'Download to this device' : 'Remove device copy';
+            const deviceStatus = deviceEntry?.status ?? 'not_started';
+            if (optedOut || deviceStatus === 'not_started') {
+              detailDeviceOfflineToggle.textContent = 'Download to this device';
+            } else if (deviceStatus === 'failed' || deviceStatus === 'partial') {
+              detailDeviceOfflineToggle.textContent = 'Retry device download';
+            } else if (deviceStatus === 'queued' || deviceStatus === 'downloading') {
+              detailDeviceOfflineToggle.textContent = 'Cancel device download';
+            } else {
+              detailDeviceOfflineToggle.textContent = 'Remove device copy';
+            }
           }
         }
         if (detailDeviceDownloadStatus) {
