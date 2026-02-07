@@ -3310,6 +3310,7 @@ export class AppService {
             failedCount: Number(entry.failedCount || 0),
             byType: entry.byType && typeof entry.byType === 'object' ? entry.byType : null,
             error: entry.error ? String(entry.error) : null,
+            queuePosition: typeof entry.queuePosition === 'number' ? entry.queuePosition : null,
           });
         });
       }
@@ -3537,7 +3538,13 @@ export class AppService {
           return byTypeSummary ? 'Offline on this device: ' + byTypeSummary : 'Offline on this device: Partial (retry available)';
         }
         const percent = Math.round(Number(entry.progress || 0) * 100);
-        if (entry.status === 'queued') return byTypeSummary ? 'Offline on this device: ' + byTypeSummary : 'Offline on this device: Queued';
+        if (entry.status === 'queued') {
+          const qp = typeof entry.queuePosition === 'number' ? entry.queuePosition : null;
+          const suffix = qp && qp > 0 ? ' (#' + qp + ' in line)' : '';
+          return byTypeSummary
+            ? 'Offline on this device: Queued' + suffix + ' (' + byTypeSummary + ')'
+            : 'Offline on this device: Queued' + suffix;
+        }
         return byTypeSummary
           ? 'Offline on this device: Downloading ' + percent + '% (' + byTypeSummary + ')'
           : 'Offline on this device: Downloading ' + percent + '%';

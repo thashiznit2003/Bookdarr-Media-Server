@@ -33,6 +33,7 @@ const activeDownloads = new Map(); // bookId -> AbortController
 const bookQueue = []; // bookId[]
 const queuedBooks = new Set(); // bookId
 let processingQueue = false;
+let activeBookId = null; // bookId currently being processed (one at a time)
 
 const AUDIO_CHUNK_THRESHOLD_BYTES = 25 * 1024 * 1024;
 // Bigger chunks reduce per-request overhead (TLS + headers) while still being safe on memory.
@@ -124,6 +125,47 @@ function openDb() {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+async function dbListBooks() {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_BOOKS, "readonly");
+    const store = tx.objectStore(STORE_BOOKS);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function resumePendingDownloads() {
+  try {
+    const records = await dbListBooks();
+    for (const record of records) {
+      const id = record && record.bookId != null ? String(record.bookId) : null;
+      if (!id) continue;
+      const files = Array.isArray(record.files) ? record.files : [];
+      const needsResume = files.some((f) => f && (f.status === "queued" || f.status === "downloading"));
+      if (!needsResume) continue;
+
+      // If the SW was terminated mid-stream, "downloading" is stale. Move back to queued.
+      let mutated = false;
+      for (const f of files) {
+        if (f && f.status === "downloading") {
+          f.status = "queued";
+          mutated = true;
+        }
+      }
+      if (mutated) {
+        record.updatedAt = Date.now();
+        await dbPut(record);
+      }
+
+      enqueueBook(id);
+    }
+  } catch {
+    // ignore
+  }
 }
 
 async function dbGet(bookId) {
@@ -272,6 +314,7 @@ self.addEventListener("activate", (event) => {
         }),
       );
       await self.clients.claim();
+      await resumePendingDownloads();
     })(),
   );
 });
@@ -567,9 +610,11 @@ async function processQueue() {
 }
 
 async function cacheBookNow(bookId) {
+  activeBookId = String(bookId);
   const record = await dbGet(bookId);
   if (!record || !Array.isArray(record.files) || record.files.length === 0) {
     postToAllClients({ type: OUT_STATUS, bookId, status: "failed", error: "Missing file manifest." });
+    activeBookId = null;
     return;
   }
 
@@ -763,6 +808,7 @@ async function cacheBookNow(bookId) {
   }
 
   postToAllClients({ type: OUT_STATUS, bookId, status, fileCount, readyCount, failedCount });
+  activeBookId = null;
 }
 
 async function cacheBook(payload) {
@@ -997,6 +1043,9 @@ async function queryBooks(payload, source) {
       byType[key] = { ...t, status: typeStatus, progress: typeProgress };
     });
 
+    const queuedIndex = bookQueue.findIndex((x) => String(x) === String(id));
+    const queuePosition = String(activeBookId) === String(id) ? 0 : queuedIndex >= 0 ? queuedIndex + 1 : null;
+
     results[id] = {
       status,
       progress,
@@ -1007,6 +1056,7 @@ async function queryBooks(payload, source) {
       failedCount,
       byType,
       error: record.error ? String(record.error) : null,
+      queuePosition,
     };
   }
 

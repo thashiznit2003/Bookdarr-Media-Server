@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.237 — 2026-02-06 23:40 -06:00
+- Make device offline queue behavior understandable and resilient: expose queue position for queued books, and resume pending offline downloads after Service Worker restarts/updates so `Queued` doesn’t get stuck.
+
 ## 1.0.236 — 2026-02-06 23:13 -06:00
 - Fix device offline ebook caching: Service Worker now clones the `Response` before `cache.put()` so progress streaming doesn’t fail with `Response body is already used`.
 
