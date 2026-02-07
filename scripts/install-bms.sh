@@ -43,7 +43,9 @@ if [[ ! -f "${ENV_FILE}" ]]; then
 PORT=9797
 DB_TYPE=sqlite
 DB_PATH=/opt/bookdarr-media-server/data/bms.sqlite
-DB_SYNC=true
+DB_SYNC=false
+# Run TypeORM migrations at startup when DB_SYNC is false.
+DB_MIGRATIONS=true
 BOOKDARR_API_URL=
 BOOKDARR_API_KEY=
 BOOKDARR_BOOKPOOL_PATH=/api/v1/user/library/pool
@@ -66,6 +68,14 @@ RESET_TOKEN_TTL_MINUTES=30
 INVITE_CODES=
 ENV
   chown "${APP_USER}:${APP_USER}" "${ENV_FILE}"
+fi
+
+# Ensure the DB + cache directories are owned by the service user to avoid SQLITE_READONLY.
+mkdir -p "${APP_DIR}/data" "${APP_DIR}/data/offline" "${APP_DIR}/data/backups"
+chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}/data"
+if [[ -f "${APP_DIR}/data/bms.sqlite" ]]; then
+  chown "${APP_USER}:${APP_USER}" "${APP_DIR}/data/bms.sqlite"
+  chmod 600 "${APP_DIR}/data/bms.sqlite"
 fi
 
 sudo -u "${APP_USER}" bash -lc "cd ${APP_DIR} && npm ci"

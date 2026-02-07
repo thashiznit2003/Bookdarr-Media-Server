@@ -11,6 +11,10 @@
 - Device offline caching: SW retries once on `401` by calling `/auth/refresh` (cookie-based refresh supported) and then re-fetching the chunk/url.
 - Device offline caching status is per-device. The SW emits `OFFLINE_STATUS` for both individual file failures (includes `fileId`) and final book state; treat per-file failures as `Partial` and only show `Failed` when all files fail.
 - Device offline audiobook caching uses chunked Range requests with bounded parallel chunk downloads for LAN throughput.
+- DB migrations: when `DB_SYNC=false`, TypeORM runs migrations automatically at startup (`DB_MIGRATIONS=true` by default). This is the intended production-like mode.
+- SQLite backup/restore (VM):
+  - Backup: `sudo systemctl stop bookdarr-media-server; mkdir -p /opt/bookdarr-media-server/data/backups; sqlite3 /opt/bookdarr-media-server/data/bms.sqlite ".backup '/opt/bookdarr-media-server/data/backups/bms-$(date +%Y%m%d-%H%M%S).sqlite'"; sudo systemctl start bookdarr-media-server`
+  - Restore: `sudo systemctl stop bookdarr-media-server; cp /opt/bookdarr-media-server/data/backups/<backup>.sqlite /opt/bookdarr-media-server/data/bms.sqlite; sudo chown bms:bms /opt/bookdarr-media-server/data/bms.sqlite; sudo chmod 600 /opt/bookdarr-media-server/data/bms.sqlite; sudo systemctl start bookdarr-media-server`
 - EPUB open prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.

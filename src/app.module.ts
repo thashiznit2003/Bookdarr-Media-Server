@@ -19,6 +19,8 @@ import { SmtpConfigEntity } from './settings/smtp-config.entity';
 import { ReaderProgressEntity } from './library/reader-progress.entity';
 import { TwoFactorBackupCodeEntity } from './auth/entities/two-factor-backup-code.entity';
 import { AuthSessionEntity } from './auth/entities/auth-session.entity';
+import { ReaderConfigEntity } from './settings/reader-config.entity';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { AuthSessionEntity } from './auth/entities/auth-session.entity';
             database: db.name,
             ssl: db.ssl ? { rejectUnauthorized: false } : false,
             synchronize: db.synchronize,
+            migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
+            migrationsRun: db.runMigrations,
             entities: [
               UserEntity,
               InviteCodeEntity,
@@ -50,6 +54,7 @@ import { AuthSessionEntity } from './auth/entities/auth-session.entity';
               UserLibraryEntity,
               OfflineDownloadEntity,
               SmtpConfigEntity,
+              ReaderConfigEntity,
               ReaderProgressEntity,
             ],
           };
@@ -59,6 +64,8 @@ import { AuthSessionEntity } from './auth/entities/auth-session.entity';
           type: 'sqlite',
           database: db.sqlitePath,
           synchronize: db.synchronize,
+          migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
+          migrationsRun: db.runMigrations,
           entities: [
             UserEntity,
             InviteCodeEntity,
@@ -70,6 +77,7 @@ import { AuthSessionEntity } from './auth/entities/auth-session.entity';
             UserLibraryEntity,
             OfflineDownloadEntity,
             SmtpConfigEntity,
+            ReaderConfigEntity,
             ReaderProgressEntity,
           ],
         };

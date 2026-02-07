@@ -66,6 +66,7 @@ export class SettingsService {
         type: this.settings.database.type,
         configured: databaseConfigured,
         synchronize: this.settings.database.synchronize,
+        runMigrations: this.settings.database.runMigrations,
         sqlitePath: this.settings.database.sqlitePath,
         host: this.settings.database.host,
         port: this.settings.database.port,
@@ -135,6 +136,11 @@ export class SettingsService {
     const dbType = this.parseDbType(dbTypeRaw);
     const dbSyncDefault = dbType === 'sqlite';
     const dbSync = this.parseBoolean(this.readEnv('DB_SYNC'), dbSyncDefault);
+    const dbMigrationsDefault = !dbSync;
+    const dbRunMigrations = this.parseBoolean(
+      this.readEnv('DB_MIGRATIONS'),
+      dbMigrationsDefault,
+    );
     const dbPath = this.readEnv('DB_PATH') ?? DEFAULT_DB_PATH;
     if (dbType === 'sqlite') {
       this.ensureSqliteDirectory(dbPath);
@@ -176,6 +182,7 @@ export class SettingsService {
       database: {
         type: dbType,
         synchronize: dbSync,
+        runMigrations: dbRunMigrations,
         sqlitePath: dbType === 'sqlite' ? dbPath : undefined,
         host: dbType === 'postgres' ? dbHost : undefined,
         port: dbType === 'postgres' ? dbPort : undefined,

@@ -8,6 +8,7 @@ export interface Settings {
   database: {
     type: 'sqlite' | 'postgres';
     synchronize: boolean;
+    runMigrations: boolean;
     sqlitePath?: string;
     host?: string;
     port?: number;
@@ -58,6 +59,7 @@ export interface PublicSettings {
     type: 'sqlite' | 'postgres';
     configured: boolean;
     synchronize: boolean;
+    runMigrations: boolean;
     sqlitePath?: string;
     host?: string;
     port?: number;

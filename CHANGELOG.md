@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.245 — 2026-02-07 13:53 -06:00
+- Data integrity: add TypeORM migrations (baseline schema migration is idempotent) and run migrations automatically at startup when `DB_SYNC=false` (`DB_MIGRATIONS=true` by default).
+- Fix reader settings persistence: register `ReaderConfigEntity` with the DB connection so `reader_config` works reliably.
+- Install hardening: new installs default to `DB_SYNC=false` and the installer ensures the SQLite DB path is owned by the `bms` service user to prevent `SQLITE_READONLY`.
+- Document SQLite backup/restore steps in `HANDOFF.md`.
+
 ## 1.0.244 — 2026-02-07 13:33 -06:00
 - Auth hardening: add multi-device session table (`auth_sessions`) and migrate refresh rotation to per-session `sid` with one-time-use refresh `jti` (refresh token reuse revokes all sessions and bumps `tokenVersion`).
 - Auth reliability: controllers now pass client `ip` and `user-agent` into auth flows so sessions have usable attribution.
