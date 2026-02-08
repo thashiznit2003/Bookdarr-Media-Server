@@ -16,7 +16,7 @@ if [[ $(id -u) -ne 0 ]]; then
 fi
 
 apt-get update
-apt-get install -y curl ca-certificates git build-essential python3 make g++ libsqlite3-dev
+apt-get install -y curl ca-certificates git build-essential python3 make g++ libsqlite3-dev logrotate
 
 if ! command -v node >/dev/null 2>&1; then
   curl -fsSL "${NODE_SETUP_URL}" | bash -
@@ -55,6 +55,23 @@ SMTP_PORT=
 SMTP_USER=
 SMTP_PASS=
 SMTP_FROM=
+# Optional friendly sender name (e.g., "Bookdarr Media Server")
+SMTP_FROM_NAME=
+# Logging
+LOG_DIR=/opt/bookdarr-media-server/data/logs
+# Reverse proxy / HTTPS hardening (recommended for public web exposure)
+TRUST_PROXY=1
+ENFORCE_HTTPS=true
+ENFORCE_HTTPS_REDIRECT=true
+ENFORCE_HTTPS_ALLOW_HOSTS=localhost,127.0.0.1
+# Admin endpoint hardening (defense-in-depth)
+# Comma-separated IPs/CIDRs (e.g., "203.0.113.10,203.0.113.0/24,2001:db8::/32")
+ADMIN_IP_ALLOWLIST=
+# Require admin password (and OTP if enabled) for sensitive admin actions (password/2FA resets)
+ADMIN_REAUTH_REQUIRED=true
+# Offline cache disk guardrails (VM-side server cache)
+OFFLINE_WARN_FREE_MB=4096
+OFFLINE_MIN_FREE_MB=2048
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
 JWT_ACCESS_TTL=15m
@@ -66,12 +83,25 @@ ENV
 fi
 
 # Ensure the DB + cache directories are owned by the service user to avoid SQLITE_READONLY.
-mkdir -p "${APP_DIR}/data" "${APP_DIR}/data/offline" "${APP_DIR}/data/backups"
+mkdir -p "${APP_DIR}/data" "${APP_DIR}/data/offline" "${APP_DIR}/data/backups" "${APP_DIR}/data/logs"
 chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}/data"
 if [[ -f "${APP_DIR}/data/bms.sqlite" ]]; then
   chown "${APP_USER}:${APP_USER}" "${APP_DIR}/data/bms.sqlite"
   chmod 600 "${APP_DIR}/data/bms.sqlite"
 fi
+
+cat <<'LOGROTATE' > "/etc/logrotate.d/${APP_NAME}"
+${APP_DIR}/data/logs/bms.log {
+  daily
+  rotate 14
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+  su bms bms
+}
+LOGROTATE
 
 sudo -u "${APP_USER}" bash -lc "cd ${APP_DIR} && npm ci"
 sudo -u "${APP_USER}" bash -lc "cd ${APP_DIR} && npm run build"

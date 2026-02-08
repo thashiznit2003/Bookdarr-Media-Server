@@ -19,7 +19,19 @@ async function bootstrap() {
   }
   if (typeof httpServer?.set === 'function') {
     // Respect x-forwarded-* headers when behind a reverse proxy (public web scenario).
-    httpServer.set('trust proxy', 1);
+    // TRUST_PROXY can be:
+    // - "true"/"false"
+    // - a hop count number like "1"
+    const raw = (process.env.TRUST_PROXY ?? '1').trim().toLowerCase();
+    const trustProxy =
+      raw === 'true'
+        ? true
+        : raw === 'false'
+          ? false
+          : Number.isFinite(Number(raw))
+            ? Number(raw)
+            : 1;
+    httpServer.set('trust proxy', trustProxy as any);
   }
 
   const requestId = new RequestIdMiddleware();
@@ -27,14 +39,55 @@ async function bootstrap() {
   const cspNonce = new CspNonceMiddleware();
   app.use(cspNonce.use.bind(cspNonce));
 
+  const enforceHttps = (process.env.ENFORCE_HTTPS ?? 'false') === 'true';
+  const enforceHttpsRedirect =
+    (process.env.ENFORCE_HTTPS_REDIRECT ?? 'true') !== 'false';
+  const enforceHttpsAllowHosts = new Set(
+    (process.env.ENFORCE_HTTPS_ALLOW_HOSTS ?? 'localhost,127.0.0.1')
+      .split(',')
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean),
+  );
+
+  // HTTPS-only (production baseline). This must run before static/index handlers.
+  app.use((req, res, next) => {
+    if (!enforceHttps) return next();
+    const headerProtoRaw = req.headers['x-forwarded-proto'];
+    const headerProto =
+      typeof headerProtoRaw === 'string'
+        ? headerProtoRaw.split(',')[0]?.trim()
+        : undefined;
+    const proto = (req as any).protocol ?? headerProto ?? 'http';
+    const isSecure = proto === 'https' || Boolean((req as any).secure);
+    if (isSecure) return next();
+
+    const hostHeader =
+      (req.headers['x-forwarded-host'] as string | undefined) ??
+      (req.headers['host'] as string | undefined) ??
+      '';
+    const hostname = hostHeader.split(':')[0]?.trim().toLowerCase();
+    if (hostname && enforceHttpsAllowHosts.has(hostname)) {
+      return next();
+    }
+
+    if (enforceHttpsRedirect && hostHeader) {
+      const url = `https://${hostHeader}${req.originalUrl ?? req.url ?? '/'}`;
+      res.redirect(308, url);
+      return;
+    }
+    res.status(400).send('HTTPS is required.');
+  });
+
   // Basic security headers (CSP included). The app uses inline scripts/styles, so CSP permits
   // 'unsafe-inline' but still restricts sources to self (no remote CDNs).
   app.use((req, res, next) => {
-    const proto =
-      (req.headers['x-forwarded-proto'] as string | undefined) ??
-      (req as any).protocol ??
-      'http';
-    const isSecure = proto === 'https';
+    const headerProtoRaw = req.headers['x-forwarded-proto'];
+    const headerProto =
+      typeof headerProtoRaw === 'string'
+        ? headerProtoRaw.split(',')[0]?.trim()
+        : undefined;
+    const proto = (req as any).protocol ?? headerProto ?? 'http';
+    const isSecure = proto === 'https' || Boolean((req as any).secure);
 
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'strict-origin-when-cross-origin');

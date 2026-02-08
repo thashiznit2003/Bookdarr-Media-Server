@@ -7,6 +7,7 @@
 - EPUB reader: browser uses a vendored epub.js build at `vendor/epub/epub.min.js`, served from `/vendor/epub/` (no npm dependency).
 - EPUB reader dependency: JSZip is vendored at `vendor/jszip/jszip.min.js`, served from `/vendor/jszip/`.
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.
+- Production baseline: enable HTTPS-only via `ENFORCE_HTTPS=true` and configure reverse proxy headers (`x-forwarded-*`) with `TRUST_PROXY` set appropriately.
 - Device-side caching (PWA): Service Worker lives at `public/sw.js` and can cache a per-device copy using `GET /library/:id/offline-manifest` (requires HTTPS / secure context). This is manual via the book detail modal toggle ("Download offline"). Logout clears device caches via SW `CLEAR_ALL`.
 - Offline audio seeking support: large audiobook streams are cached in chunks and served as `206 Partial Content` responses by the Service Worker for Range requests.
 - Streaming reliability: file streaming endpoints refresh server-side using the refresh cookie when the access token expires mid-playback (supports long sessions + Range requests without audio suddenly breaking).
@@ -36,6 +37,45 @@ When BMS returns `502 Bad Gateway` or the UI is blank, do not roll back. Use the
      - `sudo chown -R bms:bms /opt/bookdarr-media-server/data`
      - `sudo chmod 600 /opt/bookdarr-media-server/data/bms.sqlite`
    - If Bookdarr calls fail: verify Bookdarr settings in BMS Settings and use `Test Connection`.
+
+## Reverse Proxy (HTTPS-Only)
+If BMS is exposed on the public web, run it behind a reverse proxy (nginx/caddy) and forward the standard headers.
+
+Required headers:
+- `Host`
+- `X-Forwarded-Proto`
+- `X-Forwarded-Host`
+- `X-Forwarded-For`
+
+Example nginx snippet:
+```nginx
+location / {
+  proxy_pass http://127.0.0.1:9797;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Real-IP $remote_addr;
+}
+```
+
+Recommended `.env`:
+- `TRUST_PROXY=1`
+- `ENFORCE_HTTPS=true`
+- `ENFORCE_HTTPS_REDIRECT=true`
+- `ENFORCE_HTTPS_ALLOW_HOSTS=localhost,127.0.0.1` (optional)
+
+Admin endpoint hardening:
+- `ADMIN_IP_ALLOWLIST=203.0.113.10,203.0.113.0/24` (optional, defense-in-depth)
+- `ADMIN_REAUTH_REQUIRED=true` (default) requires admin password, and OTP if enabled, for password/2FA resets.
+
+Logs:
+- App logs are written to `/opt/bookdarr-media-server/data/logs/bms.log` (`LOG_DIR`).
+- Install script configures log rotation via `/etc/logrotate.d/bookdarr-media-server`.
+
+Offline cache disk guardrails:
+- Server-side cached media lives under `/opt/bookdarr-media-server/data/offline`.
+- Configure thresholds with `OFFLINE_WARN_FREE_MB` and `OFFLINE_MIN_FREE_MB` (downloads will be blocked when low on disk).
 
 ## Mobile Prep: Reader Progress And Offline Contract
 Progress is stored server-side per user and synced across devices via versioned endpoints.

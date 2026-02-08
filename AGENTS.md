@@ -17,6 +17,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 - Invite-code signup only
 - Gmail SMTP password reset (app password)
 - Rate limiting on auth endpoints
+- Production baseline: HTTPS-only when `ENFORCE_HTTPS=true`, with reverse-proxy support via `TRUST_PROXY` and `x-forwarded-*` headers.
 - Strong password hashing (Argon2id preferred)
 - Request correlation: the server sets `x-request-id` on every response and includes `requestId` in request/exception logs.
 - 2FA secrets are encrypted at rest using the auth access secret.
@@ -24,6 +25,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
   - Access tokens include a per-user `tokenVersion` (`tv`) and the JWT strategy checks it against the DB, so password/2FA changes can immediately invalidate existing sessions.
   - Refresh tokens are multi-device: each device/browser session has a stable `sid` stored in `auth_sessions`, and refresh token `jti` rotates on every refresh (one-time use). Logout revokes the `sid`, and the JWT strategy rejects access tokens for revoked/missing sessions.
   - Access/refresh cookies are `HttpOnly` and set `Secure` automatically when behind HTTPS (x-forwarded-proto).
+  - Sensitive admin actions (password/2FA resets) require admin re-auth (`ADMIN_REAUTH_REQUIRED=true` by default). Admin endpoints can be IP-restricted with `ADMIN_IP_ALLOWLIST`.
 
 ## Constraints
 - Read‑only access to Bookdarr data

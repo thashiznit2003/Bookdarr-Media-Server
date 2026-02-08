@@ -781,6 +781,66 @@ export class AuthService implements OnModuleInit {
     return { status: 'ok' };
   }
 
+  async assertAdminReauth(
+    adminUserId: string | undefined,
+    input: { adminPassword?: string; adminOtp?: string },
+    meta?: ClientMeta,
+  ) {
+    // Enabled by default; can be disabled for break-glass dev scenarios.
+    const required = (process.env.ADMIN_REAUTH_REQUIRED ?? 'true') !== 'false';
+    if (!required) return { ok: true, required: false };
+
+    if (!adminUserId) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+    const admin = await this.users.findOne({ where: { id: adminUserId } });
+    if (!admin || !admin.isActive || !admin.isAdmin) {
+      throw new UnauthorizedException('Unauthorized.');
+    }
+
+    const adminPassword = input.adminPassword?.toString() ?? '';
+    if (!adminPassword || adminPassword.trim().length === 0) {
+      throw new BadRequestException('Admin password is required.');
+    }
+
+    const passwordOk = await argon2.verify(admin.passwordHash, adminPassword);
+    if (!passwordOk) {
+      this.logger.warn('admin_reauth_failed', {
+        userId: admin.id,
+        reason: 'invalid_password',
+        ip: meta?.ip ?? null,
+      });
+      throw new UnauthorizedException('Admin re-authentication failed.');
+    }
+
+    if (admin.twoFactorEnabled) {
+      const otp = input.adminOtp?.trim();
+      if (!otp) {
+        throw new BadRequestException('Admin two-factor code is required.');
+      }
+      const secret = await this.resolveTwoFactorSecret(admin.twoFactorSecret);
+      let ok = secret ? verifyTotpCode({ token: otp, secret }) : false;
+      if (!ok) {
+        ok = await this.tryConsumeBackupCode(admin.id, otp);
+      }
+      if (!ok) {
+        this.logger.warn('admin_reauth_failed', {
+          userId: admin.id,
+          reason: 'invalid_two_factor',
+          ip: meta?.ip ?? null,
+        });
+        throw new UnauthorizedException('Admin two-factor code is invalid.');
+      }
+      await this.maybeUpgradeTwoFactorSecret(admin, secret);
+    }
+
+    this.logger.info('admin_reauth_ok', {
+      userId: admin.id,
+      ip: meta?.ip ?? null,
+    });
+    return { ok: true, required: true };
+  }
+
   async adminResetPassword(userId: string, newPassword: string) {
     if (!newPassword || newPassword.trim().length === 0) {
       throw new BadRequestException('New password is required.');

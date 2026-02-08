@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.253 — 2026-02-08 00:46 -06:00
+- Production hardening: add configurable HTTPS-only enforcement (`ENFORCE_HTTPS*`) and configurable reverse-proxy trust (`TRUST_PROXY`) for correct `x-forwarded-*` handling.
+- Production ops: add VM-side offline cache disk guardrails (`OFFLINE_WARN_FREE_MB`/`OFFLINE_MIN_FREE_MB`) and periodic low-disk warnings; block new VM-side offline downloads when disk is low.
+- Abuse protection: add optional admin IP allowlist (`ADMIN_IP_ALLOWLIST`) and require admin re-auth (password + OTP if enabled) for admin password/2FA reset actions; add rate limits to admin user management endpoints.
+- Install script: install logrotate and configure rotation for `data/logs/bms.log`.
+
 ## 1.0.252 — 2026-02-08 00:01 -06:00
 - Mobile API contract: add a hand-maintained OpenAPI spec at `GET /api/v1/openapi.json` (iPhone-first, Android-compatible).
 - Offline downloads (mobile): extend `/api/v1/library/:id/offline-manifest` with `fileName`, `size`, `contentType`, and optional `sha256` per file.

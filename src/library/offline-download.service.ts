@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'crypto';
 import { createWriteStream } from 'fs';
-import { access, mkdir, rename, rm } from 'fs/promises';
+import { access, mkdir, rename, rm, statfs } from 'fs/promises';
 import { basename, dirname, extname, join } from 'path';
 import { Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
@@ -41,20 +41,38 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
   private processing = false;
   private stopping = false;
   private clearing = false;
+  private diskMonitor: NodeJS.Timeout | null = null;
+  private lastDiskWarnAt = 0;
+
+  private readonly minFreeBytes: number;
+  private readonly warnFreeBytes: number;
 
   constructor(
     @InjectRepository(OfflineDownloadEntity)
     private readonly downloadsRepo: Repository<OfflineDownloadEntity>,
     private readonly bookdarrService: BookdarrService,
     private readonly logger: FileLoggerService,
-  ) {}
+  ) {
+    const minMb = Number.parseInt(process.env.OFFLINE_MIN_FREE_MB ?? '2048', 10);
+    const warnMb = Number.parseInt(process.env.OFFLINE_WARN_FREE_MB ?? '4096', 10);
+    this.minFreeBytes =
+      Number.isFinite(minMb) && minMb > 0 ? minMb * 1024 * 1024 : 2048 * 1024 * 1024;
+    this.warnFreeBytes =
+      Number.isFinite(warnMb) && warnMb > 0 ? warnMb * 1024 * 1024 : 4096 * 1024 * 1024;
+  }
 
   async onModuleInit() {
+    await mkdir(this.baseDir, { recursive: true });
+    this.startDiskMonitor();
     await this.resumePending();
   }
 
   onModuleDestroy() {
     this.stopping = true;
+    if (this.diskMonitor) {
+      clearInterval(this.diskMonitor);
+      this.diskMonitor = null;
+    }
     for (const controller of this.active.values()) {
       controller.abort();
     }
@@ -403,6 +421,25 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     const controller = new AbortController();
     this.active.set(record.id, controller);
     const now = new Date().toISOString();
+
+    // Fail fast when the VM is low on disk space. This prevents offline caching from filling the disk.
+    const diskOk = await this.assertDiskSpace(record.bytesTotal ?? 0, {
+      downloadId: record.id,
+      bookId: record.bookId,
+      fileId: record.fileId,
+      userId: record.userId,
+    });
+    if (!diskOk) {
+      await this.downloadsRepo.update(record.id, {
+        status: 'failed',
+        error: 'Insufficient disk space for offline caching.',
+        updatedAt: new Date().toISOString(),
+      });
+      this.active.delete(record.id);
+      this.processQueue();
+      return;
+    }
+
     await this.downloadsRepo.update(record.id, {
       status: 'downloading',
       bytesDownloaded: 0,
@@ -544,6 +581,57 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       await rm(path, { force: true });
     } catch {
       // ignore cleanup failures
+    }
+  }
+
+  private startDiskMonitor() {
+    if (this.diskMonitor) return;
+    this.diskMonitor = setInterval(() => {
+      void this.assertDiskSpace(0, { monitor: true });
+    }, 300_000);
+  }
+
+  private async assertDiskSpace(
+    bytesNeeded: number,
+    meta?: Record<string, unknown>,
+  ): Promise<boolean> {
+    try {
+      const stats = await statfs(this.baseDir);
+      const freeBytes = Number(stats.bavail) * Number(stats.bsize);
+      const totalBytes = Number(stats.blocks) * Number(stats.bsize);
+
+      const now = Date.now();
+      if (freeBytes < this.warnFreeBytes && now - this.lastDiskWarnAt > 900_000) {
+        this.lastDiskWarnAt = now;
+        this.logger.warn('offline_cache_low_disk_warning', {
+          freeBytes,
+          totalBytes,
+          warnFreeBytes: this.warnFreeBytes,
+          minFreeBytes: this.minFreeBytes,
+          bytesNeeded,
+          ...meta,
+        });
+      }
+
+      if (freeBytes < this.minFreeBytes + Math.max(bytesNeeded, 0)) {
+        this.logger.error('offline_cache_low_disk_blocked', {
+          freeBytes,
+          totalBytes,
+          warnFreeBytes: this.warnFreeBytes,
+          minFreeBytes: this.minFreeBytes,
+          bytesNeeded,
+          ...meta,
+        });
+        return false;
+      }
+      return true;
+    } catch (error) {
+      // If we can't read disk stats, fail closed for caching operations (but keep server running).
+      this.logger.error('offline_cache_disk_check_failed', {
+        error: error instanceof Error ? error.message : String(error),
+        ...meta,
+      });
+      return false;
     }
   }
 }

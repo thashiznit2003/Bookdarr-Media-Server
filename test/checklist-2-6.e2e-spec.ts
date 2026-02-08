@@ -401,7 +401,7 @@ describe('Checklist 2-6 verification', () => {
     await request(httpServer)
       .post(`/api/users/${user1Id}/reset-2fa`)
       .set('Authorization', `Bearer ${adminAccess}`)
-      .send({})
+      .send({ adminPassword: 'password123' })
       .expect(201);
     await request(httpServer)
       .post('/api/v1/auth/login')

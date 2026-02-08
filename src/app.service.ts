@@ -1565,6 +1565,14 @@ export class AppService {
                 <span class="nav-title">New Password</span>
                 <input id="admin-reset-password" type="password" placeholder="temporary password" />
               </div>
+              <div>
+                <span class="nav-title">Your Password (Re-auth)</span>
+                <input id="admin-reauth-password" type="password" placeholder="admin password" />
+              </div>
+              <div>
+                <span class="nav-title">Your 2FA Code (If Enabled)</span>
+                <input id="admin-reauth-otp" type="text" placeholder="123456" inputmode="numeric" />
+              </div>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 12px;">
               <button id="admin-reset-2fa">Reset 2FA</button>
@@ -1869,6 +1877,8 @@ export class AppService {
       const adminActionsPanel = document.getElementById('admin-actions-panel');
       const adminUserSelect = document.getElementById('admin-user-select');
       const adminResetPasswordInput = document.getElementById('admin-reset-password');
+      const adminReauthPasswordInput = document.getElementById('admin-reauth-password');
+      const adminReauthOtpInput = document.getElementById('admin-reauth-otp');
       const adminResetTwoFactorButton = document.getElementById('admin-reset-2fa');
       const adminResetPasswordButton = document.getElementById('admin-reset-password-btn');
       const adminActionsStatus = document.getElementById('admin-actions-status');
@@ -6816,8 +6826,18 @@ export class AppService {
           if (adminActionsStatus) adminActionsStatus.textContent = 'Select a user first.';
           return;
         }
+        const adminPassword = adminReauthPasswordInput?.value;
+        const adminOtp = adminReauthOtpInput?.value;
+        if (!adminPassword) {
+          if (adminActionsStatus) adminActionsStatus.textContent = 'Enter your admin password to confirm.';
+          return;
+        }
         if (adminActionsStatus) adminActionsStatus.textContent = 'Resetting 2FA...';
-        fetchWithAuth('/api/users/' + adminUserSelect.value + '/reset-2fa', { method: 'POST' })
+        fetchWithAuth('/api/users/' + adminUserSelect.value + '/reset-2fa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminPassword, adminOtp }),
+        })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
             if (!ok) {
@@ -6843,13 +6863,19 @@ export class AppService {
           if (adminActionsStatus) adminActionsStatus.textContent = 'Enter a new password.';
           return;
         }
+        const adminPassword = adminReauthPasswordInput?.value;
+        const adminOtp = adminReauthOtpInput?.value;
+        if (!adminPassword) {
+          if (adminActionsStatus) adminActionsStatus.textContent = 'Enter your admin password to confirm.';
+          return;
+        }
         if (adminActionsStatus) adminActionsStatus.textContent = 'Resetting password...';
         fetchWithAuth('/api/users/' + adminUserSelect.value + '/reset-password', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ newPassword }),
+          body: JSON.stringify({ newPassword, adminPassword, adminOtp }),
         })
           .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
           .then(({ ok, body }) => {
