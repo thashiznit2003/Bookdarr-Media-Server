@@ -62,6 +62,7 @@ export class LibraryStreamingService {
     req: Request,
     res: Response,
     method: 'GET' | 'HEAD',
+    fileNameHint?: string,
   ) {
     const start = Date.now();
     const userId = (req as any).user?.userId as string | undefined;
@@ -96,7 +97,7 @@ export class LibraryStreamingService {
     upstream.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
-    this.applyContentTypeOverride(res, upstream.headers);
+    this.applyContentTypeOverride(res, upstream.headers, fileNameHint);
 
     if (method === 'HEAD') {
       res.end();
@@ -218,26 +219,37 @@ export class LibraryStreamingService {
   private applyContentTypeOverride(
     res: Response,
     headers: { get: (key: string) => string | null },
+    fileNameHint?: string,
   ) {
     const contentType = headers.get('content-type') ?? '';
-    if (contentType && contentType !== 'application/octet-stream') {
+    const normalizedContentType = contentType.split(';')[0]?.trim() ?? '';
+    // Prefer the route filename (when available). Bookdarr sometimes omits Content-Disposition
+    // or serves octet-stream; the named stream routes allow us to correct MIME types reliably.
+    if (fileNameHint) {
+      const hintExt = extname(fileNameHint).toLowerCase();
+      const hintMapped = hintExt ? CONTENT_TYPE_BY_EXT[hintExt] : undefined;
+      if (hintMapped) {
+        res.setHeader('content-type', hintMapped);
+        return;
+      }
+    }
+
+    if (normalizedContentType && normalizedContentType !== 'application/octet-stream') {
       return;
     }
     const disposition = headers.get('content-disposition') ?? '';
-    if (!disposition) {
-      return;
+    let fileName = '';
+    if (disposition) {
+      const fileNameMatch =
+        disposition.match(/filename\\*=(?:UTF-8'')?([^;]+)/i) ||
+        disposition.match(/filename=\"?([^\";]+)\"?/i);
+      fileName = fileNameMatch?.[1]
+        ? decodeURIComponent(fileNameMatch[1].trim())
+        : '';
     }
-    const fileNameMatch =
-      disposition.match(/filename\\*=(?:UTF-8'')?([^;]+)/i) ||
-      disposition.match(/filename=\"?([^\";]+)\"?/i);
-    const fileName = fileNameMatch?.[1]
-      ? decodeURIComponent(fileNameMatch[1].trim())
-      : '';
     const extension = fileName ? extname(fileName).toLowerCase() : '';
     const mapped = extension ? CONTENT_TYPE_BY_EXT[extension] : undefined;
-    if (mapped) {
-      res.setHeader('content-type', mapped);
-    }
+    if (!mapped) return;
+    res.setHeader('content-type', mapped);
   }
 }
-

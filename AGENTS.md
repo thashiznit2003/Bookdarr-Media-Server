@@ -18,6 +18,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 - Rate limiting on auth endpoints
 - Strong password hashing (Argon2id preferred)
 - 2FA secrets are encrypted at rest using the auth access secret.
+  - TOTP is implemented internally in `src/auth/totp.ts` (RFC 6238) so Jest e2e can execute 2FA flows without ESM-only OTP dependencies. Do not re-introduce `otplib` without re-validating Jest/CI.
   - Access tokens include a per-user `tokenVersion` (`tv`) and the JWT strategy checks it against the DB, so password/2FA changes can immediately invalidate existing sessions.
   - Refresh tokens are multi-device: each device/browser session has a stable `sid` stored in `auth_sessions`, and refresh token `jti` rotates on every refresh (one-time use). Logout revokes the `sid`, and the JWT strategy rejects access tokens for revoked/missing sessions.
   - Access/refresh cookies are `HttpOnly` and set `Secure` automatically when behind HTTPS (x-forwarded-proto).
@@ -105,6 +106,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - Device-side caching requires HTTPS (secure context); it will not work on plain LAN `http://<ip>:9797` (except `localhost`).
 - Device-side offline status is reported per media type (Ebook vs Audiobook). A device offline failure does not imply streaming is broken; it only means this browser does not currently have an offline copy.
 - Offline audio needs HTTP Range support for seeking; the SW caches large audiobook streams in fixed-size chunks and serves `206` responses from cache.
+- Streaming MIME types: prefer the named stream routes (`/library/files/:id/stream/:name` and `/api/v1/library/files/:id/stream/:name`). The server uses the `:name` hint to correct upstream octet-stream responses (ex: `.m4b` -> `audio/mp4`).
 - If device offline caching fails with `Device offline: Failed`, suspect expired auth during a long download; SW auto-refreshes on 401 and retries once.
 - SW `OFFLINE_STATUS` messages can be per-file (includes `fileId`) or per-book (final). The UI must not mark a book as failed on a per-file failure; this produces false "Failed" even when other files complete. Book-level failure is only when *all* files fail; otherwise show `Partial` and offer retry.
 - Service Worker commands are fire-and-forget (no response message exists for `CACHE_BOOK`/`CLEAR_BOOK`). Do not `await` a reply for those commands; only `QUERY_BOOKS` returns `QUERY_BOOKS_RESULT`.
@@ -115,6 +117,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - To free VM disk space, use Settings -> Storage -> `Clear Server Cache` (admin-only). This deletes VM-cached offline media under `data/offline` and clears `offline_downloads` DB rows.
 - Audiobook chunk caching uses bounded parallel fetch (chunk concurrency) for higher throughput on LAN without saturating mobile devices.
 - CI: GitHub Actions runs `npm ci`, `npm test`, `npm run test:e2e`, `npm run build`, and `npm audit --omit=dev` on pushes/PRs.
+- Jest e2e runs with `maxWorkers: 1` (`test/jest-e2e.json`) because e2e tests set process env globals; parallel workers can collide.
 - Returning a book removes cached files and marks the book as read for that user; read status can be toggled per book.
 - Downloads are surfaced only inside My Library; `/downloads` redirects to `/my-library`.
 - Desktop EPUB reader now falls back to a direct stream URL if blob loading fails.

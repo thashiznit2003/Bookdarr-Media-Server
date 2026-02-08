@@ -7,6 +7,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
+import { FileLoggerService } from '../src/logging/file-logger.service';
+import { HttpExceptionFilter } from '../src/logging/http-exception.filter';
 
 // Minimal contract tests for /api/v1/* so we can start the mobile app with confidence.
 // These tests run with an isolated SQLite DB and stubbed Bookdarr fetch responses.
@@ -69,6 +71,7 @@ describe('API v1 contract', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
+    app.useGlobalFilters(new HttpExceptionFilter(app.get(FileLoggerService)));
     await app.init();
     httpServer = app.getHttpServer();
   });

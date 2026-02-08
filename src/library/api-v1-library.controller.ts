@@ -65,10 +65,11 @@ export class ApiV1LibraryController {
   @UseGuards(StreamAuthGuard)
   async streamBookFileNamed(
     @Param('id', ParseIntPipe) id: number,
+    @Param('name') name: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    await this.streaming.streamFile(id, req, res, 'GET');
+    await this.streaming.streamFile(id, req, res, 'GET', name);
   }
 
   @Head('files/:id/stream')
@@ -85,10 +86,11 @@ export class ApiV1LibraryController {
   @UseGuards(StreamAuthGuard)
   async headBookFileNamed(
     @Param('id', ParseIntPipe) id: number,
+    @Param('name') name: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    await this.streaming.streamFile(id, req, res, 'HEAD');
+    await this.streaming.streamFile(id, req, res, 'HEAD', name);
   }
 
   @Get('cover-image')

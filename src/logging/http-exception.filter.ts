@@ -30,7 +30,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
     });
 
     if (isHttpException) {
-      return response.status(status).json(exception.getResponse());
+      const payload = exception.getResponse();
+      if (payload && typeof payload === 'object') {
+        try {
+          // Guard against accidentally returning circular objects (ex: raw request/socket references).
+          JSON.stringify(payload);
+          return response.status(status).json(payload);
+        } catch {
+          return response.status(status).json({
+            statusCode: status,
+            message: exception.message,
+          });
+        }
+      }
+      return response.status(status).json(payload);
     }
 
     return response.status(status).json({

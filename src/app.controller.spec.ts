@@ -48,4 +48,22 @@ describe('AppService', () => {
     });
     expect(html).toContain('Offline on this device:');
   });
+
+  it('does not present device-offline failures as a streaming failure (no "Offline on this device: Failed")', () => {
+    const appService = new AppService();
+    const html = appService.getIndexHtml({
+      token: null,
+      refreshToken: null,
+      user: {
+        id: 'test',
+        username: 'test',
+        email: 'test@example.com',
+        isAdmin: true,
+      },
+    });
+    expect(html).not.toContain('Offline on this device: Failed');
+    // Ensure the "failed" state is framed as "not downloaded" with retry, not as a hard failure.
+    expect(html).toContain('Not downloaded (retry available)');
+    expect(html).toContain('Partial (retry available)');
+  });
 });

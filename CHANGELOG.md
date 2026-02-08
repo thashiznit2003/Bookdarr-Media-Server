@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.249 — 2026-02-07 21:41 -06:00
+- Checklist verification: add automated e2e coverage for checklist items 2-6 (cookies/rotation/sessions/rate-limit, 2FA, password reset, streaming+Range) and run e2e sequentially to avoid env collisions.
+- 2FA hardening: replace `otplib` with an internal RFC 6238 TOTP implementation (removes ESM-only transitive deps that broke Jest e2e).
+- Streaming: named stream routes now pass the filename to `LibraryStreamingService` so MIME types can be corrected reliably (ex: `.m4b` -> `audio/mp4`) even when upstream serves octet-stream.
+- Logging: harden `HttpExceptionFilter` against circular exception payloads so errors never crash JSON responses.
+
 ## 1.0.248 — 2026-02-07 15:31 -06:00
 - Mobile API contract: add `/api/v1/*` e2e contract tests (auth + refresh rotation/reuse + library) and run them in CI.
 

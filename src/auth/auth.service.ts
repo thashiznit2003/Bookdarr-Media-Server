@@ -35,6 +35,11 @@ import { PasswordResetTokenEntity } from './entities/password-reset-token.entity
 import { AuthConfigService } from './auth-config.service';
 import { TwoFactorBackupCodeEntity } from './entities/two-factor-backup-code.entity';
 import { AuthSessionEntity } from './entities/auth-session.entity';
+import {
+  buildOtpauthUrl,
+  generateTotpSecret,
+  verifyTotpCode,
+} from './totp';
 
 const MIN_PASSWORD_LENGTH = 8;
 const MIN_USERNAME_LENGTH = 3;
@@ -68,21 +73,6 @@ export class AuthService implements OnModuleInit {
     await this.seedInviteCodes();
     await this.ensureUsernames();
     await this.ensureAdminUser();
-  }
-
-  private otpFns: Pick<
-    typeof import('otplib'),
-    'generateSecret' | 'generateURI' | 'verify'
-  > | null = null;
-
-  private getOtpFns(): NonNullable<AuthService['otpFns']> {
-    // Load 2FA deps only when needed.
-    // This keeps Jest e2e stable (it doesn't exercise 2FA) even if otplib's transitive deps are ESM.
-    if (!this.otpFns) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      this.otpFns = require('otplib');
-    }
-    return this.otpFns!;
   }
 
   async signup(request: SignupRequest, meta?: ClientMeta) {
@@ -194,8 +184,7 @@ export class AuthService implements OnModuleInit {
         };
       }
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
-      const { verify } = this.getOtpFns();
-      let isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
+      let isValid = secret ? verifyTotpCode({ token: otp, secret }) : false;
       if (!isValid) {
         isValid = await this.tryConsumeBackupCode(user.id, otp);
       }
@@ -231,8 +220,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
-    const { verify } = this.getOtpFns();
-    let isValid = secret ? this.isValidOtp(verify({ token: otp, secret })) : false;
+    let isValid = secret ? verifyTotpCode({ token: otp, secret }) : false;
     if (!isValid) {
       isValid = await this.tryConsumeBackupCode(user.id, otp);
     }
@@ -584,13 +572,12 @@ export class AuthService implements OnModuleInit {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Unauthorized.');
     }
-    const { generateSecret, generateURI } = this.getOtpFns();
-    const secret = generateSecret();
+    const secret = generateTotpSecret();
     user.twoFactorTempSecret = await this.encryptTwoFactorSecret(secret);
     await this.users.save(user);
     const label = user.username ?? user.email;
     const issuer = 'Bookdarr Media Server';
-    const otpauthUrl = generateURI({ issuer, label, secret });
+    const otpauthUrl = buildOtpauthUrl({ issuer, label, secret });
     return { secret, otpauthUrl, issuer };
   }
 
@@ -603,10 +590,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Unauthorized.');
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorTempSecret);
-    const { verify } = this.getOtpFns();
-    const isValid = secret
-      ? this.isValidOtp(verify({ token: code, secret }))
-      : false;
+    const isValid = secret ? verifyTotpCode({ token: code, secret }) : false;
     if (!isValid) {
       throw new BadRequestException('Invalid two-factor code.');
     }
@@ -638,9 +622,8 @@ export class AuthService implements OnModuleInit {
     }
     if (input.code) {
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
-      const { verify } = this.getOtpFns();
       const isValid = secret
-        ? this.isValidOtp(verify({ token: input.code.trim(), secret }))
+        ? verifyTotpCode({ token: input.code.trim(), secret })
         : false;
       if (!isValid) {
         throw new BadRequestException('Invalid two-factor code.');
@@ -728,9 +711,8 @@ export class AuthService implements OnModuleInit {
 
     if (input.code) {
       const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
-      const { verify } = this.getOtpFns();
       const isValid = secret
-        ? this.isValidOtp(verify({ token: input.code.trim(), secret }))
+        ? verifyTotpCode({ token: input.code.trim(), secret })
         : false;
       if (!isValid) {
         throw new BadRequestException('Invalid two-factor code.');
@@ -853,17 +835,6 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
     return payload.sub;
-  }
-
-  private isValidOtp(result: unknown): boolean {
-    if (typeof result === 'boolean') {
-      return result;
-    }
-    if (result && typeof result === 'object') {
-      const maybe = result as { valid?: boolean };
-      return Boolean(maybe.valid);
-    }
-    return false;
   }
 
   private async resolveTwoFactorSecret(

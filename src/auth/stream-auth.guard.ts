@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -93,13 +94,13 @@ export class StreamAuthGuard implements CanActivate {
       // refresh server-side and retry auth so the stream stays uninterrupted.
       const alreadyAttempted = Boolean((req as any)._bmsStreamRefreshAttempted);
       if (alreadyAttempted) {
-        throw error;
+        throw new UnauthorizedException('Unauthorized.');
       }
       (req as any)._bmsStreamRefreshAttempted = true;
 
       const refreshToken = this.readCookie(req, 'bmsRefreshToken');
       if (!refreshToken) {
-        throw error;
+        throw new UnauthorizedException('Unauthorized.');
       }
 
       const refreshed = await this.authService.refresh(
@@ -115,8 +116,12 @@ export class StreamAuthGuard implements CanActivate {
       }
       delete (req as any).user;
 
-      return (await this.jwtGuard.canActivate(context)) as boolean;
+      try {
+        return (await this.jwtGuard.canActivate(context)) as boolean;
+      } catch {
+        // Avoid leaking raw passport errors (they can contain circular refs).
+        throw new UnauthorizedException('Unauthorized.');
+      }
     }
   }
 }
-
