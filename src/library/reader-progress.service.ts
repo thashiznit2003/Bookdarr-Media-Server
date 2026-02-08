@@ -2,12 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReaderProgressEntity } from './reader-progress.entity';
+import { FileLoggerService } from '../logging/file-logger.service';
 
 @Injectable()
 export class ReaderProgressService {
+  private readonly lastLogAt = new Map<string, number>();
+
   constructor(
     @InjectRepository(ReaderProgressEntity)
     private readonly progressRepo: Repository<ReaderProgressEntity>,
+    private readonly logger: FileLoggerService,
   ) {}
 
   async getProgress(userId: string, kind: string, fileId: string) {
@@ -43,6 +47,7 @@ export class ReaderProgressService {
         updatedAt: ts,
       });
       await this.progressRepo.save(record);
+      this.logProgress(userId, kind, fileId, ts, true);
       return { data, updatedAt: ts };
     }
     if (existing.updatedAt > ts) {
@@ -54,6 +59,7 @@ export class ReaderProgressService {
     existing.data = JSON.stringify(data ?? {});
     existing.updatedAt = ts;
     await this.progressRepo.save(existing);
+    this.logProgress(userId, kind, fileId, ts, false);
     return { data, updatedAt: ts };
   }
 
@@ -65,6 +71,31 @@ export class ReaderProgressService {
       return { status: 'ok' };
     }
     await this.progressRepo.remove(existing);
+    this.logger.info('reader_progress_reset', { userId, kind, fileId });
     return { status: 'ok' };
+  }
+
+  private logProgress(
+    userId: string,
+    kind: string,
+    fileId: string,
+    updatedAt: number,
+    created: boolean,
+  ) {
+    const key = `${userId}|${kind}|${fileId}`;
+    const now = Date.now();
+    const last = this.lastLogAt.get(key) ?? 0;
+    // Progress updates can be frequent; keep a low-volume breadcrumb trail.
+    if (now - last < 60_000 && !created) {
+      return;
+    }
+    this.lastLogAt.set(key, now);
+    this.logger.info('reader_progress_set', {
+      userId,
+      kind,
+      fileId,
+      updatedAt,
+      created,
+    });
   }
 }

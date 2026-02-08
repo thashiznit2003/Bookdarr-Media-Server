@@ -13,10 +13,11 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 
 ## Security Requirements
 - JWT auth + refresh tokens
-- Invite‑code signup only
+- Invite-code signup only
 - Gmail SMTP password reset (app password)
 - Rate limiting on auth endpoints
 - Strong password hashing (Argon2id preferred)
+- Request correlation: the server sets `x-request-id` on every response and includes `requestId` in request/exception logs.
 - 2FA secrets are encrypted at rest using the auth access secret.
   - TOTP is implemented internally in `src/auth/totp.ts` (RFC 6238) so Jest e2e can execute 2FA flows without ESM-only OTP dependencies. Do not re-introduce `otplib` without re-validating Jest/CI.
   - Access tokens include a per-user `tokenVersion` (`tv`) and the JWT strategy checks it against the DB, so password/2FA changes can immediately invalidate existing sessions.
@@ -133,6 +134,7 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - SMTP config is stored in DB via /settings/smtp and used for password reset emails.
 - SMTP settings controller uses a type-only import to satisfy isolatedModules builds.
 - Create User panel is visible only to admins.
+- `/accounts` is admin-only. Non-admin users receive a 403 "Not authorized" page and remain signed in.
 - Auth module now exports AdminGuard so settings controllers can use it without DI errors.
 - Settings module now includes UserEntity repository to satisfy AdminGuard dependencies.
 - Any module that uses AdminGuard (ex: Library) must also register `UserEntity` in `TypeOrmModule.forFeature([...])` or Nest can crash at startup with `UnknownDependenciesException` and the reverse proxy will return 502.

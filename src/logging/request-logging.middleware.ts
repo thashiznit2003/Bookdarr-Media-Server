@@ -13,6 +13,7 @@ export class RequestLoggingMiddleware implements NestMiddleware {
       this.logger.info('http_request', {
         method: req.method,
         path: req.originalUrl,
+        requestId: (req as any).requestId ?? null,
         statusCode: res.statusCode,
         durationMs,
         ip: req.ip,

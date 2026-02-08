@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SettingsService } from './settings/settings.service';
 import { FileLoggerService } from './logging/file-logger.service';
+import { RequestIdMiddleware } from './logging/request-id.middleware';
 import { RequestLoggingMiddleware } from './logging/request-logging.middleware';
 import { HttpExceptionFilter } from './logging/http-exception.filter';
 
@@ -15,6 +16,9 @@ async function bootstrap() {
   if (httpServer?.disable) {
     httpServer.disable('etag');
   }
+
+  const requestId = new RequestIdMiddleware();
+  app.use(requestId.use.bind(requestId));
 
   // Basic security headers (CSP included). The app uses inline scripts/styles, so CSP permits
   // 'unsafe-inline' but still restricts sources to self (no remote CDNs).
@@ -98,6 +102,7 @@ async function bootstrap() {
       logger.info('http_verbose_request', {
         method: req.method,
         path,
+        requestId: (req as any).requestId ?? null,
         queryKeys,
         bodyKeys,
         ip: req.ip ?? req.socket?.remoteAddress ?? null,
@@ -109,6 +114,7 @@ async function bootstrap() {
         logger.info('http_verbose_response', {
           method: req.method,
           path,
+          requestId: (req as any).requestId ?? null,
           statusCode: res.statusCode,
           durationMs: Date.now() - start,
           userId,

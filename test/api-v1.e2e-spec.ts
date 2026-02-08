@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { FileLoggerService } from '../src/logging/file-logger.service';
 import { HttpExceptionFilter } from '../src/logging/http-exception.filter';
+import { RequestIdMiddleware } from '../src/logging/request-id.middleware';
 
 // Minimal contract tests for /api/v1/* so we can start the mobile app with confidence.
 // These tests run with an isolated SQLite DB and stubbed Bookdarr fetch responses.
@@ -62,6 +63,21 @@ describe('API v1 contract', () => {
           headers: { 'content-type': 'application/json' },
         });
       }
+      if (url === 'http://bookdarr.local/api/v1/bookfile?bookId=1') {
+        const body = [
+          {
+            id: 10,
+            bookId: 1,
+            path: '/books/Test Book.epub',
+            size: 1234,
+            mediaType: 1,
+          },
+        ];
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
       // Unknown fetches should fail fast so tests don't silently hit the network.
       return new Response('not found', { status: 404 });
     }) as any;
@@ -71,6 +87,9 @@ describe('API v1 contract', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
+    // main.ts wires this in production; install it here so contract tests catch regressions.
+    const requestId = new RequestIdMiddleware();
+    app.use(requestId.use.bind(requestId));
     app.useGlobalFilters(new HttpExceptionFilter(app.get(FileLoggerService)));
     await app.init();
     httpServer = app.getHttpServer();
@@ -150,8 +169,67 @@ describe('API v1 contract', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
+    expect(typeof response.headers['x-request-id']).toBe('string');
     expect(Array.isArray(response.body)).toBe(true);
     expect(response.body.length).toBeGreaterThan(0);
     expect(response.body[0]?.title).toBe('Test Book');
+  });
+
+  it('offline manifest uses versioned stream URLs under /api/v1/', async () => {
+    // Checkout is required for offline manifest.
+    await request(httpServer)
+      .post('/api/v1/library/1/checkout')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(201);
+
+    const manifest = await request(httpServer)
+      .get('/api/v1/library/1/offline-manifest')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(manifest.body?.bookId).toBe(1);
+    expect(Array.isArray(manifest.body?.files)).toBe(true);
+    expect(manifest.body.files.length).toBeGreaterThan(0);
+    expect(String(manifest.body.files[0]?.url)).toMatch(/^\/api\/v1\/library\/files\//);
+  });
+
+  it('non-admin users are forbidden from admin endpoints and admin pages (no forced logout)', async () => {
+    // Create a non-admin user using the admin-only API.
+    await request(httpServer)
+      .post('/api/users')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'user1', email: 'user1@example.com', password: 'password123', isAdmin: false })
+      .expect(201);
+
+    const loginUser = await request(httpServer)
+      .post('/api/v1/auth/login')
+      .send({ username: 'user1', password: 'password123' })
+      .expect(201);
+
+    const userToken = loginUser.body?.tokens?.accessToken as string;
+    expect(typeof userToken).toBe('string');
+
+    await request(httpServer)
+      .get('/api/users')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(403);
+
+    await request(httpServer)
+      .post('/api/v1/library/admin/clear-cache')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(403);
+
+    // Visiting the Accounts page should be a 403, not a redirect-to-login.
+    const accounts = await request(httpServer)
+      .get('/accounts')
+      .set('Cookie', [`bmsAccessToken=${encodeURIComponent(userToken)}`])
+      .expect(403);
+    expect(String(accounts.text)).toContain('Not authorized');
+
+    // User remains authenticated for normal endpoints.
+    await request(httpServer)
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200);
   });
 });

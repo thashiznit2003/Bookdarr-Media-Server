@@ -48,11 +48,56 @@ export class AppController {
     return res.send(this.appService.getLoginHtml());
   }
 
-  @Get(['settings', 'accounts', 'my-library'])
+  @Get(['settings', 'my-library'])
   async getPage(@Req() req: Request, @Res() res: Response) {
     const bootstrap = await this.buildBootstrap(req);
     if (!bootstrap?.user) {
       return res.redirect('/login');
+    }
+    res.setHeader('content-type', 'text/html; charset=utf-8');
+    this.setNoCacheHeaders(res);
+    return res.send(this.appService.getIndexHtml(bootstrap));
+  }
+
+  @Get('accounts')
+  async getAccounts(@Req() req: Request, @Res() res: Response) {
+    const bootstrap = await this.buildBootstrap(req);
+    if (!bootstrap?.user) {
+      return res.redirect('/login');
+    }
+    if (!bootstrap.user.isAdmin) {
+      res.setHeader('content-type', 'text/html; charset=utf-8');
+      this.setNoCacheHeaders(res);
+      return res.status(403).send(`
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>BMS - Forbidden</title>
+            <style>
+              body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #0b1220; color: #e5e7eb; }
+              .wrap { max-width: 720px; margin: 12vh auto; padding: 24px; }
+              .card { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.03); padding: 20px; }
+              h1 { margin: 0 0 10px; font-size: 22px; }
+              p { margin: 0 0 14px; color: rgba(229,231,235,0.85); line-height: 1.5; }
+              a { color: #93c5fd; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+              .hint { font-size: 12px; color: rgba(229,231,235,0.6); }
+            </style>
+          </head>
+          <body>
+            <div class="wrap">
+              <div class="card">
+                <h1>Not authorized</h1>
+                <p>Your account does not have access to Accounts.</p>
+                <p><a href="/">Return to Book Pool</a></p>
+                <div class="hint">Status: 403</div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
     this.setNoCacheHeaders(res);

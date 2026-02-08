@@ -85,6 +85,8 @@ cat <<SERVICE > "${SERVICE_FILE}"
 [Unit]
 Description=Bookdarr Media Server
 After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -92,9 +94,12 @@ User=${APP_USER}
 Group=${APP_USER}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${ENV_FILE}
+Environment=NODE_ENV=production
 ExecStart=/usr/bin/node ${APP_DIR}/dist/main.js
 Restart=on-failure
-RestartSec=5
+RestartSec=2
+TimeoutStartSec=30
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target

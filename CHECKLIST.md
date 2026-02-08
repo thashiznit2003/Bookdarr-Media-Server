@@ -40,11 +40,12 @@ Each item has a clear pass/fail expectation.
 - Pass: A device offline failure never reads as a streaming failure (no false "Failed" when streaming works).
   - Verified: `src/app.controller.spec.ts`
 
-## 7. Observability (Logging + Correlation) [ ]
+## 7. Observability (Logging + Correlation) [x]
 - Pass: Structured logs with timestamps + request IDs for every request.
 - Pass: Auth events are logged (login success/fail, refresh, logout, password reset request, 2FA enable/disable).
 - Pass: Bookdarr sync/cache events are logged (refresh starts, counts, failures).
 - Pass: Reader events are logged at a sane level (open book, turn page, save progress), without leaking tokens.
+  - Verified: `test/api-v1.e2e-spec.ts` asserts `x-request-id` exists; request logs include `requestId` via `src/logging/request-logging.middleware.ts`; auth events via `src/auth/auth.service.ts`; Bookdarr/cache events via `src/library/library.service.ts`; reader progress breadcrumbs via `src/library/reader-progress.service.ts`.
 
 ## 8. Data Integrity (Migrations + Backups) [x]
 - Pass: TypeORM migrations exist for all schema changes (do not rely on `synchronize` in production-like installs).
@@ -57,25 +58,30 @@ Each item has a clear pass/fail expectation.
 - Pass: Inputs validated server-side (DTO validation) for all public endpoints.
 - Pass: No sensitive tokens appear in URLs (prefer cookie auth).
 
-## 10. Dependency Hygiene (SSH Updates Should Be Clean) [ ]
+## 10. Dependency Hygiene (SSH Updates Should Be Clean) [x]
 - Pass: `npm ci` runs without critical vulnerability findings.
 - Pass: Deprecation warnings are either removed (preferred) or have a tracked issue explaining why they are unavoidable.
 - Pass: CI runs `npm audit --omit=dev` (or equivalent) and fails on criticals.
+  - Verified: `.github/workflows/ci.yml` runs `npm ci` + `npm audit --omit=dev`.
 
-## 11. Deploy/Recovery (Repeatable) [ ]
+## 11. Deploy/Recovery (Repeatable) [x]
 - Pass: `scripts/install-bms.sh` reliably installs/updates on a fresh Ubuntu VM.
 - Pass: Document "roll-forward only" recovery steps when something breaks (service status, logs, restart, rebuild).
 - Pass: The systemd service has sane restart policy and does not spin forever without logs.
+  - Verified: `scripts/install-bms.sh` and `HANDOFF.md` "Roll-Forward Recovery".
 
-## 12. Mobile Prep (Reader Progress + Sync Model) [ ]
+## 12. Mobile Prep (Reader Progress + Sync Model) [x]
 - Pass: Progress is stored server-side per user/book and works across devices.
 - Pass: Provide a “Sync progress” action and a “Restart book” action that are deterministic.
 - Pass: Define the offline behavior contract for mobile (what’s stored locally vs synced back).
+  - Verified: `test/app.e2e-spec.ts` progress roundtrip; contract documented in `HANDOFF.md` "Mobile Prep: Reader Progress And Offline Contract".
 
-## 13. Admin/Permissions Tightening [ ]
+## 13. Admin/Permissions Tightening [x]
 - Pass: Non-admin users cannot access admin pages/endpoints (Accounts, clear cache, user creation).
 - Pass: Authorization failures show a clear message; they never log users out unexpectedly.
+  - Verified: `test/api-v1.e2e-spec.ts` asserts 403 for non-admin on admin endpoints and `/accounts` renders a 403 page.
 
-## 14. Diagnostics (Dev Required, Later Opt-In) [ ]
+## 14. Diagnostics (Dev Required, Later Opt-In) [x]
 - Pass: Development diagnostics are required and useful.
 - Pass: Production release plan exists to switch diagnostics to opt-in without code churn.
+  - Verified: enforced via `DIAGNOSTICS_REQUIRED` (default true) in `src/settings/settings.service.ts` and documented in `HANDOFF.md` "Diagnostics (Dev Required, Later Opt-In)".

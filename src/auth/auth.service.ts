@@ -35,6 +35,7 @@ import { PasswordResetTokenEntity } from './entities/password-reset-token.entity
 import { AuthConfigService } from './auth-config.service';
 import { TwoFactorBackupCodeEntity } from './entities/two-factor-backup-code.entity';
 import { AuthSessionEntity } from './entities/auth-session.entity';
+import { FileLoggerService } from '../logging/file-logger.service';
 import {
   buildOtpauthUrl,
   generateTotpSecret,
@@ -57,6 +58,7 @@ export class AuthService implements OnModuleInit {
     private readonly jwtService: JwtService,
     private readonly mailerService: MailerService,
     private readonly authConfigService: AuthConfigService,
+    private readonly logger: FileLoggerService,
     @InjectRepository(UserEntity)
     private readonly users: Repository<UserEntity>,
     @InjectRepository(InviteCodeEntity)
@@ -153,6 +155,12 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('Username is required.');
     }
 
+    this.logger.info('auth_login_attempt', {
+      identifier: this.safeIdentifierForLogs(identifier),
+      hasOtp: Boolean(request.otp?.trim()),
+      ip: meta?.ip ?? null,
+    });
+
     this.assertPassword(request.password, false);
 
     let user: UserEntity | null = null;
@@ -167,17 +175,32 @@ export class AuthService implements OnModuleInit {
     }
 
     if (!user || !user.isActive) {
+      this.logger.warn('auth_login_failed', {
+        identifier: this.safeIdentifierForLogs(identifier),
+        reason: 'invalid_credentials',
+        ip: meta?.ip ?? null,
+      });
       throw new UnauthorizedException('Invalid credentials.');
     }
 
     const matches = await argon2.verify(user.passwordHash, request.password);
     if (!matches) {
+      this.logger.warn('auth_login_failed', {
+        identifier: this.safeIdentifierForLogs(identifier),
+        userId: user.id,
+        reason: 'invalid_credentials',
+        ip: meta?.ip ?? null,
+      });
       throw new UnauthorizedException('Invalid credentials.');
     }
 
     if (user.twoFactorEnabled) {
       const otp = request.otp?.trim();
       if (!otp) {
+        this.logger.info('auth_login_2fa_required', {
+          userId: user.id,
+          identifier: this.safeIdentifierForLogs(identifier),
+        });
         return {
           twoFactorRequired: true,
           challengeToken: await this.issueTwoFactorChallenge(user),
@@ -189,6 +212,12 @@ export class AuthService implements OnModuleInit {
         isValid = await this.tryConsumeBackupCode(user.id, otp);
       }
       if (!isValid) {
+        this.logger.warn('auth_login_failed', {
+          userId: user.id,
+          identifier: this.safeIdentifierForLogs(identifier),
+          reason: 'invalid_two_factor',
+          ip: meta?.ip ?? null,
+        });
         throw new UnauthorizedException({
           message: 'Invalid two-factor code.',
           twoFactorRequired: true,
@@ -198,6 +227,12 @@ export class AuthService implements OnModuleInit {
     }
 
     const tokens = await this.issueTokens(user, meta);
+    this.logger.info('auth_login_success', {
+      userId: user.id,
+      username: user.username ?? null,
+      isAdmin: Boolean(user.isAdmin),
+      ip: meta?.ip ?? null,
+    });
     return { user: this.toAuthUser(user), tokens };
   }
 
@@ -217,6 +252,10 @@ export class AuthService implements OnModuleInit {
     const userId = await this.verifyTwoFactorChallenge(challengeToken);
     const user = await this.users.findOne({ where: { id: userId } });
     if (!user || !user.isActive || !user.twoFactorEnabled) {
+      this.logger.warn('auth_login_2fa_failed', {
+        reason: 'invalid_challenge',
+        ip: meta?.ip ?? null,
+      });
       throw new UnauthorizedException('Two-factor challenge is invalid.');
     }
     const secret = await this.resolveTwoFactorSecret(user.twoFactorSecret);
@@ -225,11 +264,20 @@ export class AuthService implements OnModuleInit {
       isValid = await this.tryConsumeBackupCode(user.id, otp);
     }
     if (!isValid) {
+      this.logger.warn('auth_login_2fa_failed', {
+        userId: user.id,
+        reason: 'invalid_code',
+        ip: meta?.ip ?? null,
+      });
       throw new UnauthorizedException('Invalid two-factor code.');
     }
     await this.maybeUpgradeTwoFactorSecret(user, secret);
 
     const tokens = await this.issueTokens(user, meta);
+    this.logger.info('auth_login_2fa_success', {
+      userId: user.id,
+      ip: meta?.ip ?? null,
+    });
     return { user: this.toAuthUser(user), tokens };
   }
 
@@ -268,6 +316,11 @@ export class AuthService implements OnModuleInit {
       }
 
       const tokens = await this.issueTokensForExistingSession(user, session, meta);
+      this.logger.info('auth_refresh_success', {
+        userId: user.id,
+        sid: session.id,
+        ip: meta?.ip ?? null,
+      });
       return { tokens };
     }
 
@@ -284,6 +337,12 @@ export class AuthService implements OnModuleInit {
     const tokens = await this.issueTokensForExistingSession(user, session, meta);
     user.refreshTokenId = undefined;
     await this.users.save(user);
+    this.logger.info('auth_refresh_success', {
+      userId: user.id,
+      sid: session.id,
+      ip: meta?.ip ?? null,
+      migrated: true,
+    });
     return { tokens };
   }
 
@@ -347,6 +406,11 @@ export class AuthService implements OnModuleInit {
         session.lastIp = meta?.ip ?? session.lastIp ?? null;
         await this.sessions.save(session);
       }
+      this.logger.info('auth_logout', {
+        userId: user.id,
+        sid: payload.sid,
+        ip: meta?.ip ?? null,
+      });
       return { status: 'ok' };
     }
 
@@ -357,6 +421,12 @@ export class AuthService implements OnModuleInit {
     }
     await this.revokeAllSessionsForUser(user.id, 'legacy_logout');
 
+    this.logger.info('auth_logout', {
+      userId: user.id,
+      sid: null,
+      ip: meta?.ip ?? null,
+      legacy: true,
+    });
     return { status: 'ok' };
   }
 
@@ -489,8 +559,18 @@ export class AuthService implements OnModuleInit {
 
     const user = await this.users.findOne({ where: { email } });
     if (!user || !user.isActive) {
+      this.logger.info('auth_password_reset_request', {
+        email: this.safeIdentifierForLogs(email),
+        found: false,
+      });
       return { status: 'ok' };
     }
+
+    this.logger.info('auth_password_reset_request', {
+      userId: user.id,
+      email: this.safeIdentifierForLogs(email),
+      found: true,
+    });
 
     const settings = this.settingsService.getSettings();
     const { token, tokenId, secretHash } = await this.generateResetToken();
@@ -510,6 +590,11 @@ export class AuthService implements OnModuleInit {
       baseUrl,
     );
 
+    this.logger.info('auth_password_reset_email_sent', {
+      userId: user.id,
+      email: this.safeIdentifierForLogs(email),
+      ttlMinutes: settings.auth.resetTokenTtlMinutes,
+    });
     return { status: 'ok' };
   }
 
@@ -523,20 +608,36 @@ export class AuthService implements OnModuleInit {
     const { tokenId, secret } = this.parseResetToken(request.token);
     const record = await this.resetTokens.findOne({ where: { id: tokenId } });
     if (!record) {
+      this.logger.warn('auth_password_reset_failed', {
+        tokenId,
+        reason: 'not_found',
+      });
       throw new BadRequestException('Reset token is invalid.');
     }
 
     if (record.usedAt || Date.now() > Number(record.expiresAt)) {
+      this.logger.warn('auth_password_reset_failed', {
+        tokenId,
+        reason: 'expired_or_used',
+      });
       throw new BadRequestException('Reset token has expired.');
     }
 
     const matches = await argon2.verify(record.secretHash, secret);
     if (!matches) {
+      this.logger.warn('auth_password_reset_failed', {
+        tokenId,
+        reason: 'hash_mismatch',
+      });
       throw new BadRequestException('Reset token is invalid.');
     }
 
     const user = await this.users.findOne({ where: { id: record.userId } });
     if (!user) {
+      this.logger.warn('auth_password_reset_failed', {
+        tokenId,
+        reason: 'user_missing',
+      });
       throw new BadRequestException('Reset token is invalid.');
     }
 
@@ -550,6 +651,10 @@ export class AuthService implements OnModuleInit {
     record.usedAt = new Date().toISOString();
     await this.resetTokens.save(record);
 
+    this.logger.info('auth_password_reset_success', {
+      userId: user.id,
+      tokenId,
+    });
     return { status: 'ok' };
   }
 
@@ -572,6 +677,7 @@ export class AuthService implements OnModuleInit {
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Unauthorized.');
     }
+    this.logger.info('auth_2fa_setup_begin', { userId: user.id });
     const secret = generateTotpSecret();
     user.twoFactorTempSecret = await this.encryptTwoFactorSecret(secret);
     await this.users.save(user);
@@ -603,6 +709,7 @@ export class AuthService implements OnModuleInit {
     await this.users.save(user);
     await this.revokeAllSessionsForUser(user.id, 'two_factor_enabled');
     const backupCodes = await this.generateAndStoreBackupCodes(user.id);
+    this.logger.info('auth_2fa_enabled', { userId: user.id });
     return { enabled: true, backupCodes };
   }
 
@@ -650,6 +757,7 @@ export class AuthService implements OnModuleInit {
     await this.backupCodes.delete({ userId: user.id });
     await this.users.save(user);
     await this.revokeAllSessionsForUser(user.id, 'two_factor_disabled');
+    this.logger.info('auth_2fa_disabled', { userId: user.id });
     return { enabled: false };
   }
 
@@ -669,6 +777,7 @@ export class AuthService implements OnModuleInit {
     await this.backupCodes.delete({ userId: user.id });
     await this.users.save(user);
     await this.revokeAllSessionsForUser(user.id, 'admin_reset_two_factor');
+    this.logger.warn('auth_2fa_admin_reset', { userId: user.id });
     return { status: 'ok' };
   }
 
@@ -733,6 +842,7 @@ export class AuthService implements OnModuleInit {
 
     await this.backupCodes.delete({ userId: user.id });
     const backupCodes = await this.generateAndStoreBackupCodes(user.id);
+    this.logger.info('auth_2fa_backup_codes_regenerated', { userId: user.id });
     return { backupCodes };
   }
 
@@ -809,6 +919,18 @@ export class AuthService implements OnModuleInit {
       twoFactorEnabled: Boolean(user.twoFactorEnabled),
       createdAt: user.createdAt,
     };
+  }
+
+  private safeIdentifierForLogs(value?: string | null) {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    if (!trimmed) return null;
+    if (!trimmed.includes('@')) {
+      return trimmed.length > 128 ? trimmed.slice(0, 128) : trimmed;
+    }
+    const [user, ...rest] = trimmed.split('@');
+    const domain = rest.join('@');
+    const prefix = (user ?? '').slice(0, 2);
+    return `${prefix}${prefix ? '***' : '***'}@${domain}`;
   }
 
   private async issueTwoFactorChallenge(user: UserEntity): Promise<string> {

@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.250 — 2026-02-07 22:29 -06:00
+- Observability: add `x-request-id` correlation and include `requestId` in request/exception logs; log auth, library refresh/cache, and reader progress breadcrumbs (without leaking tokens).
+- Mobile prep: `/api/v1/library/:id/offline-manifest` now returns versioned `/api/v1/*` stream URLs; document cross-device progress sync and offline behavior.
+- Admin hardening: `/accounts` is admin-only (403 for non-admin) and the Accounts nav is hidden for non-admin users; add e2e coverage for admin-forbidden flows.
+- Deploy/recovery: improve systemd start-limit behavior in `scripts/install-bms.sh` and document roll-forward recovery steps in `HANDOFF.md`.
+
 ## 1.0.249 — 2026-02-07 21:41 -06:00
 - Checklist verification: add automated e2e coverage for checklist items 2-6 (cookies/rotation/sessions/rate-limit, 2FA, password reset, streaming+Range) and run e2e sequentially to avoid env collisions.
 - 2FA hardening: replace `otplib` with an internal RFC 6238 TOTP implementation (removes ESM-only transitive deps that broke Jest e2e).

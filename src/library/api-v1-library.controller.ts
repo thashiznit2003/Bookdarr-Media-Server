@@ -150,7 +150,18 @@ export class ApiV1LibraryController {
     if (!userId) {
       return { status: 'unauthorized' };
     }
-    return this.libraryService.getOfflineManifest(userId, id);
+    const manifest = await this.libraryService.getOfflineManifest(userId, id);
+    // Mobile contract: prefer versioned URLs under /api/v1/*.
+    return {
+      ...manifest,
+      files: (manifest as any)?.files?.map((file: any) => {
+        const url = typeof file?.url === 'string' ? file.url : '';
+        if (url.startsWith('/library/')) {
+          return { ...file, url: `/api/v1${url}` };
+        }
+        return file;
+      }),
+    };
   }
 
   @Post(':id/read')

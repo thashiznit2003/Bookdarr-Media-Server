@@ -25,6 +25,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     this.logger.error('http_exception', {
       method: request.method,
       path: request.originalUrl,
+      requestId: (request as any).requestId ?? null,
       status,
       message: isHttpException ? exception.message : 'Unexpected error',
     });
@@ -40,6 +41,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
           return response.status(status).json({
             statusCode: status,
             message: exception.message,
+            requestId: (request as any).requestId ?? null,
           });
         }
       }
@@ -49,6 +51,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     return response.status(status).json({
       statusCode: status,
       message: 'Internal server error',
+      requestId: (request as any).requestId ?? null,
     });
   }
 }

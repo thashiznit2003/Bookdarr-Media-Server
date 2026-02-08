@@ -1921,6 +1921,7 @@ export class AppService {
       const resetCancelButton = document.getElementById('reset-cancel');
       const resetStatus = document.getElementById('reset-status');
       const createUserPanel = document.getElementById('create-user-panel');
+      const accountsNavLink = document.querySelector('a[data-page-link=\"accounts\"]');
       const userMenu = document.getElementById('user-menu');
       const userButton = document.getElementById('user-button');
       const userDropdown = document.getElementById('user-dropdown');
@@ -2678,6 +2679,9 @@ export class AppService {
           userLabel.textContent = 'Signed out';
           userMenu.style.display = 'none';
           state.isAdmin = false;
+          if (accountsNavLink) {
+            accountsNavLink.style.display = 'none';
+          }
           if (createUserPanel) {
             createUserPanel.style.display = 'none';
           }
@@ -2697,6 +2701,9 @@ export class AppService {
         userLabel.textContent = user.username || user.email;
         userMenu.style.display = 'block';
         state.isAdmin = Boolean(user.isAdmin);
+        if (accountsNavLink) {
+          accountsNavLink.style.display = user.isAdmin ? '' : 'none';
+        }
         if (createUserPanel) {
           createUserPanel.style.display = user.isAdmin ? 'block' : 'none';
         }

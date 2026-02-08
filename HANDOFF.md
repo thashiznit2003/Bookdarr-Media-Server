@@ -2,6 +2,7 @@
 
 ## Current Status
 - Mobile API contract: use `/api/v1/*` for endpoints consumed by the future iPhone/iPad app. The web UI still uses legacy, unversioned routes for now.
+- Request correlation: every HTTP response includes `x-request-id`, and request/exception logs include `requestId` so we can tie a UI report to server logs.
 - EPUB reader: browser uses a vendored epub.js build at `vendor/epub/epub.min.js`, served from `/vendor/epub/` (no npm dependency).
 - EPUB reader dependency: JSZip is vendored at `vendor/jszip/jszip.min.js`, served from `/vendor/jszip/`.
 - Media/image URLs prefer cookie auth (no `?token=...`) to avoid leaking tokens into URLs and to prevent stale token URLs after refresh.
@@ -16,6 +17,50 @@
 - SQLite backup/restore (VM):
   - Backup: `sudo systemctl stop bookdarr-media-server; mkdir -p /opt/bookdarr-media-server/data/backups; sqlite3 /opt/bookdarr-media-server/data/bms.sqlite ".backup '/opt/bookdarr-media-server/data/backups/bms-$(date +%Y%m%d-%H%M%S).sqlite'"; sudo systemctl start bookdarr-media-server`
   - Restore: `sudo systemctl stop bookdarr-media-server; cp /opt/bookdarr-media-server/data/backups/<backup>.sqlite /opt/bookdarr-media-server/data/bms.sqlite; sudo chown bms:bms /opt/bookdarr-media-server/data/bms.sqlite; sudo chmod 600 /opt/bookdarr-media-server/data/bms.sqlite; sudo systemctl start bookdarr-media-server`
+
+## Roll-Forward Recovery (When Something Breaks)
+When BMS returns `502 Bad Gateway` or the UI is blank, do not roll back. Use the steps below to recover forward.
+
+1. Check service health:
+   - `sudo systemctl status bookdarr-media-server --no-pager`
+   - `sudo journalctl -u bookdarr-media-server -n 200 --no-pager`
+2. Check BMS app logs:
+   - `tail -n 200 /opt/bookdarr-media-server/data/logs/bms.log`
+   - Look for `http_exception` and match with the browser’s `x-request-id`.
+3. Rebuild and restart (safe, roll-forward):
+   - `cd /opt/bookdarr-media-server && npm ci && npm run build`
+   - `sudo systemctl restart bookdarr-media-server`
+4. Common fixes:
+   - If you see `SQLITE_READONLY`: fix ownership/permissions:
+     - `sudo chown -R bms:bms /opt/bookdarr-media-server/data`
+     - `sudo chmod 600 /opt/bookdarr-media-server/data/bms.sqlite`
+   - If Bookdarr calls fail: verify Bookdarr settings in BMS Settings and use `Test Connection`.
+
+## Mobile Prep: Reader Progress And Offline Contract
+Progress is stored server-side per user and synced across devices via versioned endpoints.
+
+- Read progress:
+  - `GET /api/v1/reader/progress/:kind/:fileId` -> `{ data, updatedAt }`
+- Save progress (client sends its local `updatedAt` timestamp):
+  - `POST /api/v1/reader/progress/:kind/:fileId` -> server keeps the newest `updatedAt` (newer wins)
+- Sync button behavior (deterministic):
+  - `POST /api/v1/reader/progress/:kind/:fileId/sync?prefer=server`:
+    - If the server has progress: return server state
+    - Otherwise: store the client state
+- Restart behavior:
+  - `POST /api/v1/reader/progress/:kind/:fileId/reset`
+
+Offline contract:
+- Web (PWA) device offline: `GET /library/:bookId/offline-manifest` returns unversioned `/library/*` URLs for Service Worker caching.
+- Mobile app offline: `GET /api/v1/library/:bookId/offline-manifest` returns versioned `/api/v1/library/files/*` URLs (stable mobile contract).
+- Mobile app stores the offline files locally and continues to track progress locally while offline.
+- On reconnect, mobile sends its local progress via `POST /api/v1/reader/progress/...` and can use Sync to reconcile when multiple devices diverge (newest `updatedAt` wins).
+
+## Diagnostics (Dev Required, Later Opt-In)
+Diagnostics are required during development so we can capture and ship actionable incident data.
+
+- Dev default: `DIAGNOSTICS_REQUIRED=true` and configure `DIAGNOSTICS_TOKEN` so `POST /diagnostics` can push events to the diagnostics repo.
+- Production release plan: switch to opt-in by setting `DIAGNOSTICS_REQUIRED=false` (no code changes), then later add a secret unlock flow that temporarily enables diagnostics for a specific admin session.
 - EPUB open prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.

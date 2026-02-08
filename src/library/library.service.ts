@@ -17,6 +17,7 @@ import { LibraryCacheService } from './library-cache.service';
 import { UserLibraryService } from './user-library.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { normalizeBookDescription } from './description.util';
+import { FileLoggerService } from '../logging/file-logger.service';
 
 @Injectable()
 export class LibraryService {
@@ -26,14 +27,20 @@ export class LibraryService {
     private readonly libraryCacheService: LibraryCacheService,
     private readonly userLibraryService: UserLibraryService,
     private readonly offlineDownloadService: OfflineDownloadService,
+    private readonly logger: FileLoggerService,
   ) {}
 
   async getLibrary(userId?: string): Promise<LibraryItem[]> {
     const configKey = await this.bookdarrService.getConfigSignature();
     let items = await this.libraryCacheService.getCached(configKey);
     if (!items) {
+      this.logger.info('library_cache_miss', { configKey });
       items = await this.buildLibraryItems();
       await this.libraryCacheService.setCached(configKey, items);
+      this.logger.info('library_cache_rebuilt', {
+        configKey,
+        count: items.length,
+      });
     }
 
     const filtered = items;
@@ -72,9 +79,15 @@ export class LibraryService {
 
   async refreshLibrary(userId?: string): Promise<LibraryItem[]> {
     const configKey = await this.bookdarrService.getConfigSignature();
+    this.logger.info('library_refresh_start', { configKey, userId: userId ?? null });
     await this.libraryCacheService.clearCached();
     const items = await this.buildLibraryItems();
     await this.libraryCacheService.setCached(configKey, items);
+    this.logger.info('library_refresh_done', {
+      configKey,
+      userId: userId ?? null,
+      count: items.length,
+    });
     if (!userId) {
       return items;
     }
@@ -106,6 +119,10 @@ export class LibraryService {
     bookId: number,
     userId?: string,
   ): Promise<LibraryDetail> {
+    this.logger.info('library_detail_open', {
+      bookId,
+      userId: userId ?? null,
+    });
     const bookPool = await this.bookdarrService.getBookPool();
     const item = bookPool.find((entry) => entry.bookId === bookId);
 
@@ -357,6 +374,11 @@ export class LibraryService {
         mediaType: file.mediaType,
       }));
 
+    this.logger.info('device_offline_manifest', {
+      userId,
+      bookId,
+      fileCount: files.length,
+    });
     return { bookId, files };
   }
 
