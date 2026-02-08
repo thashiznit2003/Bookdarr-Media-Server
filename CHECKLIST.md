@@ -81,7 +81,8 @@ Each item has a clear pass/fail expectation.
 - Pass: Authorization failures show a clear message; they never log users out unexpectedly.
   - Verified: `test/api-v1.e2e-spec.ts` asserts 403 for non-admin on admin endpoints and `/accounts` renders a 403 page.
 
-## 14. Diagnostics (Dev Required, Later Opt-In) [x]
-- Pass: Development diagnostics are required and useful.
-- Pass: Production release plan exists to switch diagnostics to opt-in without code churn.
-  - Verified: enforced via `DIAGNOSTICS_REQUIRED` (default true) in `src/settings/settings.service.ts` and documented in `HANDOFF.md` "Diagnostics (Dev Required, Later Opt-In)".
+## 14. No Outbound Telemetry (On-Box Logging Only) [x]
+- Pass: BMS does not push diagnostics, logs, or telemetry to any external repo/service.
+- Pass: Debugging is done via on-box logs (systemd journal + file logs under `data/logs`) and SSH access.
+- Pass: There is no `/diagnostics` endpoint and no `DIAGNOSTICS_*` env/config surface.
+  - Verified: `/diagnostics` returns 404 (`test/app.e2e-spec.ts`) and config schema has no diagnostics fields (`src/settings/settings.types.ts`).

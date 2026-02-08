@@ -13,8 +13,9 @@ export class AppService {
       email?: string;
       isAdmin?: boolean;
     } | null;
-  }): string {
+  }, options?: { cspNonce?: string }): string {
     const boot = bootstrap ?? null;
+    const nonceAttr = options?.cspNonce ? ` nonce="${options.cspNonce}"` : '';
     return `<!doctype html>
 <html lang="en">
   <head>
@@ -23,7 +24,7 @@ export class AppService {
     <meta name="theme-color" content="#0f1115" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Bookdarr Media Server</title>
-    <script>
+    <script${nonceAttr}>
       window.__BMS_INTERNAL_BASE = 'http://127.0.0.1:9797';
     </script>
     <style>
@@ -1237,7 +1238,7 @@ export class AppService {
     </style>
   </head>
   <body>
-    <script>
+    <script${nonceAttr}>
       (function() {
         function send(event, meta) {
           try {
@@ -1270,7 +1271,7 @@ export class AppService {
         });
       })();
     </script>
-    <script>
+    <script${nonceAttr}>
       window.__BMS_BOOTSTRAP__ = ${JSON.stringify(boot)};
     </script>
     <div class="app-shell">
@@ -1772,13 +1773,13 @@ export class AppService {
       </div>
     </div>
 
-    <script type="module">
+    <script type="module"${nonceAttr}>
       import * as pdfjsLib from '/vendor/pdfjs/pdf.mjs';
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
       window.pdfjsLib = pdfjsLib;
     </script>
     <script src="/vendor/jszip/jszip.min.js"></script>
-    <script>
+    <script${nonceAttr}>
       (function () {
         // epub.js UMD expects a global "xmldom" in browsers, even though the browser
         // already provides DOMParser/XMLSerializer natively.
@@ -1791,7 +1792,7 @@ export class AppService {
       })();
     </script>
     <script src="/vendor/epub/epub.min.js"></script>
-    <script>
+    <script${nonceAttr}>
       const bootstrap = window.__BMS_BOOTSTRAP__ || null;
       const state = {
         filter: 'all',
@@ -1828,18 +1829,6 @@ export class AppService {
       const isMyLibraryPage = activePage === 'my-library';
       const isLoginPage = activePage === 'login';
       const authParam = new URLSearchParams(window.location.search).get('auth');
-      const hasAccessCookie = (() => {
-        const raw = document.cookie || '';
-        if (!raw) return false;
-        const parts = raw.split(';');
-        for (const part of parts) {
-          const trimmed = part.trim();
-          if (trimmed.startsWith('bmsAccessToken=')) {
-            return trimmed.length > 'bmsAccessToken='.length;
-          }
-        }
-        return false;
-      })();
       const libraryFilterSelect = document.getElementById('library-filter');
       const myLibraryFilterSelect = document.getElementById('my-library-filter');
       const refreshLibraryButton = document.getElementById('refresh-library');
@@ -2758,19 +2747,6 @@ export class AppService {
         return Boolean(bootstrap?.user || readCookie('bmsLoggedIn'));
       }
 
-      function parseTokenExpiry(token) {
-        if (!token || !token.includes('.')) return null;
-        try {
-          const payload = token.split('.')[1]
-            .replace(/-/g, '+')
-            .replace(/_/g, '/');
-          const decoded = JSON.parse(atob(payload));
-          return decoded?.exp ? decoded.exp * 1000 : null;
-        } catch {
-          return null;
-        }
-      }
-
       let refreshInFlight = null;
       let refreshCooldownUntil = 0;
       async function refreshAuthToken() {
@@ -2852,29 +2828,6 @@ export class AppService {
       }
 
       setBookdarrEnabled(false);
-      function readHashTokens() {
-        const hash = window.location.hash;
-        if (!hash || hash.length < 2) return null;
-        const params = new URLSearchParams(hash.slice(1));
-        const accessToken = params.get('access');
-        const refreshToken = params.get('refresh');
-        if (!accessToken) return null;
-        return { accessToken, refreshToken };
-      }
-
-      function readWindowNameTokens() {
-        const raw = window.name;
-        if (!raw || !raw.startsWith('bms:')) return null;
-        try {
-          const decoded = atob(raw.slice(4));
-          const parsed = JSON.parse(decoded);
-          if (!parsed?.accessToken) return null;
-          window.name = '';
-          return parsed;
-        } catch {
-          return null;
-        }
-      }
 
       function clearAuthParams() {
         const url = new URL(window.location.href);
@@ -3584,20 +3537,6 @@ export class AppService {
           }
         }
         return null;
-      }
-
-      function setTokenCookies(accessToken, refreshToken) {
-        const maxAge = 60 * 60 * 24 * 30;
-        if (accessToken) {
-          document.cookie = 'bmsAccessToken=' + encodeURIComponent(accessToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
-        } else {
-          document.cookie = 'bmsAccessToken=; path=/; max-age=0; samesite=lax';
-        }
-        if (refreshToken) {
-          document.cookie = 'bmsRefreshToken=' + encodeURIComponent(refreshToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
-        } else {
-          document.cookie = 'bmsRefreshToken=; path=/; max-age=0; samesite=lax';
-        }
       }
 
       function isTouchDevice() {
@@ -7040,7 +6979,8 @@ export class AppService {
 </html>`;
   }
 
-  getLoginHtml(): string {
+  getLoginHtml(options?: { cspNonce?: string }): string {
+    const nonceAttr = options?.cspNonce ? ` nonce="${options.cspNonce}"` : '';
     return `<!doctype html>
 <html lang="en">
   <head>
@@ -7200,75 +7140,20 @@ export class AppService {
 
       <div id="login-status-global" class="status"></div>
     </div>
-    <script>
+    <script${nonceAttr}>
       const setupPanel = document.getElementById('setup-panel');
       const loginPanel = document.getElementById('login-panel');
       const loginStatus = document.getElementById('login-status');
       const loginStatusGlobal = document.getElementById('login-status-global');
 
-      function clearStoredAuth() {
+      // Remove legacy (insecure) auth remnants from older versions.
+      // Auth is cookie-only (HttpOnly access/refresh) and must not rely on URL tokens or localStorage.
+      function clearLegacyAuth() {
         try { localStorage.removeItem('bmsAccessToken'); } catch {}
         try { localStorage.removeItem('bmsRefreshToken'); } catch {}
-        try { sessionStorage.clear(); } catch {}
-        try { window.name = ''; } catch {}
-        const cookies = ['bmsAccessToken', 'bmsRefreshToken', 'bmsLoggedIn'];
-        cookies.forEach((name) => {
+        // These cookies are legacy, non-HttpOnly artifacts. Clear them if present.
+        for (const name of ['bmsAccessToken', 'bmsRefreshToken', 'bmsLoggedIn']) {
           document.cookie = name + '=; path=/; max-age=0; samesite=lax';
-        });
-        try {
-          if (window.caches && caches.keys) {
-            caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
-          }
-        } catch {}
-        fetch('/auth/logout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({}),
-        }).catch(() => {});
-      }
-
-      function safeStorageGet(key) {
-        try { return localStorage.getItem(key); } catch { return null; }
-      }
-      function safeStorageSet(key, value) {
-        try { localStorage.setItem(key, value); return true; } catch { return false; }
-      }
-
-      function readCookie(name) {
-        const raw = document.cookie;
-        if (!raw) return null;
-        const parts = raw.split(';');
-        for (const part of parts) {
-          const trimmed = part.trim();
-          if (!trimmed) continue;
-          if (trimmed.startsWith(name + '=')) {
-            return decodeURIComponent(trimmed.slice(name.length + 1));
-          }
-        }
-        return null;
-      }
-
-      function setAuthCookie(enabled) {
-        const maxAge = 60 * 60 * 24 * 30;
-        if (enabled) {
-          document.cookie = 'bmsLoggedIn=1; path=/; max-age=' + maxAge + '; samesite=lax';
-          return;
-        }
-        document.cookie = 'bmsLoggedIn=; path=/; max-age=0; samesite=lax';
-      }
-
-      function setTokenCookies(accessToken, refreshToken) {
-        const maxAge = 60 * 60 * 24 * 30;
-        if (accessToken) {
-          document.cookie = 'bmsAccessToken=' + encodeURIComponent(accessToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
-        } else {
-          document.cookie = 'bmsAccessToken=; path=/; max-age=0; samesite=lax';
-        }
-        if (refreshToken) {
-          document.cookie = 'bmsRefreshToken=' + encodeURIComponent(refreshToken) + '; path=/; max-age=' + maxAge + '; samesite=lax';
-        } else {
-          document.cookie = 'bmsRefreshToken=; path=/; max-age=0; samesite=lax';
         }
       }
 
@@ -7300,53 +7185,8 @@ export class AppService {
         }
       }
 
-      async function tryRefresh(refreshToken) {
-        if (!refreshToken) return false;
-        try {
-          const response = await fetch('/auth/refresh', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken }),
-          });
-          if (!response.ok) return false;
-          const data = await response.json();
-          if (data?.accessToken) {
-            setAuthCookie(true);
-            setTokenCookies(data.accessToken, data.refreshToken || refreshToken);
-            safeStorageSet('bmsAccessToken', data.accessToken);
-            if (data.refreshToken) {
-              safeStorageSet('bmsRefreshToken', data.refreshToken);
-            }
-            window.location.href =
-              '/auth/complete?access=' +
-              encodeURIComponent(data.accessToken) +
-              (data.refreshToken || refreshToken ? '&refresh=' + encodeURIComponent(data.refreshToken || refreshToken) : '');
-            return true;
-          }
-        } catch {}
-        return false;
-      }
-
       (async () => {
-        clearStoredAuth();
-        const cachedToken = safeStorageGet('bmsAccessToken');
-        const cachedRefresh = safeStorageGet('bmsRefreshToken');
-        const cookieToken = readCookie('bmsAccessToken');
-        const cookieRefresh = readCookie('bmsRefreshToken');
-        const accessToken = cachedToken || cookieToken;
-        const refreshToken = cachedRefresh || cookieRefresh;
-        if (accessToken) {
-          setAuthCookie(true);
-          window.location.href =
-            '/auth/complete?access=' +
-            encodeURIComponent(accessToken) +
-            (refreshToken ? '&refresh=' + encodeURIComponent(refreshToken) : '');
-          return;
-        }
-        if (refreshToken) {
-          const refreshed = await tryRefresh(refreshToken);
-          if (refreshed) return;
-        }
+        clearLegacyAuth();
 
         fetch('/auth/setup', { cache: 'no-store' })
           .then((response) => response.json())
@@ -7369,7 +7209,6 @@ export class AppService {
         const loginError = params.get('error');
         const otpRequired = params.get('otp');
         const challengeToken = params.get('challenge');
-        const challengeCookie = readCookie('bmsTwoFactor');
         const setupError = params.get('setupError');
         if (loginError) {
           loginPanel.style.display = 'block';
@@ -7385,7 +7224,14 @@ export class AppService {
           setStatus('Enter your authenticator code.');
         }
         if (loginChallenge) {
-          loginChallenge.value = challengeToken || challengeCookie || '';
+          if (challengeToken) {
+            loginChallenge.value = challengeToken;
+            loginChallenge.disabled = false;
+          } else {
+            // Allow the server to fall back to its HttpOnly cookie challenge token.
+            loginChallenge.value = '';
+            loginChallenge.disabled = true;
+          }
         }
         if (setupError) {
           setupPanel.style.display = 'block';

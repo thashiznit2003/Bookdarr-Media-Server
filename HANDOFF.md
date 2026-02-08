@@ -56,11 +56,8 @@ Offline contract:
 - Mobile app stores the offline files locally and continues to track progress locally while offline.
 - On reconnect, mobile sends its local progress via `POST /api/v1/reader/progress/...` and can use Sync to reconcile when multiple devices diverge (newest `updatedAt` wins).
 
-## Diagnostics (Dev Required, Later Opt-In)
-Diagnostics are required during development so we can capture and ship actionable incident data.
-
-- Dev default: `DIAGNOSTICS_REQUIRED=true` and configure `DIAGNOSTICS_TOKEN` so `POST /diagnostics` can push events to the diagnostics repo.
-- Production release plan: switch to opt-in by setting `DIAGNOSTICS_REQUIRED=false` (no code changes), then later add a secret unlock flow that temporarily enables diagnostics for a specific admin session.
+## Diagnostics
+Diagnostics pushing to GitHub has been removed. Debugging is done via on-box logs and SSH.
 - EPUB open prefers an authenticated `ArrayBuffer` load (cookie auth) for archived `.epub` handling without relying on blob URL extensions.
 - EPUB reader: applies a small viewport height fudge factor to avoid baseline rounding clipping the bottom line.
 - EPUB reader: `.epub-stage` is now an absolute inset (10px each side) so the viewport truly shrinks and avoids clipped lines.
@@ -82,10 +79,7 @@ Diagnostics are required during development so we can capture and ship actionabl
 - Settings module added (env parsing + redacted `/settings` endpoint).
 - Test scripts disable experimental webstorage to avoid Node warnings.
 - Basic admin UI placeholder added at `/` (HTML + fetches `/settings`).
-- Diagnostics endpoint added (`POST /diagnostics`) that pushes payloads to the diagnostics repo.
 - Auth module added with invite-only signup, JWT access/refresh, and password reset via SMTP (SQLite/Postgres storage via TypeORM).
-- Diagnostics endpoint now requires auth when JWT secrets are configured.
-- e2e tests cover auth-required diagnostics and README now includes login + diagnostics curl flow.
 - First-run setup wizard added for initial user creation (GET/POST `/auth/setup`).
 - Book Pool library endpoint added (`GET /library`) with Open Library enrichment and Plex-inspired UI.
 - Added Ubuntu install script at `scripts/install-bms.sh` (systemd + env file).
@@ -230,10 +224,7 @@ Diagnostics are required during development so we can capture and ship actionabl
 - Fixed regex escaping in the Readium manifest link resolver that caused a client JS syntax error.
 - Readium now strips Link headers on manifest responses to avoid proxy header-size 502s.
 - Readium now forces Link removal at write-time to prevent proxies from reinstating large headers.
-- Readium manifests are now proxied via /library/readium/manifest to avoid oversized headers at the edge.
-- Readium theme no longer forces overflow hidden to avoid blank pages.
-- Readium navigator now normalizes resource links and applies text normalization for better pagination.
-- Added verbose Readium reader logs via /auth/debug-log for rendering diagnostics.
+- Added rate-limited client debug logging via `/auth/debug-log` (sanitized; no nested objects) for reader/login troubleshooting.
 - Legacy epub.js reader is now behind a Reader Compatibility settings toggle.
 
 ## Decisions
@@ -243,13 +234,13 @@ Diagnostics are required during development so we can capture and ship actionabl
 - Bookdarr integration: API key stored in BMS settings UI (server‑side only)
 - UI: web app on port 9797
 - Target OS: Ubuntu until Docker
-- Diagnostics: required during development; opt‑in later behind secret unlock
+- Telemetry: no outbound diagnostics/telemetry; use on-box logs + SSH only
 
 ## Immediate Next Steps
 1. Persist auth storage (DB), add rate limiting and account management.
 2. Admin UI placeholder (simple web UI or API endpoints for settings).
 3. Bookdarr client module (read‑only Book Pool endpoints).
-4. Lock down diagnostics endpoint once auth exists.
+4. Harden headers/auth flows for public web exposure.
 
 ## Notes
 - BMS must never expose Bookdarr API key.

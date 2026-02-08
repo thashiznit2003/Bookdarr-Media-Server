@@ -15,7 +15,6 @@ describe('AppController (e2e)', () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
     process.env.INVITE_CODES = 'TESTINVITE';
-    process.env.DIAGNOSTICS_REQUIRED = 'false';
     process.env.DB_TYPE = 'sqlite';
     process.env.DB_PATH = ':memory:';
     process.env.DB_SYNC = 'true';
@@ -68,22 +67,11 @@ describe('AppController (e2e)', () => {
       });
   });
 
-  it('/diagnostics requires auth', () => {
+  it('/diagnostics endpoint is removed (404)', () => {
     return request(app.getHttpServer())
       .post('/diagnostics')
       .send({ event: 'test' })
-      .expect(401);
-  });
-
-  it('/diagnostics accepts auth', () => {
-    return request(app.getHttpServer())
-      .post('/diagnostics')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({ event: 'test' })
-      .expect(201)
-      .expect((response) => {
-        expect(response.body.status).toBe('skipped');
-      });
+      .expect(404);
   });
 
   it('/api/v1/auth/login (POST) returns tokens', async () => {

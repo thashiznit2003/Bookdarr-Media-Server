@@ -350,26 +350,48 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    this.logger.info('auth_complete', {
-      hasAccess: Boolean(access),
-      hasRefresh: Boolean(refresh),
-    });
-    if (!access) {
-      return res.redirect('/login?reason=authfail');
+    // Deprecated flow: older clients used URL tokens. Do not allow this for security reasons.
+    if (access || refresh) {
+      this.logger.warn('auth_complete_deprecated_url_tokens', {
+        hasAccess: Boolean(access),
+        hasRefresh: Boolean(refresh),
+      });
+      res.setHeader('cache-control', 'no-store');
+      return res.redirect(
+        `/login?error=${encodeURIComponent(
+          'Unsupported login flow. Please sign in again.',
+        )}`,
+      );
     }
-    this.setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
     res.setHeader('cache-control', 'no-store');
-    // Backwards-compatible endpoint; keep, but do not emit tokens in the URL.
     return res.redirect(`/`);
   }
 
   @Post('debug-log')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'auth_debug_log_ip', max: 60, windowMs: 60 * 1000, scope: 'ip' })
   async debugLog(
     @Body() body: { event?: string; meta?: Record<string, unknown> },
   ) {
+    const safeMeta: Record<string, unknown> = {};
+    const rawMeta = body?.meta && typeof body.meta === 'object' ? body.meta : null;
+    if (rawMeta) {
+      const entries = Object.entries(rawMeta).slice(0, 30);
+      for (const [key, value] of entries) {
+        if (!key || key.length > 64) continue;
+        if (typeof value === 'string') {
+          safeMeta[key] = value.length > 300 ? value.slice(0, 300) : value;
+        } else if (typeof value === 'number' || typeof value === 'boolean') {
+          safeMeta[key] = value;
+        } else {
+          // Avoid logging nested objects/arrays to reduce log spam risk.
+          safeMeta[key] = String(value);
+        }
+      }
+    }
     this.logger.info('auth_debug', {
       event: body?.event ?? 'unknown',
-      meta: body?.meta ?? null,
+      meta: safeMeta,
     });
     return { ok: true };
   }

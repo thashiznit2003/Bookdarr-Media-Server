@@ -8,7 +8,6 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 - Separate BMS user accounts (invite codes)
 - Gmail SMTP password reset
 - Offline downloads in Reader app
-- Diagnostics required during development (opt‑in at release)
 - Web app UI on port 9797
 
 ## Tech Stack
@@ -59,11 +58,6 @@ sudo systemctl restart bookdarr-media-server
 - `SMTP_USER`
 - `SMTP_PASS`
 - `SMTP_FROM`
-- `DIAGNOSTICS_REQUIRED` (default true)
-- `DIAGNOSTICS_REPO` (default `thashiznit2003/Bookdarr-Media-Diagnostics`)
-- `DIAGNOSTICS_BRANCH` (default `main`)
-- `DIAGNOSTICS_PATH` (default `bms`)
-- `DIAGNOSTICS_TOKEN` (GitHub token for pushes)
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
 - `JWT_ACCESS_TTL` (default `15m`)
@@ -75,7 +69,6 @@ sudo systemctl restart bookdarr-media-server
 GET `/settings` returns a redacted settings summary for debugging.
 GET `/settings/bookdarr` returns stored Bookdarr connection details (auth required).
 POST `/settings/bookdarr` saves Bookdarr connection details (auth required).
-POST `/diagnostics` pushes a diagnostics payload to the diagnostics repo (requires auth if JWT secrets are set).
 GET `/library` returns the Book Pool with Open Library metadata.
 Auth endpoints (invite-only signup):
 - `GET /auth/setup` (first-run status)
@@ -93,7 +86,7 @@ persist across restarts.
 On first run, the web UI shows a setup wizard that creates the initial user.
 After login, the wizard prompts for Bookdarr IP/port/API key to connect the Book Pool.
 
-Example flow (login + diagnostics):
+Example flow (login):
 
 ```bash
 curl -X POST http://localhost:9797/auth/signup \
@@ -105,13 +98,6 @@ curl -X POST http://localhost:9797/auth/signup \
 curl -X POST http://localhost:9797/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"reader@example.com","password":"password123"}'
-```
-
-```bash
-curl -X POST http://localhost:9797/diagnostics \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <access_token>" \
-  -d '{"event":"reader-startup","level":"info","source":"reader","data":{"version":"0.0.1"}}'
 ```
 
 The root route (`/`) serves a temporary admin UI placeholder that reads

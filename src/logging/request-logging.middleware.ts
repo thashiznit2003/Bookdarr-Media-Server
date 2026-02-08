@@ -12,7 +12,8 @@ export class RequestLoggingMiddleware implements NestMiddleware {
       const durationMs = Date.now() - startedAt;
       this.logger.info('http_request', {
         method: req.method,
-        path: req.originalUrl,
+        // Avoid logging query strings (password reset tokens, etc).
+        path: req.path ?? req.originalUrl,
         requestId: (req as any).requestId ?? null,
         statusCode: res.statusCode,
         durationMs,

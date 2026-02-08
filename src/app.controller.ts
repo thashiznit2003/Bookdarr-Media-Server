@@ -34,7 +34,8 @@ export class AppController {
     });
     res.setHeader('content-type', 'text/html; charset=utf-8');
     this.setNoCacheHeaders(res);
-    return res.send(this.appService.getIndexHtml(bootstrap));
+    const nonce = (res.locals as any)?.cspNonce as string | undefined;
+    return res.send(this.appService.getIndexHtml(bootstrap, { cspNonce: nonce }));
   }
 
   @Get('login')
@@ -45,7 +46,8 @@ export class AppController {
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
     this.setNoCacheHeaders(res);
-    return res.send(this.appService.getLoginHtml());
+    const nonce = (res.locals as any)?.cspNonce as string | undefined;
+    return res.send(this.appService.getLoginHtml({ cspNonce: nonce }));
   }
 
   @Get(['settings', 'my-library'])
@@ -56,7 +58,8 @@ export class AppController {
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
     this.setNoCacheHeaders(res);
-    return res.send(this.appService.getIndexHtml(bootstrap));
+    const nonce = (res.locals as any)?.cspNonce as string | undefined;
+    return res.send(this.appService.getIndexHtml(bootstrap, { cspNonce: nonce }));
   }
 
   @Get('accounts')
@@ -101,16 +104,8 @@ export class AppController {
     }
     res.setHeader('content-type', 'text/html; charset=utf-8');
     this.setNoCacheHeaders(res);
-    return res.send(this.appService.getIndexHtml(bootstrap));
-  }
-
-  @Get('diagnostics')
-  async redirectDiagnostics(@Req() req: Request, @Res() res: Response) {
-    const bootstrap = await this.buildBootstrap(req);
-    if (!bootstrap?.user) {
-      return res.redirect('/login');
-    }
-    return res.redirect('/settings');
+    const nonce = (res.locals as any)?.cspNonce as string | undefined;
+    return res.send(this.appService.getIndexHtml(bootstrap, { cspNonce: nonce }));
   }
 
   @Get('downloads')

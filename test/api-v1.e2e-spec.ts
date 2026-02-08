@@ -31,7 +31,6 @@ describe('API v1 contract', () => {
     process.env.DB_PATH = dbPath;
     process.env.DB_SYNC = 'true';
     process.env.DB_MIGRATIONS = 'false';
-    process.env.DIAGNOSTICS_REQUIRED = 'false';
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
     process.env.BOOKDARR_API_URL = 'http://bookdarr.local';

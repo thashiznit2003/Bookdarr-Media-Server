@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.251 — 2026-02-07 23:24 -06:00
+- Remove outbound diagnostics: delete diagnostics module/endpoint and `DIAGNOSTICS_*` config/docs; checklist item 14 is now "No Outbound Telemetry (On-Box Logging Only)".
+- Security: tighten app-shell headers and add CSP nonces (remove `unsafe-inline` scripts) while keeping the web UI functional.
+- Security: remove legacy URL token bootstrap from the login page (no localStorage/non-HttpOnly token cookies; no `/auth/complete?access=...` flow).
+- Logging: redact query strings from request/exception logs and rate-limit + sanitize `/auth/debug-log` to reduce log spam/DoS risk.
+
 ## 1.0.250 — 2026-02-07 22:29 -06:00
 - Observability: add `x-request-id` correlation and include `requestId` in request/exception logs; log auth, library refresh/cache, and reader progress breadcrumbs (without leaking tokens).
 - Mobile prep: `/api/v1/library/:id/offline-manifest` now returns versioned `/api/v1/*` stream URLs; document cross-device progress sync and offline behavior.

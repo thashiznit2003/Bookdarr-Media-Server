@@ -25,13 +25,6 @@ export interface Settings {
     from?: string;
     fromName?: string;
   };
-  diagnostics: {
-    required: boolean;
-    repo?: string;
-    token?: string;
-    branch: string;
-    path: string;
-  };
   auth: {
     accessSecret?: string;
     refreshSecret?: string;
@@ -72,13 +65,6 @@ export interface PublicSettings {
     from?: string;
     fromName?: string;
     configured: boolean;
-  };
-  diagnostics: {
-    required: boolean;
-    configured: boolean;
-    repo?: string;
-    branch: string;
-    path: string;
   };
   auth: {
     configured: boolean;

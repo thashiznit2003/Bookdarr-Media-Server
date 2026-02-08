@@ -4,9 +4,6 @@ import { dirname } from 'path';
 import { PublicSettings, Settings } from './settings.types';
 
 const DEFAULT_PORT = 9797;
-const DEFAULT_DIAGNOSTICS_REPO = 'thashiznit2003/Bookdarr-Media-Diagnostics';
-const DEFAULT_DIAGNOSTICS_BRANCH = 'main';
-const DEFAULT_DIAGNOSTICS_PATH = 'bms';
 const DEFAULT_AUTH_ACCESS_TTL = '15m';
 const DEFAULT_AUTH_REFRESH_TTL = '30d';
 const DEFAULT_AUTH_RESET_TTL_MINUTES = 30;
@@ -47,9 +44,6 @@ export class SettingsService {
             this.settings.database.username &&
             this.settings.database.name,
           );
-    const diagnosticsConfigured = Boolean(
-      this.settings.diagnostics.repo && this.settings.diagnostics.token,
-    );
     const authConfigured = Boolean(
       this.settings.auth.accessSecret && this.settings.auth.refreshSecret,
     );
@@ -80,13 +74,6 @@ export class SettingsService {
         fromName: this.settings.smtp.fromName,
         configured: smtpConfigured,
       },
-      diagnostics: {
-        required: this.settings.diagnostics.required,
-        configured: diagnosticsConfigured,
-        repo: this.settings.diagnostics.repo,
-        branch: this.settings.diagnostics.branch,
-        path: this.settings.diagnostics.path,
-      },
       auth: {
         configured: authConfigured,
         inviteRequired: true,
@@ -112,16 +99,6 @@ export class SettingsService {
       undefined,
       'SMTP_PORT',
     );
-    const diagnosticsRequired = this.parseBoolean(
-      process.env.DIAGNOSTICS_REQUIRED,
-      true,
-    );
-    const diagnosticsRepo = this.readEnv('DIAGNOSTICS_REPO');
-    const diagnosticsBranch =
-      this.readEnv('DIAGNOSTICS_BRANCH') ?? DEFAULT_DIAGNOSTICS_BRANCH;
-    const diagnosticsPath =
-      this.readEnv('DIAGNOSTICS_PATH') ?? DEFAULT_DIAGNOSTICS_PATH;
-    const diagnosticsToken = this.readEnv('DIAGNOSTICS_TOKEN');
     const authAccessTtl =
       this.readEnv('JWT_ACCESS_TTL') ?? DEFAULT_AUTH_ACCESS_TTL;
     const authRefreshTtl =
@@ -199,16 +176,6 @@ export class SettingsService {
         from: this.readEnv('SMTP_FROM'),
         fromName: this.readEnv('SMTP_FROM_NAME'),
       },
-      diagnostics: {
-        required: diagnosticsRequired,
-        repo: this.parseRepo(
-          diagnosticsRepo ?? DEFAULT_DIAGNOSTICS_REPO,
-          'DIAGNOSTICS_REPO',
-        ),
-        token: diagnosticsToken,
-        branch: diagnosticsBranch,
-        path: diagnosticsPath,
-      },
       auth: {
         accessSecret: this.readEnv('JWT_ACCESS_SECRET'),
         refreshSecret: this.readEnv('JWT_REFRESH_SECRET'),
@@ -276,23 +243,6 @@ export class SettingsService {
     } catch {
       throw new Error(`${name} must be a valid URL.`);
     }
-  }
-
-  private parseRepo(
-    value: string | undefined,
-    name: string,
-  ): string | undefined {
-    if (!value || value.trim().length === 0) {
-      return undefined;
-    }
-
-    const trimmed = value.trim();
-    const isValid = /^[^/\s]+\/[^/\s]+$/.test(trimmed);
-    if (!isValid) {
-      throw new Error(`${name} must be in the form \"owner/repo\".`);
-    }
-
-    return trimmed;
   }
 
   private parseDbType(value: string): 'sqlite' | 'postgres' {

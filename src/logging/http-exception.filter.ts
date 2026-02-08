@@ -24,7 +24,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     this.logger.error('http_exception', {
       method: request.method,
-      path: request.originalUrl,
+      // Avoid logging query strings (password reset tokens, etc).
+      path: request.path ?? request.originalUrl,
       requestId: (request as any).requestId ?? null,
       status,
       message: isHttpException ? exception.message : 'Unexpected error',

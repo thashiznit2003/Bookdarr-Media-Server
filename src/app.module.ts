@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SettingsModule } from './settings/settings.module';
-import { DiagnosticsModule } from './diagnostics/diagnostics.module';
 import { AuthModule } from './auth/auth.module';
 import { SettingsService } from './settings/settings.service';
 import { UserEntity } from './auth/entities/user.entity';
@@ -83,7 +82,6 @@ import { join } from 'path';
         };
       },
     }),
-    DiagnosticsModule,
     AuthModule,
     LibraryModule,
   ],

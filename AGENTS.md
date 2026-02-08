@@ -27,7 +27,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 ## Constraints
 - Read‑only access to Bookdarr data
 - Reader progress stored server-side with local cache; Sync/Restart controls update the server
-- Diagnostics required during development; later hidden behind secret unlock
+- No outbound diagnostics/telemetry during development or production (logs stay on the server).
 
 ## Required Docs
 - README.md
@@ -35,9 +35,6 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 - HANDOFF.md
 - CHECKLIST.md
 - AGENTS.md
-
-## Diagnostics
-- Push opt‑in diagnostics to Bookdarr‑Media‑Diagnostics under `/bms/`
 
 ## Dev Environment
 - Ubuntu during development
@@ -73,7 +70,8 @@ If SSH updates show npm deprecation warnings, fix them in the dependency graph (
 - Auth and library fetches use `cache: no-store` to avoid 304 responses that can leave iPad showing Signed Out.
 - Server injects a verified auth bootstrap (user only) into the HTML so iPad doesn’t depend on cached /api/me.
 - Root route redirects to /login when no bootstrap user is present to avoid signed-out shells.
-- Login page now clears stored auth tokens/cookies on load to force a fresh sign-in each time.
+- Do not store access/refresh tokens in localStorage or non-HttpOnly cookies. Web auth is cookie-only (HttpOnly access/refresh).
+- The login page must not use URL token bootstrap flows (`/auth/complete?access=...`) and must not attempt silent refresh based on client-stored JWTs.
 - Client-side guard redirects to /login if the UI detects a signed-out session on any app page.
 - Touch-device reader initialization must declare its observer before use to avoid a script crash that blocks iPad auth boot.
 - Bookdarr connection wizard hides automatically when Bookdarr is configured (DB or env settings).

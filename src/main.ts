@@ -9,6 +9,7 @@ import { FileLoggerService } from './logging/file-logger.service';
 import { RequestIdMiddleware } from './logging/request-id.middleware';
 import { RequestLoggingMiddleware } from './logging/request-logging.middleware';
 import { HttpExceptionFilter } from './logging/http-exception.filter';
+import { CspNonceMiddleware } from './security/csp-nonce.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,9 +17,15 @@ async function bootstrap() {
   if (httpServer?.disable) {
     httpServer.disable('etag');
   }
+  if (typeof httpServer?.set === 'function') {
+    // Respect x-forwarded-* headers when behind a reverse proxy (public web scenario).
+    httpServer.set('trust proxy', 1);
+  }
 
   const requestId = new RequestIdMiddleware();
   app.use(requestId.use.bind(requestId));
+  const cspNonce = new CspNonceMiddleware();
+  app.use(cspNonce.use.bind(cspNonce));
 
   // Basic security headers (CSP included). The app uses inline scripts/styles, so CSP permits
   // 'unsafe-inline' but still restricts sources to self (no remote CDNs).
@@ -32,6 +39,8 @@ async function bootstrap() {
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'strict-origin-when-cross-origin');
     res.setHeader('x-frame-options', 'DENY');
+    res.setHeader('cross-origin-opener-policy', 'same-origin');
+    res.setHeader('cross-origin-resource-policy', 'same-origin');
     res.setHeader(
       'permissions-policy',
       'geolocation=(), microphone=(), camera=(), payment=(), usb=()',
@@ -44,6 +53,11 @@ async function bootstrap() {
       );
     }
 
+    const nonce = (res.locals as any)?.cspNonce as string | undefined;
+    const scriptSrc = nonce
+      ? `script-src 'self' 'nonce-${nonce}'`
+      : `script-src 'self'`;
+
     // Keep CSP permissive enough for our inline shell while disallowing external origins.
     res.setHeader(
       'content-security-policy',
@@ -52,7 +66,8 @@ async function bootstrap() {
         "base-uri 'self'",
         "object-src 'none'",
         "frame-ancestors 'none'",
-        "script-src 'self' 'unsafe-inline'",
+        scriptSrc,
+        "script-src-attr 'none'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
         "font-src 'self' data:",
@@ -83,19 +98,19 @@ async function bootstrap() {
       }),
     );
   }
-  const logger = app.get(FileLoggerService);
-  const verboseLogs = process.env.VERBOSE_LOGS === 'true';
-  const requestLogger = new RequestLoggingMiddleware(logger);
-  app.use(requestLogger.use.bind(requestLogger));
-  app.useGlobalFilters(new HttpExceptionFilter(logger));
-  if (verboseLogs) {
-    app.use((req, res, next) => {
-      const start = Date.now();
-      const path = req.originalUrl ?? req.url ?? '';
-      const queryKeys = req.query ? Object.keys(req.query) : [];
-      const body = req.body;
-      const bodyKeys =
-        body && typeof body === 'object' && !Array.isArray(body)
+    const logger = app.get(FileLoggerService);
+    const verboseLogs = process.env.VERBOSE_LOGS === 'true';
+    const requestLogger = new RequestLoggingMiddleware(logger);
+    app.use(requestLogger.use.bind(requestLogger));
+    app.useGlobalFilters(new HttpExceptionFilter(logger));
+    if (verboseLogs) {
+      app.use((req, res, next) => {
+        const start = Date.now();
+        const path = req.path ?? req.originalUrl ?? req.url ?? '';
+        const queryKeys = req.query ? Object.keys(req.query) : [];
+        const body = req.body;
+        const bodyKeys =
+          body && typeof body === 'object' && !Array.isArray(body)
           ? Object.keys(body)
           : [];
 
