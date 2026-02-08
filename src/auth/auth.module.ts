@@ -66,6 +66,7 @@ import { StreamAuthGuard } from './stream-auth.guard';
     JwtModule,
     AdminGuard,
     RateLimitGuard,
+    RateLimitService,
   ],
 })
 export class AuthModule {}

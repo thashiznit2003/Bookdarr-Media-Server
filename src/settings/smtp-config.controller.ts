@@ -12,6 +12,8 @@ import { SettingsService } from './settings.service';
 import { SmtpConfigService } from './smtp-config.service';
 import type { SmtpConfigInput } from './smtp-config.service';
 import nodemailer from 'nodemailer';
+import { RateLimitGuard } from '../auth/rate-limit.guard';
+import { RateLimit } from '../auth/rate-limit.decorator';
 
 @Controller('settings/smtp')
 @UseGuards(AuthGuard, AdminGuard)
@@ -50,6 +52,8 @@ export class SmtpConfigController {
   }
 
   @Post()
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'settings_smtp_update', max: 10, windowMs: 10 * 60 * 1000, scope: 'ip' })
   async updateConfig(@Body() input: SmtpConfigInput) {
     const config = await this.smtpConfigService.upsert(input);
     return {
@@ -63,6 +67,8 @@ export class SmtpConfigController {
   }
 
   @Post('test')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'settings_smtp_test', max: 10, windowMs: 10 * 60 * 1000, scope: 'ip' })
   async testConfig(@Body() input?: SmtpConfigInput) {
     const host = input?.host?.trim();
     const port = input?.port;
@@ -123,6 +129,8 @@ export class SmtpConfigController {
   }
 
   @Post('check')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ id: 'settings_smtp_check', max: 20, windowMs: 10 * 60 * 1000, scope: 'ip' })
   async checkConfig(@Body() input?: SmtpConfigInput) {
     const host = input?.host?.trim();
     const port = input?.port;

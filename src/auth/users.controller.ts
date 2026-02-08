@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { FileLoggerService } from '../logging/file-logger.service';
 import { RateLimitGuard } from './rate-limit.guard';
 import { RateLimit } from './rate-limit.decorator';
+import { getBaseUrlFromRequest } from '../security/proxy.util';
 
 @Controller('api/users')
 @UseGuards(AuthGuard, AdminGuard)
@@ -29,15 +30,7 @@ export class UsersController {
   }
 
   private getBaseUrl(req: Request) {
-    const proto =
-      (req.headers['x-forwarded-proto'] as string | undefined) ??
-      req.protocol ??
-      'http';
-    const host =
-      (req.headers['x-forwarded-host'] as string | undefined) ??
-      req.get('host');
-    if (!host) return undefined;
-    return `${proto}://${host}`;
+    return getBaseUrlFromRequest(req);
   }
 
   @Post()

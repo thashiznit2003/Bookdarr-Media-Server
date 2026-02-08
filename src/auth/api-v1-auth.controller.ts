@@ -5,6 +5,7 @@ import { AuthGuard } from './auth.guard';
 import { RateLimitGuard } from './rate-limit.guard';
 import { RateLimit } from './rate-limit.decorator';
 import qrcode from 'qrcode';
+import { getBaseUrlFromRequest } from '../security/proxy.util';
 import type {
   LoginRequest,
   LogoutRequest,
@@ -88,13 +89,7 @@ export class ApiV1AuthController {
     { id: 'api_v1_auth_pwreq_email', max: 5, windowMs: 60 * 60 * 1000, scope: 'ip+email' },
   ])
   requestPasswordReset(@Body() request: PasswordResetRequest, @Req() req: Request) {
-    const proto =
-      (req.headers['x-forwarded-proto'] as string | undefined) ??
-      req.protocol ??
-      'http';
-    const host =
-      (req.headers['x-forwarded-host'] as string | undefined) ?? req.get('host');
-    const baseUrl = host ? `${proto}://${host}` : undefined;
+    const baseUrl = getBaseUrlFromRequest(req);
     return this.authService.requestPasswordReset(request, baseUrl);
   }
 

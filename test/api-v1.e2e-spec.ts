@@ -72,6 +72,13 @@ describe('API v1 contract', () => {
             size: 1234,
             mediaType: 1,
           },
+          {
+            id: 20,
+            bookId: 1,
+            path: '/books/Test Book.m4b',
+            size: 12_345_678,
+            mediaType: 2,
+          },
         ];
         return new Response(JSON.stringify(body), {
           status: 200,
@@ -90,6 +97,38 @@ describe('API v1 contract', () => {
         headers.set('accept-ranges', 'bytes');
         headers.set('content-length', String(payload.byteLength));
         return new Response(method === 'HEAD' ? null : payload, {
+          status: 200,
+          headers,
+        });
+      }
+      if (url === 'http://bookdarr.local/api/v1/bookfile/20/stream') {
+        const method = String(init?.method ?? 'GET').toUpperCase();
+        const rangeHeader =
+          typeof init?.headers?.Range === 'string' ? init.headers.Range : undefined;
+        const total = 12_345_678;
+        const full = new Uint8Array(8).fill(7);
+
+        const headers = new Headers();
+        headers.set('content-type', 'application/octet-stream');
+        headers.set('accept-ranges', 'bytes');
+
+        if (rangeHeader && /^bytes=\\d+-\\d*$/i.test(rangeHeader)) {
+          const [startRaw, endRaw] = rangeHeader.replace(/^bytes=/i, '').split('-');
+          const start = Number.parseInt(startRaw, 10);
+          const endRequested = endRaw ? Number.parseInt(endRaw, 10) : total - 1;
+          const end = Math.min(Math.max(endRequested, start), total - 1);
+          const chunkLen = end - start + 1;
+          const chunk = full.slice(0, chunkLen);
+          headers.set('content-length', String(chunkLen));
+          headers.set('content-range', `bytes ${start}-${end}/${total}`);
+          return new Response(method === 'HEAD' ? null : chunk, {
+            status: 206,
+            headers,
+          });
+        }
+
+        headers.set('content-length', String(full.byteLength));
+        return new Response(method === 'HEAD' ? null : full, {
           status: 200,
           headers,
         });
@@ -189,6 +228,9 @@ describe('API v1 contract', () => {
     expect(Array.isArray(response.body)).toBe(true);
     expect(response.body.length).toBeGreaterThan(0);
     expect(response.body[0]?.title).toBe('Test Book');
+    expect(String(response.body[0]?.coverUrl ?? '')).toMatch(
+      /^\/api\/v1\/library\/cover-image\?path=/,
+    );
   });
 
   it('/api/v1/openapi.json is available and includes key paths', async () => {
@@ -235,6 +277,37 @@ describe('API v1 contract', () => {
 
     expect(String(response.headers['content-type'] ?? '')).toContain(
       'application/epub+zip',
+    );
+  });
+
+  it('supports Range requests for audiobook streams (mobile-friendly)', async () => {
+    const response = await request(httpServer)
+      .get('/api/v1/library/files/20/stream/Test%20Book.m4b')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Range', 'bytes=0-1')
+      .expect(206);
+
+    expect(String(response.headers['accept-ranges'] ?? '')).toBe('bytes');
+    expect(String(response.headers['content-range'] ?? '')).toMatch(
+      /^bytes 0-1\//,
+    );
+    expect(String(response.headers['content-type'] ?? '')).toContain('audio/mp4');
+  });
+
+  it('library detail uses versioned stream URLs under /api/v1/', async () => {
+    const detail = await request(httpServer)
+      .get('/api/v1/library/1')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(String(detail.body?.coverUrl ?? '')).toMatch(
+      /^\/api\/v1\/library\/cover-image\?path=/,
+    );
+    const files = detail.body?.files ?? [];
+    expect(Array.isArray(files)).toBe(true);
+    expect(files.length).toBeGreaterThan(0);
+    expect(String(files[0]?.streamUrl ?? '')).toMatch(
+      /^\/api\/v1\/library\/files\//,
     );
   });
 

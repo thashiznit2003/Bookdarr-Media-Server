@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { AuthConfigService } from './auth-config.service';
 import { SettingsService } from '../settings/settings.service';
 import { AuthService } from './auth.service';
+import { isSecureRequest } from '../security/proxy.util';
 
 @Injectable()
 export class StreamAuthGuard implements CanActivate {
@@ -34,11 +35,7 @@ export class StreamAuthGuard implements CanActivate {
   }
 
   private isSecureRequest(req: Request) {
-    const proto =
-      (req.headers['x-forwarded-proto'] as string | undefined) ??
-      req.protocol ??
-      'http';
-    return proto === 'https';
+    return isSecureRequest(req);
   }
 
   private setAuthCookies(

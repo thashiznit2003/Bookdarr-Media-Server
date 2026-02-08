@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'crypto';
 import { createWriteStream } from 'fs';
-import { access, mkdir, rename, rm, statfs } from 'fs/promises';
+import { access, mkdir, readdir, rename, rm, stat, statfs } from 'fs/promises';
 import { basename, dirname, extname, join } from 'path';
 import { Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
@@ -35,6 +35,7 @@ export interface OfflineDownloadSummary {
 @Injectable()
 export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
   private readonly baseDir = join(process.cwd(), 'data', 'offline');
+  private readonly logsDir = join(process.cwd(), 'data', 'logs');
   private readonly queuedIds = new Set<string>();
   private readonly queue: string[] = [];
   private readonly active = new Map<string, AbortController>();
@@ -46,6 +47,8 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
 
   private readonly minFreeBytes: number;
   private readonly warnFreeBytes: number;
+  private readonly maxCacheBytes: number | null;
+  private readonly evictOldest: boolean;
 
   constructor(
     @InjectRepository(OfflineDownloadEntity)
@@ -59,6 +62,12 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       Number.isFinite(minMb) && minMb > 0 ? minMb * 1024 * 1024 : 2048 * 1024 * 1024;
     this.warnFreeBytes =
       Number.isFinite(warnMb) && warnMb > 0 ? warnMb * 1024 * 1024 : 4096 * 1024 * 1024;
+
+    const maxMbRaw = (process.env.OFFLINE_MAX_CACHE_MB ?? '').trim();
+    const maxMb = maxMbRaw ? Number.parseInt(maxMbRaw, 10) : NaN;
+    this.maxCacheBytes =
+      Number.isFinite(maxMb) && maxMb > 0 ? maxMb * 1024 * 1024 : null;
+    this.evictOldest = (process.env.OFFLINE_EVICT_OLDEST ?? 'false') === 'true';
   }
 
   async onModuleInit() {
@@ -361,6 +370,25 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async getStorageStats() {
+    const disk = await this.getDiskStats();
+    const cache = await this.getCacheStats();
+    const logs = await this.getLogsStats();
+    return {
+      offlineDir: this.baseDir,
+      logsDir: this.logsDir,
+      disk,
+      cache,
+      logs,
+      thresholds: {
+        warnFreeBytes: this.warnFreeBytes,
+        minFreeBytes: this.minFreeBytes,
+        maxCacheBytes: this.maxCacheBytes,
+        evictOldest: this.evictOldest,
+      },
+    };
+  }
+
   private enqueue(id: string) {
     if (this.clearing) {
       return;
@@ -421,6 +449,24 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     const controller = new AbortController();
     this.active.set(record.id, controller);
     const now = new Date().toISOString();
+
+    // Optionally enforce a VM-side cache cap (defense-in-depth against filling the disk).
+    const cacheOk = await this.assertCacheCapacity(record.bytesTotal ?? 0, {
+      downloadId: record.id,
+      bookId: record.bookId,
+      fileId: record.fileId,
+      userId: record.userId,
+    });
+    if (!cacheOk) {
+      await this.downloadsRepo.update(record.id, {
+        status: 'failed',
+        error: 'Offline cache is full.',
+        updatedAt: new Date().toISOString(),
+      });
+      this.active.delete(record.id);
+      this.processQueue();
+      return;
+    }
 
     // Fail fast when the VM is low on disk space. This prevents offline caching from filling the disk.
     const diskOk = await this.assertDiskSpace(record.bytesTotal ?? 0, {
@@ -596,9 +642,7 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
     meta?: Record<string, unknown>,
   ): Promise<boolean> {
     try {
-      const stats = await statfs(this.baseDir);
-      const freeBytes = Number(stats.bavail) * Number(stats.bsize);
-      const totalBytes = Number(stats.blocks) * Number(stats.bsize);
+      const { freeBytes, totalBytes } = await this.getDiskStats();
 
       const now = Date.now();
       if (freeBytes < this.warnFreeBytes && now - this.lastDiskWarnAt > 900_000) {
@@ -633,5 +677,119 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       });
       return false;
     }
+  }
+
+  private async getDiskStats(): Promise<{ freeBytes: number; totalBytes: number }> {
+    const stats = await statfs(this.baseDir);
+    const freeBytes = Number(stats.bavail) * Number(stats.bsize);
+    const totalBytes = Number(stats.blocks) * Number(stats.bsize);
+    return { freeBytes, totalBytes };
+  }
+
+  private async getCacheStats() {
+    const records = await this.downloadsRepo.find({
+      select: ['id', 'status', 'bytesTotal', 'updatedAt', 'filePath'],
+    });
+    const ready = records.filter((r) => r.status === 'ready');
+    const readyBytes = ready.reduce((sum, r) => sum + Number(r.bytesTotal ?? 0), 0);
+    const oldestReadyAt = ready
+      .map((r) => r.updatedAt)
+      .filter(Boolean)
+      .sort()[0] ?? null;
+    return {
+      recordsTotal: records.length,
+      recordsReady: ready.length,
+      bytesReady: readyBytes,
+      oldestReadyAt,
+    };
+  }
+
+  private async getLogsStats() {
+    // Best-effort; logs may not exist in dev/test.
+    try {
+      const entries = await readdir(this.logsDir);
+      let bytes = 0;
+      for (const entry of entries) {
+        try {
+          const st = await stat(join(this.logsDir, entry));
+          if (st.isFile()) bytes += st.size;
+        } catch {
+          // ignore
+        }
+      }
+      return { bytes };
+    } catch {
+      return { bytes: 0 };
+    }
+  }
+
+  private async assertCacheCapacity(
+    bytesNeeded: number,
+    meta?: Record<string, unknown>,
+  ): Promise<boolean> {
+    if (!this.maxCacheBytes) return true;
+    if (this.clearing) return false;
+
+    const nowIso = new Date().toISOString();
+    const max = this.maxCacheBytes;
+
+    const ready = await this.downloadsRepo.find({
+      where: { status: 'ready' as any },
+      order: { updatedAt: 'ASC' as any },
+    });
+    const readyBytes = ready.reduce((sum, r) => sum + Number(r.bytesTotal ?? 0), 0);
+    if (readyBytes + Math.max(bytesNeeded, 0) <= max) return true;
+
+    if (!this.evictOldest) {
+      this.logger.warn('offline_cache_cap_blocked', {
+        readyBytes,
+        maxCacheBytes: max,
+        bytesNeeded,
+        ...meta,
+      });
+      return false;
+    }
+
+    let freedBytes = 0;
+    let evictedCount = 0;
+    for (const record of ready) {
+      if (readyBytes - freedBytes + Math.max(bytesNeeded, 0) <= max) break;
+      try {
+        await this.safeRemove(record.filePath);
+        await this.safeRemove(record.filePath + '.part');
+      } catch {
+        // ignore
+      }
+      try {
+        await this.downloadsRepo.delete({ id: record.id } as any);
+      } catch {
+        // ignore
+      }
+      freedBytes += Number(record.bytesTotal ?? 0);
+      evictedCount += 1;
+    }
+
+    if (evictedCount > 0) {
+      this.logger.warn('offline_cache_evicted_oldest', {
+        evictedCount,
+        freedBytes,
+        maxCacheBytes: max,
+        bytesNeeded,
+        at: nowIso,
+        ...meta,
+      });
+    }
+
+    const remainingOk = readyBytes - freedBytes + Math.max(bytesNeeded, 0) <= max;
+    if (!remainingOk) {
+      this.logger.error('offline_cache_cap_still_exceeded', {
+        readyBytes,
+        freedBytes,
+        maxCacheBytes: max,
+        bytesNeeded,
+        ...meta,
+      });
+    }
+    return remainingOk;
   }
 }

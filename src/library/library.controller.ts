@@ -15,6 +15,8 @@ import type { Request, Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { StreamAuthGuard } from '../auth/stream-auth.guard';
+import { RateLimitGuard } from '../auth/rate-limit.guard';
+import { RateLimit } from '../auth/rate-limit.decorator';
 import { LibraryService } from './library.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { LibraryStreamingService } from './library-streaming.service';
@@ -177,8 +179,26 @@ export class LibraryController {
 
   // Admin-only: clear VM-side cached ebook/audiobook media under data/offline.
   @Post('admin/clear-cache')
-  @UseGuards(AuthGuard, AdminGuard)
+  @UseGuards(AuthGuard, AdminGuard, RateLimitGuard)
+  @RateLimit({
+    id: 'library_admin_clear_cache',
+    max: 3,
+    windowMs: 10 * 60 * 1000,
+    scope: 'ip',
+  })
   async clearServerOfflineCache() {
     return this.offlineDownloadService.clearAllCachedMedia();
+  }
+
+  @Get('admin/storage')
+  @UseGuards(AuthGuard, AdminGuard, RateLimitGuard)
+  @RateLimit({
+    id: 'library_admin_storage',
+    max: 60,
+    windowMs: 10 * 60 * 1000,
+    scope: 'ip',
+  })
+  async getStorageStats() {
+    return this.offlineDownloadService.getStorageStats();
   }
 }

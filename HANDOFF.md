@@ -76,6 +76,10 @@ Logs:
 Offline cache disk guardrails:
 - Server-side cached media lives under `/opt/bookdarr-media-server/data/offline`.
 - Configure thresholds with `OFFLINE_WARN_FREE_MB` and `OFFLINE_MIN_FREE_MB` (downloads will be blocked when low on disk).
+- Admin storage stats: `GET /api/v1/library/admin/storage` (also used by Settings -> Storage) reports disk free/total, offline cache size, and log size.
+- Optional cache cap (defense-in-depth):
+  - `OFFLINE_MAX_CACHE_MB` limits total VM-cached offline media across all users/books.
+  - `OFFLINE_EVICT_OLDEST=true` evicts the oldest ready cached files until the new download fits; otherwise the download is blocked.
 
 ## Mobile Prep: Reader Progress And Offline Contract
 Progress is stored server-side per user and synced across devices via versioned endpoints.

@@ -15,6 +15,7 @@ import { AuthGuard } from './auth.guard';
 import { RateLimitGuard } from './rate-limit.guard';
 import { RateLimit } from './rate-limit.decorator';
 import qrcode from 'qrcode';
+import { getBaseUrlFromRequest, isSecureRequest } from '../security/proxy.util';
 import type {
   LoginRequest,
   LogoutRequest,
@@ -36,11 +37,7 @@ export class AuthController {
   private static readonly COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 
   private isSecureRequest(req: Request) {
-    const proto =
-      (req.headers['x-forwarded-proto'] as string | undefined) ??
-      req.protocol ??
-      'http';
-    return proto === 'https';
+    return isSecureRequest(req);
   }
 
   private setAuthCookies(
@@ -120,15 +117,7 @@ export class AuthController {
   }
 
   private getBaseUrl(req: Request) {
-    const proto =
-      (req.headers['x-forwarded-proto'] as string | undefined) ??
-      req.protocol ??
-      'http';
-    const host =
-      (req.headers['x-forwarded-host'] as string | undefined) ??
-      req.get('host');
-    if (!host) return undefined;
-    return `${proto}://${host}`;
+    return getBaseUrlFromRequest(req);
   }
 
   private getClientMeta(req: Request) {

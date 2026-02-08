@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SettingsModule } from '../settings/settings.module';
 import { AuthModule } from '../auth/auth.module';
+import { LoggingModule } from '../logging/logging.module';
 import { BookdarrService } from './bookdarr.service';
 import { BookdarrConfigController } from './bookdarr-config.controller';
 import { BookdarrConfigService } from './bookdarr-config.service';
@@ -11,6 +12,7 @@ import { BookdarrConfigEntity } from './bookdarr-config.entity';
   imports: [
     forwardRef(() => SettingsModule),
     forwardRef(() => AuthModule),
+    LoggingModule,
     TypeOrmModule.forFeature([BookdarrConfigEntity]),
   ],
   controllers: [BookdarrConfigController],

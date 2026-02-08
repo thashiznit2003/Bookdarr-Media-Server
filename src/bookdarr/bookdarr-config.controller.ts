@@ -8,6 +8,9 @@ import {
 } from '@nestjs/common';
 import { isIP } from 'net';
 import { AuthGuard } from '../auth/auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
+import { RateLimitGuard } from '../auth/rate-limit.guard';
+import { RateLimit } from '../auth/rate-limit.decorator';
 import { BookdarrConfigService } from './bookdarr-config.service';
 import type { BookdarrConfigInput } from './bookdarr-config.service';
 import { SettingsService } from '../settings/settings.service';
@@ -22,7 +25,7 @@ export class BookdarrConfigController {
   ) {}
 
   @Get()
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   async getConfig() {
     const config = await this.bookdarrConfigService.getConfig();
     const settings = this.settingsService.getSettings();
@@ -37,7 +40,8 @@ export class BookdarrConfigController {
   }
 
   @Post()
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard, RateLimitGuard)
+  @RateLimit({ id: 'settings_bookdarr_update', max: 20, windowMs: 10 * 60 * 1000, scope: 'ip' })
   async updateConfig(@Body() input: BookdarrConfigInput) {
     const config = await this.bookdarrConfigService.upsert(input);
     return {
@@ -48,7 +52,8 @@ export class BookdarrConfigController {
   }
 
   @Post('test')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard, RateLimitGuard)
+  @RateLimit({ id: 'settings_bookdarr_test', max: 30, windowMs: 10 * 60 * 1000, scope: 'ip' })
   async testConfig(@Body() input?: BookdarrConfigInput) {
     let apiUrl: string | undefined;
     let apiKey: string | undefined;

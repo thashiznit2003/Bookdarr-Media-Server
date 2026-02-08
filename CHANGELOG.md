@@ -1,5 +1,11 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.254 — 2026-02-08 17:25 -06:00
+- Reverse-proxy correctness: centralize forwarded host/proto parsing and use it for auth cookie security + password reset base URL construction.
+- Abuse protection: add rate limits to SMTP settings/test/check, Bookdarr settings/test, auth secret rotation, and server cache clear.
+- Mobile contract tightening: `/api/v1/library` and `/api/v1/library/:id` now rewrite `coverUrl` and file `streamUrl` to versioned `/api/v1/*` routes.
+- Ops: add admin-only storage stats (`GET /api/v1/library/admin/storage`) and add optional VM-side cache cap + eviction (`OFFLINE_MAX_CACHE_MB`, `OFFLINE_EVICT_OLDEST`).
+
 ## 1.0.253 — 2026-02-08 00:46 -06:00
 - Production hardening: add configurable HTTPS-only enforcement (`ENFORCE_HTTPS*`) and configurable reverse-proxy trust (`TRUST_PROXY`) for correct `x-forwarded-*` handling.
 - Production ops: add VM-side offline cache disk guardrails (`OFFLINE_WARN_FREE_MB`/`OFFLINE_MIN_FREE_MB`) and periodic low-disk warnings; block new VM-side offline downloads when disk is low.

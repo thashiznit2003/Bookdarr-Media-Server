@@ -1529,18 +1529,37 @@ export class AppService {
 	            </div>
 	          </div>
 
-	          <div class="panel" id="settings-cache-panel" style="margin-top: 20px; display: none;">
-	            <h3 style="margin-top: 0;">Storage</h3>
-	            <div style="color: var(--muted);">
-	              Clears VM-side cached ebook/audiobook files (server cache) to free disk space.
-	            </div>
-	            <div style="display: flex; gap: 10px; margin-top: 12px;">
-	              <button id="settings-clear-server-cache" style="background: rgba(248, 113, 113, 0.16); border: 1px solid rgba(248, 113, 113, 0.25);">
-	                Clear Server Cache
-	              </button>
-	            </div>
-	            <div id="settings-clear-server-cache-status" style="margin-top: 8px; color: var(--muted);"></div>
-	          </div>
+		          <div class="panel" id="settings-cache-panel" style="margin-top: 20px; display: none;">
+		            <h3 style="margin-top: 0;">Storage</h3>
+		            <div style="color: var(--muted);">
+		              Clears VM-side cached ebook/audiobook files (server cache) to free disk space.
+		            </div>
+		            <div class="status-grid" style="margin-top: 12px;">
+		              <div class="status-item">
+		                <span>Disk Free</span>
+		                <div class="status-value"><strong id="storage-disk-free">--</strong></div>
+		              </div>
+		              <div class="status-item">
+		                <span>Disk Total</span>
+		                <div class="status-value"><strong id="storage-disk-total">--</strong></div>
+		              </div>
+		              <div class="status-item">
+		                <span>Offline Cache (Ready)</span>
+		                <div class="status-value"><strong id="storage-cache-ready">--</strong></div>
+		              </div>
+		              <div class="status-item">
+		                <span>Logs</span>
+		                <div class="status-value"><strong id="storage-logs">--</strong></div>
+		              </div>
+		            </div>
+		            <div style="display: flex; gap: 10px; margin-top: 12px;">
+		              <button id="settings-refresh-storage">Refresh</button>
+		              <button id="settings-clear-server-cache" style="background: rgba(248, 113, 113, 0.16); border: 1px solid rgba(248, 113, 113, 0.25);">
+		                Clear Server Cache
+		              </button>
+		            </div>
+		            <div id="settings-clear-server-cache-status" style="margin-top: 8px; color: var(--muted);"></div>
+		          </div>
 	        </div>
 
         <div class="page" data-page="accounts">
@@ -1866,9 +1885,14 @@ export class AppService {
 	      const testSmtpButton = document.getElementById('test-smtp');
 	      const settingsSmtpStatus = document.getElementById('settings-smtp-status');
 	      const settingsSmtpTitleDot = document.getElementById('settings-smtp-title-dot');
-	      const settingsCachePanel = document.getElementById('settings-cache-panel');
-	      const settingsClearServerCacheButton = document.getElementById('settings-clear-server-cache');
-	      const settingsClearServerCacheStatus = document.getElementById('settings-clear-server-cache-status');
+		      const settingsCachePanel = document.getElementById('settings-cache-panel');
+		      const settingsRefreshStorageButton = document.getElementById('settings-refresh-storage');
+		      const settingsClearServerCacheButton = document.getElementById('settings-clear-server-cache');
+		      const settingsClearServerCacheStatus = document.getElementById('settings-clear-server-cache-status');
+		      const storageDiskFree = document.getElementById('storage-disk-free');
+		      const storageDiskTotal = document.getElementById('storage-disk-total');
+		      const storageCacheReady = document.getElementById('storage-cache-ready');
+		      const storageLogs = document.getElementById('storage-logs');
 	      const settingsReaderLegacy = document.getElementById('settings-reader-legacy');
 	      const saveReaderSettingsButton = document.getElementById('save-reader-settings');
 	      const settingsReaderStatus = document.getElementById('settings-reader-status');
@@ -6227,27 +6251,65 @@ export class AppService {
           });
       }
 
-      function loadCurrentUser() {
-        fetchWithAuth('/api/me')
-          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-          .then(({ ok, body }) => {
+	      function loadCurrentUser() {
+	        fetchWithAuth('/api/me')
+	          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+	          .then(({ ok, body }) => {
             if (!ok) {
               debugAuthLog('api_me_not_ok', { status: body?.status ?? null });
               updateUserMenu(null);
               state.userId = null;
               return;
             }
-            debugAuthLog('api_me_ok', { userId: body?.id ?? null });
-            updateUserMenu(body);
-            state.userId = body?.id ?? null;
-          })
+	            debugAuthLog('api_me_ok', { userId: body?.id ?? null });
+	            updateUserMenu(body);
+	            state.userId = body?.id ?? null;
+	            if (activePage === 'settings' && body?.isAdmin) {
+	              loadStorageStats();
+	            }
+	          })
           .catch(() => {
             if (bootstrap?.user) {
               debugAuthLog('api_me_error_fallback_bootstrap', { userId: bootstrap?.user?.id ?? null });
               updateUserMenu(bootstrap.user);
               state.userId = bootstrap.user.id ?? null;
               return;
-            }
+	      }
+
+	      function loadStorageStats() {
+	        if (!state.isAdmin) return;
+	        if (!storageDiskFree || !storageDiskTotal || !storageCacheReady || !storageLogs) return;
+	        storageDiskFree.textContent = 'Loading...';
+	        storageDiskTotal.textContent = 'Loading...';
+	        storageCacheReady.textContent = 'Loading...';
+	        storageLogs.textContent = 'Loading...';
+
+	        fetchWithAuth('/api/v1/library/admin/storage')
+	          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
+	          .then(({ ok, body }) => {
+	            if (!ok) {
+	              storageDiskFree.textContent = '--';
+	              storageDiskTotal.textContent = '--';
+	              storageCacheReady.textContent = '--';
+	              storageLogs.textContent = '--';
+	              return;
+	            }
+	            const freeBytes = Number(body?.disk?.freeBytes ?? 0);
+	            const totalBytes = Number(body?.disk?.totalBytes ?? 0);
+	            const cacheReadyBytes = Number(body?.cache?.bytesReady ?? 0);
+	            const logsBytes = Number(body?.logs?.bytes ?? 0);
+	            storageDiskFree.textContent = formatBytes(freeBytes);
+	            storageDiskTotal.textContent = formatBytes(totalBytes);
+	            storageCacheReady.textContent = formatBytes(cacheReadyBytes);
+	            storageLogs.textContent = formatBytes(logsBytes);
+	          })
+	          .catch(() => {
+	            storageDiskFree.textContent = '--';
+	            storageDiskTotal.textContent = '--';
+	            storageCacheReady.textContent = '--';
+	            storageLogs.textContent = '--';
+	          });
+	      }
             debugAuthLog('api_me_error_signed_out');
             updateUserMenu(null);
             state.userId = null;
@@ -6562,7 +6624,7 @@ export class AppService {
           });
 	      });
 
-	      settingsClearServerCacheButton?.addEventListener('click', () => {
+		      settingsClearServerCacheButton?.addEventListener('click', () => {
 	        if (!state.isAdmin) {
 	          if (settingsClearServerCacheStatus) {
 	            settingsClearServerCacheStatus.textContent = 'Admin access required.';
@@ -6573,14 +6635,14 @@ export class AppService {
 	          'Clear Server Cache will delete all VM-cached ebook/audiobook files (server cache) for all users. This frees disk space but will require re-caching later. Continue?',
 	        );
 	        if (!ok) return;
-	        if (settingsClearServerCacheStatus) {
-	          settingsClearServerCacheStatus.textContent = 'Clearing server cache...';
-	        }
-	        fetchWithAuth('/library/admin/clear-cache', {
-	          method: 'POST',
-	          headers: { 'Content-Type': 'application/json' },
-	          body: JSON.stringify({}),
-	        })
+		        if (settingsClearServerCacheStatus) {
+		          settingsClearServerCacheStatus.textContent = 'Clearing server cache...';
+		        }
+		        fetchWithAuth('/api/v1/library/admin/clear-cache', {
+		          method: 'POST',
+		          headers: { 'Content-Type': 'application/json' },
+		          body: JSON.stringify({}),
+		        })
 	          .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
 	          .then(({ ok, body }) => {
 	            if (!ok || !body?.ok) {
@@ -6590,18 +6652,23 @@ export class AppService {
 	            }
 	            const bytes = Number(body.deletedBytes || 0);
 	            const files = Number(body.deletedFiles || 0);
-	            if (settingsClearServerCacheStatus) {
-	              settingsClearServerCacheStatus.textContent =
-	                'Cleared ' + files + ' files (' + formatBytes(bytes) + ').';
-	            }
-	            // Refresh My Library so server cache status updates quickly.
-	            if (activePage === 'my-library') {
-	              loadMyLibrary();
-	            }
-	          })
+		            if (settingsClearServerCacheStatus) {
+		              settingsClearServerCacheStatus.textContent =
+		                'Cleared ' + files + ' files (' + formatBytes(bytes) + ').';
+		            }
+		            loadStorageStats();
+		            // Refresh My Library so server cache status updates quickly.
+		            if (activePage === 'my-library') {
+		              loadMyLibrary();
+		            }
+		          })
 	          .catch(() => {
 	            if (settingsClearServerCacheStatus) settingsClearServerCacheStatus.textContent = 'Unable to clear cache.';
-	          });
+		      });
+
+		      settingsRefreshStorageButton?.addEventListener('click', () => {
+		        loadStorageStats();
+		      });
 	      });
 
 	      saveBookdarrButton?.addEventListener('click', () => {
