@@ -10,6 +10,7 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s **Boo
 
 ## Mobile API Contract
 - The mobile app must use versioned endpoints under `/api/v1/*`. Do not introduce breaking changes to `/api/v1/*`; bump API version (`/api/v2`) instead.
+- Keep the hand-maintained OpenAPI spec in sync with the contract: `GET /api/v1/openapi.json` (implemented in `src/openapi/api-v1.openapi.ts`).
 
 ## Security Requirements
 - JWT auth + refresh tokens

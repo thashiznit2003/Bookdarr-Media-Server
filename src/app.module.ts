@@ -20,6 +20,7 @@ import { TwoFactorBackupCodeEntity } from './auth/entities/two-factor-backup-cod
 import { AuthSessionEntity } from './auth/entities/auth-session.entity';
 import { ReaderConfigEntity } from './settings/reader-config.entity';
 import { join } from 'path';
+import { ApiV1OpenApiController } from './openapi/api-v1-openapi.controller';
 
 @Module({
   imports: [
@@ -85,7 +86,7 @@ import { join } from 'path';
     AuthModule,
     LibraryModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ApiV1OpenApiController],
   providers: [AppService],
 })
 export class AppModule {}

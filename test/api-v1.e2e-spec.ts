@@ -37,7 +37,8 @@ describe('API v1 contract', () => {
     process.env.BOOKDARR_API_KEY = 'test-bookdarr-key';
 
     // Stub Bookdarr API calls so /api/v1/library works without a real Bookdarr.
-    global.fetch = (async (input: any) => {
+    // Include a minimal stream endpoint so server-side offline caching doesn't fail noisily.
+    global.fetch = (async (input: any, init?: any) => {
       const url = typeof input === 'string' ? input : String(input?.url ?? '');
       if (url === 'http://bookdarr.local/api/v1/user/library/pool') {
         const body = [
@@ -75,6 +76,22 @@ describe('API v1 contract', () => {
         return new Response(JSON.stringify(body), {
           status: 200,
           headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url === 'http://bookdarr.local/api/v1/bookfile/10/stream') {
+        const method = String(init?.method ?? 'GET').toUpperCase();
+        const payload = new Uint8Array([1, 2, 3, 4, 5]);
+        const headers = new Headers();
+        headers.set('content-type', 'application/octet-stream');
+        headers.set(
+          'content-disposition',
+          'attachment; filename="Test Book.epub"',
+        );
+        headers.set('accept-ranges', 'bytes');
+        headers.set('content-length', String(payload.byteLength));
+        return new Response(method === 'HEAD' ? null : payload, {
+          status: 200,
+          headers,
         });
       }
       // Unknown fetches should fail fast so tests don't silently hit the network.
@@ -174,6 +191,18 @@ describe('API v1 contract', () => {
     expect(response.body[0]?.title).toBe('Test Book');
   });
 
+  it('/api/v1/openapi.json is available and includes key paths', async () => {
+    const response = await request(httpServer)
+      .get('/api/v1/openapi.json')
+      .expect(200);
+
+    expect(response.body?.openapi).toBeTruthy();
+    const paths = response.body?.paths ?? {};
+    expect(paths['/api/v1/auth/login']).toBeTruthy();
+    expect(paths['/api/v1/library']).toBeTruthy();
+    expect(paths['/api/v1/me']).toBeTruthy();
+  });
+
   it('offline manifest uses versioned stream URLs under /api/v1/', async () => {
     // Checkout is required for offline manifest.
     await request(httpServer)
@@ -189,7 +218,24 @@ describe('API v1 contract', () => {
     expect(manifest.body?.bookId).toBe(1);
     expect(Array.isArray(manifest.body?.files)).toBe(true);
     expect(manifest.body.files.length).toBeGreaterThan(0);
-    expect(String(manifest.body.files[0]?.url)).toMatch(/^\/api\/v1\/library\/files\//);
+    expect(String(manifest.body.files[0]?.url)).toMatch(
+      /^\/api\/v1\/library\/files\//,
+    );
+    // New fields are required for mobile offline verification.
+    expect(typeof manifest.body.files[0]?.contentType).toBe('string');
+    expect(typeof manifest.body.files[0]?.fileName).toBe('string');
+    expect(typeof manifest.body.files[0]?.bytesTotal).toBe('number');
+  });
+
+  it('can stream files using bearer auth (mobile playback)', async () => {
+    const response = await request(httpServer)
+      .get('/api/v1/library/files/10/stream/Test%20Book.epub')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(String(response.headers['content-type'] ?? '')).toContain(
+      'application/epub+zip',
+    );
   });
 
   it('non-admin users are forbidden from admin endpoints and admin pages (no forced logout)', async () => {

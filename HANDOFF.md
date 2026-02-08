@@ -2,6 +2,7 @@
 
 ## Current Status
 - Mobile API contract: use `/api/v1/*` for endpoints consumed by the future iPhone/iPad app. The web UI still uses legacy, unversioned routes for now.
+- Mobile OpenAPI spec: `GET /api/v1/openapi.json` is the source of truth for the iPhone/Android contract.
 - Request correlation: every HTTP response includes `x-request-id`, and request/exception logs include `requestId` so we can tie a UI report to server logs.
 - EPUB reader: browser uses a vendored epub.js build at `vendor/epub/epub.min.js`, served from `/vendor/epub/` (no npm dependency).
 - EPUB reader dependency: JSZip is vendored at `vendor/jszip/jszip.min.js`, served from `/vendor/jszip/`.
@@ -55,6 +56,11 @@ Offline contract:
 - Mobile app offline: `GET /api/v1/library/:bookId/offline-manifest` returns versioned `/api/v1/library/files/*` URLs (stable mobile contract).
 - Mobile app stores the offline files locally and continues to track progress locally while offline.
 - On reconnect, mobile sends its local progress via `POST /api/v1/reader/progress/...` and can use Sync to reconcile when multiple devices diverge (newest `updatedAt` wins).
+
+Mobile auth model (iPhone-first; Android later):
+- Store `refreshToken` in secure OS storage (Keychain/Keystore); treat it like a password.
+- Keep `accessToken` in memory only; send it in `Authorization: Bearer <token>` for all `/api/v1/*` calls, including streams.
+- Decode JWT `exp` and refresh before expiry during long-lived playback (audiobooks); also refresh+retry on `401`.
 
 ## Diagnostics
 Diagnostics pushing to GitHub has been removed. Debugging is done via on-box logs and SSH.

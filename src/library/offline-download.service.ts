@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { createHash } from 'crypto';
 import { createWriteStream } from 'fs';
 import { access, mkdir, rename, rm } from 'fs/promises';
 import { basename, dirname, extname, join } from 'path';
@@ -195,6 +196,12 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       });
       return null;
     }
+  }
+
+  async getReadyDownloadsForBook(userId: string, bookId: number) {
+    return this.downloadsRepo.find({
+      where: { userId, bookId, status: 'ready' },
+    });
   }
 
   async getStatusForBook(
@@ -434,9 +441,15 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       const writer = createWriteStream(tmpPath);
       let lastUpdate = Date.now();
       const repo = this.downloadsRepo;
+      const hash = createHash('sha256');
       const counter = new Transform({
         transform(chunk, _encoding, callback) {
           bytesDownloaded += chunk.length;
+          try {
+            hash.update(chunk);
+          } catch {
+            // ignore hash errors; download still proceeds
+          }
           if (Date.now() - lastUpdate > 1000) {
             lastUpdate = Date.now();
             void repo.update(record.id, {
@@ -452,10 +465,17 @@ export class OfflineDownloadService implements OnModuleInit, OnModuleDestroy {
       await pipeline(Readable.fromWeb(response.body as any), counter, writer);
       await rename(tmpPath, record.filePath);
       const finalBytes = bytesTotal > 0 ? bytesTotal : bytesDownloaded;
+      let sha256: string | null = null;
+      try {
+        sha256 = hash.digest('hex');
+      } catch {
+        sha256 = null;
+      }
       await this.downloadsRepo.update(record.id, {
         status: 'ready',
         bytesDownloaded: finalBytes,
         bytesTotal: finalBytes,
+        sha256,
         updatedAt: new Date().toISOString(),
       });
     } catch (error) {

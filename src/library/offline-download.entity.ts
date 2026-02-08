@@ -40,6 +40,10 @@ export class OfflineDownloadEntity {
   @Column()
   filePath!: string;
 
+  // Hex-encoded SHA-256 of the cached file, computed when the server cache download completes.
+  @Column({ type: 'text', nullable: true })
+  sha256?: string | null;
+
   @Column({ type: 'text', nullable: true })
   error?: string | null;
 

@@ -1,5 +1,10 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.252 — 2026-02-08 00:01 -06:00
+- Mobile API contract: add a hand-maintained OpenAPI spec at `GET /api/v1/openapi.json` (iPhone-first, Android-compatible).
+- Offline downloads (mobile): extend `/api/v1/library/:id/offline-manifest` with `fileName`, `size`, `contentType`, and optional `sha256` per file.
+- Server cache integrity: compute and store SHA-256 for VM-cached offline files as they download (used to populate offline manifest when available).
+
 ## 1.0.251 — 2026-02-07 23:24 -06:00
 - Remove outbound diagnostics: delete diagnostics module/endpoint and `DIAGNOSTICS_*` config/docs; checklist item 14 is now "No Outbound Telemetry (On-Box Logging Only)".
 - Security: tighten app-shell headers and add CSP nonces (remove `unsafe-inline` scripts) while keeping the web UI functional.

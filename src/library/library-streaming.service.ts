@@ -9,21 +9,10 @@ import { Readable } from 'stream';
 import { BookdarrService } from '../bookdarr/bookdarr.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { FileLoggerService } from '../logging/file-logger.service';
-
-const CONTENT_TYPE_BY_EXT: Record<string, string> = {
-  '.epub': 'application/epub+zip',
-  '.pdf': 'application/pdf',
-  '.mobi': 'application/x-mobipocket-ebook',
-  '.azw': 'application/vnd.amazon.ebook',
-  '.azw3': 'application/vnd.amazon.ebook',
-  '.mp3': 'audio/mpeg',
-  '.m4b': 'audio/mp4',
-  '.m4a': 'audio/mp4',
-  '.aac': 'audio/aac',
-  '.flac': 'audio/flac',
-  '.ogg': 'audio/ogg',
-  '.wav': 'audio/wav',
-};
+import {
+  CONTENT_TYPE_BY_EXT,
+  contentTypeForFileName,
+} from './content-type.util';
 
 @Injectable()
 export class LibraryStreamingService {
@@ -143,7 +132,7 @@ export class LibraryStreamingService {
     const fileStat = await stat(filePath);
     const total = fileStat.size;
     const range = req.headers.range;
-    const contentType = this.getContentType(filePath);
+    const contentType = contentTypeForFileName(filePath);
 
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', contentType);
@@ -200,20 +189,6 @@ export class LibraryStreamingService {
     }
     end = Math.min(end, total - 1);
     return { start, end };
-  }
-
-  private getContentType(filePath: string) {
-    const ext = extname(filePath).toLowerCase();
-    if (ext === '.epub') return 'application/epub+zip';
-    if (ext === '.pdf') return 'application/pdf';
-    if (ext === '.mobi') return 'application/x-mobipocket-ebook';
-    if (ext === '.mp3') return 'audio/mpeg';
-    if (ext === '.m4b' || ext === '.m4a') return 'audio/mp4';
-    if (ext === '.aac') return 'audio/aac';
-    if (ext === '.ogg') return 'audio/ogg';
-    if (ext === '.wav') return 'audio/wav';
-    if (ext === '.flac') return 'audio/flac';
-    return 'application/octet-stream';
   }
 
   private applyContentTypeOverride(

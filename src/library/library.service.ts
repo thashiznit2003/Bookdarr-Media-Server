@@ -17,6 +17,7 @@ import { LibraryCacheService } from './library-cache.service';
 import { UserLibraryService } from './user-library.service';
 import { OfflineDownloadService } from './offline-download.service';
 import { normalizeBookDescription } from './description.util';
+import { contentTypeForFileName } from './content-type.util';
 import { FileLoggerService } from '../logging/file-logger.service';
 
 @Injectable()
@@ -362,7 +363,7 @@ export class LibraryService {
       bookFiles = [];
     }
 
-    const files = bookFiles
+    const baseFiles = bookFiles
       .map((file) => this.mapBookFile(file))
       .filter(
         (file) => file.mediaType === 'ebook' || file.mediaType === 'audiobook',
@@ -370,9 +371,34 @@ export class LibraryService {
       .map((file) => ({
         fileId: file.id,
         url: file.streamUrl,
+        fileName: file.fileName,
         bytesTotal: file.size ?? 0,
+        size: file.size ?? 0,
         mediaType: file.mediaType,
+        contentType: contentTypeForFileName(file.fileName),
       }));
+
+    // sha256 is available when the server-side cache has finished downloading a file.
+    // This is optional for device/mobile offline downloads; clients should treat null as unknown.
+    let cachedShaByFileId = new Map<number, string>();
+    try {
+      const ready = await this.offlineDownloadService.getReadyDownloadsForBook(
+        userId,
+        bookId,
+      );
+      cachedShaByFileId = new Map(
+        ready
+          .filter((r) => r && typeof r.fileId === 'number' && r.sha256)
+          .map((r) => [r.fileId, String(r.sha256)] as const),
+      );
+    } catch {
+      cachedShaByFileId = new Map();
+    }
+
+    const files = baseFiles.map((f) => ({
+      ...f,
+      sha256: cachedShaByFileId.get(f.fileId) ?? null,
+    }));
 
     this.logger.info('device_offline_manifest', {
       userId,

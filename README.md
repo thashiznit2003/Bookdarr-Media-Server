@@ -23,12 +23,21 @@ BMS is a secure, public‑facing media server that reads from Bookdarr’s Book 
 ## Mobile API (Versioned)
 The mobile app must use the versioned API under `/api/v1/*`. The web UI continues to use legacy, unversioned routes for now.
 
+OpenAPI spec (source of truth for the mobile contract):
+- `GET /api/v1/openapi.json`
+
 Key endpoints (mobile):
 - Auth: `POST /api/v1/auth/login`, `POST /api/v1/auth/login/2fa`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`
 - User: `GET /api/v1/me`, `PUT /api/v1/me`
 - Library: `GET /api/v1/library`, `POST /api/v1/library/refresh`, `GET /api/v1/library/my`, `GET /api/v1/library/:id`
 - Media: `GET|HEAD /api/v1/library/files/:id/stream(/:name)`, `GET /api/v1/library/cover-image?path=...`
 - Reader progress: `GET|POST /api/v1/reader/progress/:kind/:fileId` and `POST /api/v1/reader/progress/:kind/:fileId/(reset|sync)`
+
+## Mobile Auth Model (iPhone First, Android Later)
+- Store the `refreshToken` in secure OS storage (iOS Keychain; Android Keystore / encrypted storage). Treat it like a password.
+- Keep the `accessToken` in memory only; attach it as `Authorization: Bearer <accessToken>` on every `/api/v1/*` request (including media streams).
+- Do not put tokens into URLs (no `?token=`); the server never requires that for `/api/v1/*`.
+- Refresh strategy for long playback: decode JWT `exp` and refresh before expiry (for example, refresh every ~10 minutes during audiobook playback). If any request gets `401`, refresh and retry.
 
 ## Installation (Ubuntu)
 Run the installer from the repo to set up dependencies, systemd, and a default env file:
