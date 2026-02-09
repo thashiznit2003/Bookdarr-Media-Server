@@ -241,8 +241,13 @@ describe('API v1 contract', () => {
     expect(response.body?.openapi).toBeTruthy();
     const paths = response.body?.paths ?? {};
     expect(paths['/api/v1/auth/login']).toBeTruthy();
+    expect(paths['/api/v1/auth/password/request']).toBeTruthy();
+    expect(paths['/api/v1/auth/2fa/status']).toBeTruthy();
     expect(paths['/api/v1/library']).toBeTruthy();
+    expect(paths['/api/v1/library/cover-image']).toBeTruthy();
+    expect(paths['/api/v1/library/files/{id}/stream']).toBeTruthy();
     expect(paths['/api/v1/me']).toBeTruthy();
+    expect(paths['/api/v1/reader/progress/{kind}/{fileId}/sync']).toBeTruthy();
   });
 
   it('offline manifest uses versioned stream URLs under /api/v1/', async () => {

@@ -271,6 +271,126 @@ export function getApiV1OpenApiSpec() {
         },
       },
 
+      '/api/v1/auth/password/request': {
+        post: {
+          summary: 'Request password reset email',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['email'],
+                  properties: {
+                    email: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 201: { description: 'OK (email queued if account exists)' } },
+        },
+      },
+      '/api/v1/auth/password/reset': {
+        post: {
+          summary: 'Reset password using reset token',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['token', 'newPassword'],
+                  properties: {
+                    token: { type: 'string' },
+                    newPassword: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 201: { description: 'OK' } },
+        },
+      },
+
+      '/api/v1/auth/2fa/status': {
+        get: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Get 2FA status for current user',
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+      '/api/v1/auth/2fa/setup': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Begin 2FA setup (returns secret + QR data URL)',
+          responses: { 201: { description: 'OK' } },
+        },
+      },
+      '/api/v1/auth/2fa/confirm': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Confirm 2FA setup (enable)',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['code'],
+                  properties: {
+                    code: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 201: { description: 'OK' } },
+        },
+      },
+      '/api/v1/auth/2fa/disable': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Disable 2FA (requires current password and/or OTP)',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    currentPassword: { type: 'string' },
+                    code: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 201: { description: 'OK' } },
+        },
+      },
+      '/api/v1/auth/2fa/backup-codes': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Regenerate 2FA backup codes (requires current password and/or OTP)',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    currentPassword: { type: 'string' },
+                    code: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 201: { description: 'OK' } },
+        },
+      },
+
       '/api/v1/me': {
         get: {
           security: [{ bearerAuth: [] }],
@@ -383,6 +503,53 @@ export function getApiV1OpenApiSpec() {
           },
         },
       },
+      '/api/v1/library/{id}/read': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Set read status for current user',
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    read: { type: 'boolean' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 201: { description: 'OK' } },
+        },
+      },
+      '/api/v1/library/cover-image': {
+        get: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Proxy cover image from Bookdarr',
+          parameters: [
+            { name: 'path', in: 'query', required: true, schema: { type: 'string' } },
+          ],
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+      '/api/v1/library/files/{id}/stream': {
+        get: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Stream a file (ebook/audiobook) with Range support (unnamed)',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          responses: { 200: { description: 'OK' }, 206: { description: 'Partial Content' } },
+        },
+        head: {
+          security: [{ bearerAuth: [] }],
+          summary: 'HEAD stream (metadata only, unnamed)',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          responses: { 200: { description: 'OK' }, 206: { description: 'Partial Content' } },
+        },
+      },
       '/api/v1/library/files/{id}/stream/{name}': {
         get: {
           security: [{ bearerAuth: [] }],
@@ -403,6 +570,20 @@ export function getApiV1OpenApiSpec() {
           responses: { 200: { description: 'OK' }, 206: { description: 'Partial Content' } },
         },
       },
+      '/api/v1/library/admin/clear-cache': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Admin: clear server offline cache',
+          responses: { 201: { description: 'OK' }, 403: { description: 'Forbidden' } },
+        },
+      },
+      '/api/v1/library/admin/storage': {
+        get: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Admin: get storage stats (disk/cache/log sizes)',
+          responses: { 200: { description: 'OK' }, 403: { description: 'Forbidden' } },
+        },
+      },
       '/api/v1/reader/progress/{kind}/{fileId}': {
         get: {
           security: [{ bearerAuth: [] }],
@@ -420,6 +601,49 @@ export function getApiV1OpenApiSpec() {
             { name: 'kind', in: 'path', required: true, schema: { type: 'string' } },
             { name: 'fileId', in: 'path', required: true, schema: { type: 'string' } },
           ],
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+      '/api/v1/reader/progress/{kind}/{fileId}/reset': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Reset reader progress back to start',
+          parameters: [
+            { name: 'kind', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'fileId', in: 'path', required: true, schema: { type: 'string' } },
+          ],
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+      '/api/v1/reader/progress/{kind}/{fileId}/sync': {
+        post: {
+          security: [{ bearerAuth: [] }],
+          summary: 'Sync progress (client/server conflict resolution)',
+          parameters: [
+            { name: 'kind', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'fileId', in: 'path', required: true, schema: { type: 'string' } },
+            {
+              name: 'prefer',
+              in: 'query',
+              required: false,
+              schema: { type: 'string', enum: ['client', 'server'] },
+              description: 'When "server", return server state if present; otherwise accept client.',
+            },
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: { type: 'object', additionalProperties: true },
+                    updatedAt: { type: 'integer' },
+                  },
+                },
+              },
+            },
+          },
           responses: { 200: { description: 'OK' } },
         },
       },

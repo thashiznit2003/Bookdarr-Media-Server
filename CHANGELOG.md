@@ -1,5 +1,9 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.255 — 2026-02-09 01:02 -06:00
+- Mobile API contract: expand the hand-maintained OpenAPI spec (`GET /api/v1/openapi.json`) to cover password reset, 2FA endpoints, cover proxy, both stream variants, read status, admin storage/cache, and reader progress reset/sync.
+- Install hardening: add e2e coverage for fresh installs using TypeORM migrations (`DB_SYNC=false`, `DB_MIGRATIONS=true`) so Docker/Postgres and new SQLite installs do not rely on `DB_SYNC`.
+
 ## 1.0.254 — 2026-02-08 17:25 -06:00
 - Reverse-proxy correctness: centralize forwarded host/proto parsing and use it for auth cookie security + password reset base URL construction.
 - Abuse protection: add rate limits to SMTP settings/test/check, Bookdarr settings/test, auth secret rotation, and server cache clear.
