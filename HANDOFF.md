@@ -70,8 +70,9 @@ Admin endpoint hardening:
 - `ADMIN_REAUTH_REQUIRED=true` (default) requires admin password, and OTP if enabled, for password/2FA resets.
 
 Logs:
-- App logs are written to `/opt/bookdarr-media-server/data/logs/bms.log` (`LOG_DIR`).
-- Install script configures log rotation via `/etc/logrotate.d/bookdarr-media-server`.
+- App logs are written to `/opt/bookdarr-media-server/data/logs/*.log` (primary: `bms.log`).
+- Install script configures log rotation via `/etc/logrotate.d/bookdarr-media-server` (rotates `data/logs/*.log`).
+- For production-like ops, keep `VERBOSE_LOGS=false` (verbose request logging will grow logs quickly).
 
 Offline cache disk guardrails:
 - Server-side cached media lives under `/opt/bookdarr-media-server/data/offline`.
@@ -80,6 +81,10 @@ Offline cache disk guardrails:
 - Optional cache cap (defense-in-depth):
   - `OFFLINE_MAX_CACHE_MB` limits total VM-cached offline media across all users/books.
   - `OFFLINE_EVICT_OLDEST=true` evicts the oldest ready cached files until the new download fits; otherwise the download is blocked.
+
+VM `.env` hygiene:
+- Do not keep stale `DIAGNOSTICS_*` or `FORCE_READIUM` flags in `.env` (diagnostics outbound is removed; Readium is not used).
+- Use `OFFLINE_MAX_CACHE_MB` and `OFFLINE_EVICT_OLDEST` to ensure server-side caching cannot silently fill the VM disk.
 
 ## Mobile Prep: Reader Progress And Offline Contract
 Progress is stored server-side per user and synced across devices via versioned endpoints.

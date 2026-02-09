@@ -1,5 +1,8 @@
 # Changelog — Bookdarr Media Server (BMS)
 
+## 1.0.256 — 2026-02-09 01:17 -06:00
+- Ops docs: document production log rotation targeting `data/logs/*.log`, recommend `VERBOSE_LOGS=false`, and add VM `.env` hygiene notes (remove stale diagnostics/readium flags, set offline cache cap env vars).
+
 ## 1.0.255 — 2026-02-09 01:02 -06:00
 - Mobile API contract: expand the hand-maintained OpenAPI spec (`GET /api/v1/openapi.json`) to cover password reset, 2FA endpoints, cover proxy, both stream variants, read status, admin storage/cache, and reader progress reset/sync.
 - Install hardening: add e2e coverage for fresh installs using TypeORM migrations (`DB_SYNC=false`, `DB_MIGRATIONS=true`) so Docker/Postgres and new SQLite installs do not rely on `DB_SYNC`.
